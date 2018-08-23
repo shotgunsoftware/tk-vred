@@ -126,6 +126,17 @@ class VREDLauncher(SoftwareLauncher):
 
         return supported_sw_versions
 
+    def _map_version_year(self, version):
+        year = version
+        versions_years = [
+            {'version': '11.', 'year': '2019.'}
+        ]
+        for version_year in versions_years:
+            if version.startswith(version_year.get('version')):
+                year = year.replace(version_year.get('version'), version_year.get('year'))
+                break
+        return year
+
     def _find_software(self):
         """
         Find executables in the default install locations.
@@ -151,7 +162,7 @@ class VREDLauncher(SoftwareLauncher):
 
                 # extract the matched keys form the key_dict (default to None if
                 # not included)
-                executable_version = key_dict.get("version")
+                executable_version = self._map_version_year(key_dict.get("version"))
 
                 sw_versions.append(
                     SoftwareVersion(
