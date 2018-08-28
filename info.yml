@@ -19,7 +19,7 @@ configuration:
         type: template
         description: "This template is to set de initial render file path."
         allows_empty: true
-        fields: shotgun_root, sg_asset_type, Asset, Step, scene_name
+        fields: sg_asset_type, Asset, Step, scene_name
 
 # the Shotgun fields that this engine needs in order to operate correctly
 requires_shotgun_fields:

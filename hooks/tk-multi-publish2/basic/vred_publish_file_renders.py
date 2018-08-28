@@ -96,24 +96,14 @@ class VREDPublishFileRendersPlugin(HookBaseClass):
 
     def _get_target_path(self, item):
         publisher = self.parent
-        
         source_path = item.properties["path"]
         publish_template = item.properties.get("publish_template")
-
-        shotgun_root = publisher.sgtk.project_path
         scene_name = os.path.basename(os.path.dirname(source_path))
-        sg_asset_type_key = 'entity.Asset.sg_asset_type'
-        fallback_sg_type = publisher.context.entity_locations[0]
-        fallback_sg_type = fallback_sg_type.split('assets')[1].split(os.path.sep)[1]
-        fields = {
-            'shotgun_root': shotgun_root,
-            'sg_asset_type': publisher.context.source_entity.get(sg_asset_type_key, fallback_sg_type),
-            'Asset': publisher.context.entity['name'].replace(' ', '-'),
-            'Step': publisher.context.step['name'].replace(' ', '-').lower(),
-            'scene_name': scene_name
-        }
-
-        target_path = publish_template.apply_fields(fields)
+        context_fields = publisher.context.as_template_fields(publish_template, validate=True)
+        context_fields.update({'scene_name': scene_name})
+        target_path = publish_template.apply_fields(context_fields)
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
         target_path = os.path.sep.join([target_path, scene_name + '.png'])
         return target_path
     
