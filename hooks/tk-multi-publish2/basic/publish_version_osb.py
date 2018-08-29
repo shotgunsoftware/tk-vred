@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
+import os
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -64,3 +65,9 @@ class PublishOSBVersionPlugin(HookBaseClass):
             "checked": False,
             "enabled": True
         }
+
+    def publish(self, settings, item):
+        publish_name = item.properties['publish_name']
+        name, extension = os.path.splitext(publish_name)
+        item.properties['publish_name'] = name
+        super(PublishOSBVersionPlugin, self).publish(settings, item)
