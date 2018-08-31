@@ -1,0 +1,13 @@
+prefix=C:/pyside/pySide/pyside2_install/py2.7-qt5.6.1-64bit-release
+exec_prefix=C:/pyside/pySide/pyside2_install/py2.7-qt5.6.1-64bit-release
+libdir=C:/pyside/pySide/pyside2_install/py2.7-qt5.6.1-64bit-release/lib
+includedir=C:/pyside/pySide/pyside2_install/py2.7-qt5.6.1-64bit-release/include/shiboken2
+generator_location=C:/pyside/pySide/pyside2_install/py2.7-qt5.6.1-64bit-release/bin/shiboken2
+python_interpreter=C:/Python27/python.exe
+python_include_dir=C:/Python27/include
+
+Name: shiboken2
+Description: Support library for Python bindings created with the Shiboken2 generator.
+Version: 2.0.0
+Libs: C:/Python27/libs/python27.lib -L${libdir} -lshiboken2
+Cflags: -IC:/Python27/include -I${includedir}/
