@@ -89,9 +89,10 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         base_accept = super(VREDPublishLMVFilePlugin, self).accept(settings, item)
 
         base_accept.update({
+            "accepted": True,
+            "visible": True,
             "checked": True,
-            "enabled": False,
-            "accepted": True if self._is_translator_installed() else False
+            "enabled": False
         })
         return base_accept
 
@@ -282,7 +283,15 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         return "VRED"
 
     def publish(self, settings, item):
-        self._copy_work_to_publish(settings, item)
+        if self._is_translator_installed():
+            self._copy_work_to_publish(settings, item)
+
+        # Create version
+        path = item.properties['path']
+        file_name = os.path.basename(path)
+        name, extension = os.path.splitext(file_name)
+        item.properties['publish_name'] = name
+        super(VREDPublishLMVFilePlugin, self).publish(settings, item)
 
     @property
     def item_filters(self):
@@ -297,4 +306,24 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
     @property
     def description(self):
-        return "Publishes the file to Shotgun in a valid LMV format."
+        """
+        Verbose, multi-line description of what the plugin does. This can
+        contain simple html for formatting.
+        """
+    
+        publisher = self.parent
+    
+        shotgun_url = publisher.sgtk.shotgun_url
+    
+        media_page_url = "%s/page/media_center" % (shotgun_url,)
+        review_url = "https://www.shotgunsoftware.com/features/#review"
+    
+        return """
+                Publishes the file to Shotgun in a valid LMV format (In case translator is installed)<br>
+                Upload the file to Shotgun for review.<br><br>
+
+                A <b>Version</b> entry will be created in Shotgun and a transcoded
+                copy of the file will be attached to it. The file can then be reviewed
+                via the project's <a href='%s'>Media</a> page, <a href='%s'>RV</a>, or
+                the <a href='%s'>Shotgun Review</a> mobile app.
+                """ % (media_page_url, review_url, review_url)
