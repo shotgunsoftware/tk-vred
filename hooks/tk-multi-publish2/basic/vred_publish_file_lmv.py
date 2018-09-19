@@ -22,6 +22,8 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class VREDPublishLMVFilePlugin(HookBaseClass):
+    TMPDIR = None
+
     @staticmethod
     def _get_translator():
         return r"C:\Program Files\Autodesk\VREDPro-11.2\Bin\WIN64\LMV\viewing-vpb-lmv.exe"
@@ -116,20 +118,20 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         translator = self._get_translator()
 
         # Temporal dir
-        tmpdir = tempfile.mkdtemp(prefix='sgtk_')
+        self.TMPDIR = tempfile.mkdtemp(prefix='sgtk_')
 
         # VRED file name
         file_name = os.path.basename(source_path)
 
         # JSON file
         self.logger.info("Creating JSON file")
-        index_path = os.path.join(tmpdir, 'index.json')
+        index_path = os.path.join(self.TMPDIR, 'index.json')
         with open(index_path, 'w') as _:
             pass
 
         # Copy source file locally
         self.logger.info("Copy file {} locally.".format(source_path))
-        source_path_temporal = os.path.join(tmpdir, file_name)
+        source_path_temporal = os.path.join(self.TMPDIR, file_name)
         shutil.copyfile(source_path, source_path_temporal)
 
         # Execute translation command
@@ -148,7 +150,7 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
             if not os.path.exists(target_path_parent):
                 self.makedirs(target_path_parent)
 
-            output_directory = os.path.join(tmpdir, "output")
+            output_directory = os.path.join(self.TMPDIR, "output")
 
             # Rename svf file
             name, _ = os.path.splitext(file_name)
@@ -160,7 +162,7 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
             shutil.copytree(output_directory, target_path)
 
-            base_name = os.path.join(tmpdir, "{}".format(publish_id))
+            base_name = os.path.join(self.TMPDIR, "{}".format(publish_id))
 
             self.logger.info("LMV files copied.")
         else:
@@ -200,8 +202,10 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
                                            root_dir=output_directory)
 
             self.logger.info("Moving images")
-            shutil.move(thumb_small_path, images_path)
-            shutil.move(thumb_big_path, images_path)
+            shutil.copy(thumb_small_path, images_path)
+            shutil.copy(thumb_big_path, images_path)
+
+            item.properties["thumb_small_path"] = thumb_small_path
         else:
             self.logger.info("ZIP package without images")
             zip_path = shutil.make_archive(base_name=base_name,
@@ -217,9 +221,6 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         self.parent.engine.shotgun.update(entity_type="PublishedFile",
                                           entity_id=publish_id,
                                           data=dict(sg_translation_type="LMV"))
-
-        self.logger.info("Cleaning...")
-        shutil.rmtree(tmpdir)
 
         self.logger.info("Updating translation status.")
         self.parent.engine.shotgun.update("PublishedFile", publish_id, dict(sg_translation_status="Completed"))
@@ -292,6 +293,18 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         name, extension = os.path.splitext(file_name)
         item.properties['publish_name'] = name
         super(VREDPublishLMVFilePlugin, self).publish(settings, item)
+
+        thumbnail_path = item.get_thumbnail_as_path()
+        if not thumbnail_path and "thumb_small_path" in item.properties:
+            self.parent.engine.shotgun.upload_thumbnail(entity_type="Version",
+                                                        entity_id=item.properties["sg_version_data"]["id"],
+                                                        path=item.properties["thumb_small_path"])
+
+        try:
+            shutil.rmtree(self.TMPDIR)
+        except Exception as e:
+            pass
+
 
     @property
     def item_filters(self):
