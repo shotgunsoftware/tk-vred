@@ -127,15 +127,11 @@ class VREDLauncher(SoftwareLauncher):
         return supported_sw_versions
     
     def _map_version_year(self, version):
-        year = version
-        versions_years = [
-            {'version': '11.', 'year': '2019.'}
-        ]
-        for version_year in versions_years:
-            if version.startswith(version_year.get('version')):
-                year = year.replace(version_year.get('version'), version_year.get('year'))
-                break
-        return year
+        try:
+            year = int(version[:2]) + 2008
+            return '{0}{1}'.format(year, version[2:])
+        except Exception:
+            return version
 
     def _find_software(self):
         """
