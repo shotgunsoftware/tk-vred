@@ -428,30 +428,15 @@ class VREDEngine(tank.platform.Engine):
         Get render path when the file is selected or saved
         """
         self.log_info('Generating render path')
-
         try:
-            shotgun_root = self.sgtk.project_path
             template = self.get_template_by_name(self.get_setting('render_template'))
+            context_fields = self.context.as_template_fields(template, validate=True)
             scene_name = file_path.split(os.path.sep)[-1].replace('.vpb', '')
-            sg_asset_type_key = 'entity.Asset.sg_asset_type'
-            fallback_sg_type = self.context.entity_locations[0]
-            fallback_sg_type = fallback_sg_type.split('assets')[1].split(os.path.sep)[1]
-            fields = {
-                'shotgun_root': shotgun_root,
-                'sg_asset_type': self.context.source_entity.get(sg_asset_type_key, fallback_sg_type),
-                'Asset': self.context.entity['name'].replace(' ', '-'),
-                'Step': self.context.step['name'].replace(' ', '-').lower(),
-                'scene_name': scene_name
-            }
-            path = template.apply_fields(fields)
+            context_fields.update({'scene_name': scene_name})
+            path = template.apply_fields(context_fields)
             self.log_info('Path value: {0}'.format(path))
-            try:
+            if not os.path.exists(path):
                 os.makedirs(path)
-            except OSError as exc:
-                if exc.errno == errno.EEXIST and os.path.isdir(path):
-                    pass
-                else:
-                    raise exc
             path = os.path.sep.join([path, scene_name+'.png'])
             self.log_info('\nFull path value: {0}\n'.format(path))
         except Exception as err:
