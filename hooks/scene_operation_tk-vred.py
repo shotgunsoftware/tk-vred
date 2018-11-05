@@ -5,6 +5,8 @@ import vrScript
 import vrScenegraph
 from sgtk import TankError
 import vrFieldAccess
+import os
+import vrMaterialPtr
 
 HookClass = sgtk.get_hook_baseclass()
 class SceneOperation(HookClass):
@@ -83,18 +85,71 @@ class SceneOperation(HookClass):
         app = self.parent.engine
         app.log_info("update scene")
         app.log_info(items)
-        _nodeList = vrScenegraph.getAllNodes()
-        
         # Perform update for each item selected.
         for item in items:
-            for _node in _nodeList:
-                _filePath = None
-                if _node.hasAttachment("FileInfo"):
-                    _att = _node.getAttachment("FileInfo")
-                    _filePath = vrFieldAccess.vrFieldAccess(_att).getString("filename")
-                if _filePath is not None and item["node"] == _node.getName():
-                    # Delete the node 
-                    if vrScenegraph.deleteNode(_node,True):
-                        # Load the new node.
-                        self.parent.engine.load_file(item["path"])
+            self._update_node(item)
         
+    def _update_node(self, item):
+        """
+        Perform an update of the selected node, applies transformation and materials
+        :param item: item to be updated
+        """
+        nodes = vrScenegraph.findNodes(item['node'])
+        if len(nodes) > 0:
+            node = nodes[0]
+            new_node = vrFileIO.loadGeometry(item["path"])
+            name, extension = os.path.splitext(os.path.basename(item["path"]))
+            if name == new_node.getName():
+                materials_dict = self._obtain_materials()
+                self._apply_transformations(node, new_node, materials_dict)
+            # Delete the node
+            vrScenegraph.deleteNode(node, True)
+    
+    def _obtain_materials(self):
+        """
+        Obtain a materials list with respective nodes
+        :return: list of materials
+        """
+        materials = vrMaterialPtr.getAllMaterials()
+        materials_dict = []
+        for material in materials:
+            if material.getName() == 'DefaultShader':
+                continue
+            material_nodes = material.getNodes()
+            nodes_names = [node.getName() for node in material_nodes]
+            materials_dict.append({
+                'name': material.getName(),
+                'material': material,
+                'nodes': nodes_names
+            })
+        return materials_dict
+    
+    def _apply_transformations(self, old_node, new_node, materials):
+        """
+        Recursive to apply transformations and materials to node and childs
+        :param old_node: previous node with transformations and materials
+        :param new_node: new node to apply transformations and materials
+        :param materials: list of materials
+        """
+        if old_node.getName() == 'Surface':
+            return
+        vrScenegraph.copyTransformation(old_node, new_node)
+        self._apply_materials(old_node, new_node, materials)
+        for i in range(0, old_node.getNChildren()):
+            for j in range(0, new_node.getNChildren()):
+                if old_node.getChild(i).getName() == new_node.getChild(j).getName():
+                    self._apply_transformations(old_node.getChild(i), new_node.getChild(j), materials)
+                    break
+                    
+    def _apply_materials(self, old_node, new_node, materials):
+        """
+        Apply materials for the new node based on old node
+        :param old_node: old node with materials
+        :param new_node: new node to apply materials
+        :param materials: materials list
+        """
+        materials_to_apply = []
+        for material in materials:
+            if old_node.getName() in material.get('nodes'):
+                materials_to_apply.append(material.get('material'))
+        vrScenegraph.applyMaterial([new_node, ], materials_to_apply, False, False)

@@ -16,19 +16,19 @@ import random
 
 from shiboken2 import wrapInstance
 from PySide2 import QtWidgets
-from PySide2 import QtCore, QtGui
 
 import tank
 from tank import TankError
+
 import vrVredUi
 import vrFileIO
 import vrController
+import vrRenderSettings
 import webbrowser
 
-import vrRenderSettings
 
 class VREDEngine(tank.platform.Engine):
-    '''
+    """
     The VRED engine.
 
     The default shotgun menu actions are:
@@ -45,7 +45,7 @@ class VREDEngine(tank.platform.Engine):
         * 'About...'
         * 'Snapshot...'
         * 'Work Area Info...'
-    '''
+    """
     render_path = None
     cmd_and_callback_dict = {}
     shotgun_menu_text = u'S&hotgun'
@@ -58,7 +58,7 @@ class VREDEngine(tank.platform.Engine):
         return file_is_open or (has_asset and has_task)
 
     def get_project_title(self):
-        '''Load information to infer and return the project title'''
+        """Load information to infer and return the project title"""
         # Project menu title
         has_task = self.context.task
         has_asset = self.context.entity and self.context.entity.get("type") == "Asset"
@@ -78,7 +78,7 @@ class VREDEngine(tank.platform.Engine):
         return title
 
     def make_action(self, title, actions_store={}, custom_action=None, show=True):
-        '''Make an action just passing title and callbacks storage'''
+        """Make an action just passing title and callbacks storage"""
         action = custom_action
         fallback = self.cmd_and_callback_dict.get(title.replace('&', ''), lambda: None)
         action = custom_action or actions_store.get(title.replace('&', ''), fallback)
@@ -91,7 +91,7 @@ class VREDEngine(tank.platform.Engine):
         }
 
     def _create_shotgun_menu(self):
-        '''
+        """
         Creates the shotgun menu based on the loaded apps.
         To create the menu we use menu structure with next contracts:
             {
@@ -108,7 +108,7 @@ class VREDEngine(tank.platform.Engine):
         To enable debug create environ variable VRED_DEBUG:
             - Windows: "SET VRED_DEBUG=1"
             - UNIX: "export VRED_DEBUG=1"
-        '''
+        """
         try:
             window = self._window
             menubar = window.menuBar()
@@ -185,7 +185,7 @@ class VREDEngine(tank.platform.Engine):
             self.log_info('Error creating menu: {0}'.format(error))
 
     def prepare_menu_from_structure(self, menu_items, parentmenu, existent_elements):
-        '''Create menu elements and actions accorfing passed structures'''
+        """Create menu elements and actions accorfing passed structures"""
         try:
             for item in menu_items:
                 show_item = item.get('show', None)
@@ -336,6 +336,19 @@ class VREDEngine(tank.platform.Engine):
         else:
             # The user chose not to open the file
             pass
+    
+    def import_file(self, file_path):
+        """
+        Import a file into VRED. This will reset not the workspace.
+        """
+        decision = self.execute_hook_method("file_usage_hook", "file_attempt_open", path=file_path)
+        if decision:
+            self.log_info("Import File: {}".format(file_path))
+            vrFileIO.loadGeometry(file_path)
+            self.prepare_render_path(file_path)
+        else:
+            # The user chose not to open the file
+            pass
 
     def reset_scene(self):
         """
@@ -415,30 +428,15 @@ class VREDEngine(tank.platform.Engine):
         Get render path when the file is selected or saved
         """
         self.log_info('Generating render path')
-
         try:
-            shotgun_root = self.sgtk.project_path
             template = self.get_template_by_name(self.get_setting('render_template'))
+            context_fields = self.context.as_template_fields(template, validate=True)
             scene_name = file_path.split(os.path.sep)[-1].replace('.vpb', '')
-            sg_asset_type_key = 'entity.Asset.sg_asset_type'
-            fallback_sg_type = self.context.entity_locations[0]
-            fallback_sg_type = fallback_sg_type.split('assets')[1].split(os.path.sep)[1]
-            fields = {
-                'shotgun_root': shotgun_root,
-                'sg_asset_type': self.context.source_entity.get(sg_asset_type_key, fallback_sg_type),
-                'Asset': self.context.entity['name'].replace(' ', '-'),
-                'Step': self.context.step['name'].replace(' ', '-').lower(),
-                'scene_name': scene_name
-            }
-            path = template.apply_fields(fields)
+            context_fields.update({'scene_name': scene_name})
+            path = template.apply_fields(context_fields)
             self.log_info('Path value: {0}'.format(path))
-            try:
+            if not os.path.exists(path):
                 os.makedirs(path)
-            except OSError as exc:
-                if exc.errno == errno.EEXIST and os.path.isdir(path):
-                    pass
-                else:
-                    raise exc
             path = os.path.sep.join([path, scene_name+'.png'])
             self.log_info('\nFull path value: {0}\n'.format(path))
         except Exception as err:
@@ -456,6 +454,12 @@ class VREDEngine(tank.platform.Engine):
         if path:
             self.render_path = path
             vrRenderSettings.setRenderFilename(self.render_path)
+
+    def save_before_publish(self, path):
+        """
+        Save the scene before publish in order to get the latest changes
+        """
+        self.save_current_file(path)
 
     def save_after_publish(self, path):
         """

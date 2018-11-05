@@ -10,6 +10,8 @@
 import os
 from os.path import dirname, abspath, join, expanduser, exists
 
+import sgtk
+
 CORE_SCRIPTS_DIR = r"C:\Program Files\Autodesk\VREDPro-11.0\lib\plugins\WIN64\Scripts"
 
 
@@ -45,7 +47,13 @@ def compute_environment(engine_name=None, context=None):
     if context:
         os.environ['TANK_CONTEXT'] = context
         env['TANK_CONTEXT'] = os.environ['TANK_CONTEXT']
-    
+
+    if os.path.exists(r"C:\Program Files\Autodesk\VREDPro-11.2"):
+        sgtk.util.append_path_to_env_var("PATH", r"C:\Program Files\Autodesk\VREDPro-11.2\Bin\WIN64")
+        sgtk.util.append_path_to_env_var("PATH", r"C:\Program Files\Autodesk\VREDPro-11.2\Bin\WIN64\LMV")
+
+        env["PATH"] = os.environ["PATH"]
+
     return env
 
 

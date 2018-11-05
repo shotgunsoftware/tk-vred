@@ -8,9 +8,10 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import pprint
-import sys
+import os
 
+import traceback
+from sgtk.util.filesystem import copy_file, ensure_folder_exists
 import sgtk
 
 HookBaseClass = sgtk.get_hook_baseclass()
@@ -48,15 +49,37 @@ class VREDPublishFileRendersPlugin(HookBaseClass):
 
         base_settings.update(publish_settings)
 
+        workfile_settings = {
+            "Work Template": {
+                "type": "template",
+                "default": None,
+                "description": "Template path for published work files. Should"
+                               "correspond to a template defined in "
+                               "templates.yml.",
+            }
+        }
+
+        base_settings.update(workfile_settings)
+
         return base_settings
 
     def validate(self, settings, item):
+        publisher = self.parent
+
+        publish_template_setting = settings.get("Publish Template")
+        publish_template = publisher.engine.get_template_by_name(publish_template_setting.value)
+
+        if not publish_template:
+            return False
+
+        item.properties["publish_template"] = publish_template
         return True
 
     def accept(self, settings, item):
         base_accept = super(VREDPublishFileRendersPlugin, self).accept(settings, item)
 
         base_accept.update({"checked": False})
+        base_accept.update({"visible": False})
 
         return base_accept
 
@@ -71,120 +94,44 @@ class VREDPublishFileRendersPlugin(HookBaseClass):
         """
         return ["vred.session.renders"]
 
-    def publish(self, settings, item):
-        """
-        Executes the publish logic for the given item and settings.
-
-        :param settings: Dictionary of Settings. The keys are strings, matching
-            the keys returned in the settings property. The values are `Setting`
-            instances.
-        :param item: Item to process
-        """
-
+    def _get_target_path(self, item):
         publisher = self.parent
-        path = item.properties["path"]
+        source_path = item.properties["path"]
+        publish_template = item.properties.get("publish_template")
+        scene_name = os.path.basename(os.path.dirname(source_path))
+        context_fields = publisher.context.as_template_fields(publish_template, validate=True)
+        context_fields.update({'scene_name': scene_name})
+        target_path = publish_template.apply_fields(context_fields)
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
+        target_path = os.path.sep.join([target_path, scene_name + '.png'])
+        return target_path
+    
+    def _copy_work_to_publish(self, settings, item):
+        publish_template = item.properties.get("publish_template")
+        if not publish_template:
+            self.logger.debug(
+                "No publish template set on the item. "
+                "Skipping copying file to publish location."
+            )
+            return
 
-        # allow the publish name to be supplied via the item properties. this is
-        # useful for collectors that have access to templates and can determine
-        # publish information about the item that doesn't require further, fuzzy
-        # logic to be used here (the zero config way)
-        publish_name = item.properties.get("publish_name")
-        if not publish_name:
-            self.logger.debug("Using path info hook to determine publish name.")
+        # Source path
+        source_path = item.properties["path"]
+        target_path = self._get_target_path(item)
 
-            # use the path's filename as the publish name
-            path_components = publisher.util.get_file_path_components(path)
-            publish_name = path_components["filename"]
+        try:
+            publish_folder = os.path.dirname(target_path)
+            ensure_folder_exists(publish_folder)
+            copy_file(source_path, target_path)
+        except Exception as e:
+            raise Exception(
+                "Failed to copy work file from '%s' to '%s'.\n%s" %
+                (source_path, target_path, traceback.format_exc())
+            )
 
-        self.logger.debug("Publish name: %s" % (publish_name,))
+        self.logger.debug("Copied work file '%s' to publish file '%s'." % (source_path, target_path))
 
-        self.logger.info("Creating Version...")
-        version_data = {
-            "project": item.context.project,
-            "code": publish_name,
-            "description": item.description,
-            "entity": self._get_version_entity(item),
-            "sg_task": item.context.task
-        }
-
-        if "sg_publish_data" in item.properties:
-            publish_data = item.properties["sg_publish_data"]
-            version_data["published_files"] = [publish_data]
-
-        version_data["sg_path_to_movie"] = path
-
-        # log the version data for debugging
-        self.logger.debug(
-            "Populated Version data...",
-            extra={
-                "action_show_more_info": {
-                    "label": "Version Data",
-                    "tooltip": "Show the complete Version data dictionary",
-                    "text": "<pre>%s</pre>" % (pprint.pformat(version_data),)
-                }
-            }
-        )
-
-        # Create the version
-        version = publisher.shotgun.create("Version", version_data)
-        self.logger.info("Version created!")
-
-        # stash the version info in the item just in case
-        item.properties["sg_version_data"] = version
-
-        thumb = item.get_thumbnail_as_path()
-
-        self.logger.info("Uploading content...")
-
-        # on windows, ensure the path is utf-8 encoded to avoid issues with
-        # the shotgun api
-        if sys.platform.startswith("win"):
-            upload_path = path.decode("utf-8")
-        else:
-            upload_path = path
-
-        self.parent.shotgun.upload(
-            "Version",
-            version["id"],
-            upload_path,
-            "sg_uploaded_movie"
-        )
-
-        self.logger.info("Upload complete!")
-
-    def _get_version_entity(self, item):
-        """
-        Returns the best entity to link the version to.
-        """
-
-        if item.context.entity:
-            return item.context.entity
-        elif item.context.project:
-            return item.context.project
-        else:
-            return None
-
-    def finalize(self, settings, item):
-        """
-        Execute the finalization pass. This pass executes once all the publish
-        tasks have completed, and can for example be used to version up files.
-
-        :param settings: Dictionary of Settings. The keys are strings, matching
-            the keys returned in the settings property. The values are `Setting`
-            instances.
-        :param item: Item to process
-        """
-
-        path = item.properties["path"]
-        version = item.properties["sg_version_data"]
-
-        self.logger.info(
-            "Version uploaded for file: %s" % (path,),
-            extra={
-                "action_show_in_shotgun": {
-                    "label": "Show Version",
-                    "tooltip": "Reveal the version in Shotgun.",
-                    "entity": version
-                }
-            }
-        )
+    def publish(self, settings, item):
+        item.local_properties.publish_path = self._get_target_path(item)
+        super(VREDPublishFileRendersPlugin, self).publish(settings, item)

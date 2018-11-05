@@ -14,7 +14,7 @@ import os
 HookBaseClass = sgtk.get_hook_baseclass()
 
 
-class PublishVersionPlugin(HookBaseClass):
+class PublishOSBVersionPlugin(HookBaseClass):
     @property
     def name(self):
         """
@@ -31,7 +31,7 @@ class PublishVersionPlugin(HookBaseClass):
         accept() method. Strings can contain glob patters such as *, for example
         ["maya.*", "file.maya"]
         """
-        return ["vred.session"]
+        return ["vred.session.geometry"]
 
     def accept(self, settings, item):
         """
@@ -61,14 +61,13 @@ class PublishVersionPlugin(HookBaseClass):
 
         return {
             "accepted": True,
-            "visible": True,
-            "checked": True,
-            "enabled": False
+            "visible": False,
+            "checked": False,
+            "enabled": True
         }
 
     def publish(self, settings, item):
-        path = item.properties['path']
-        file_name = os.path.basename(path)
-        name, extension = os.path.splitext(file_name)
+        publish_name = item.properties['publish_name']
+        name, extension = os.path.splitext(publish_name)
         item.properties['publish_name'] = name
-        super(PublishVersionPlugin, self).publish(settings, item)
+        super(PublishOSBVersionPlugin, self).publish(settings, item)
