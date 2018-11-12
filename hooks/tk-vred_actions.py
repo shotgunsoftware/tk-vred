@@ -224,6 +224,6 @@ class VredActions(HookBaseClass):
         """
         if not os.path.exists(path):
             raise Exception("File not found on disk - '%s'" % path)
-        self.parent.engine.load_file(path)
+        self.parent.engine.import_file(path)
 
         self._loaded_successfully_messagebox(path)

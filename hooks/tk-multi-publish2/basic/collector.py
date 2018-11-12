@@ -11,6 +11,8 @@
 import os
 
 import sgtk
+import vrScenegraph
+import vrFieldAccess
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -73,6 +75,7 @@ class VREDSessionCollector(HookBaseClass):
         session_item.display_type = "VRED Session"
 
         self._collect_session_renders(session_item)
+        self._collect_geometries(session_item, path)
 
     def _collect_session_renders(self, parent_item):
         """
@@ -94,3 +97,32 @@ class VREDSessionCollector(HookBaseClass):
             item.type = "vred.session.renders"
             item.name = file_name
             item.display_type = "VRED Session Render"
+    
+    def _collect_geometries(self, parent_item, parent_path):
+        """
+        Creates items for osb to be exported.
+
+        :param parent_item: Parent Item instance
+        :param parent_path: Parent path
+        """
+
+        # get the icon path to display for this item
+        icon_path = os.path.join(
+            self.disk_location,
+            os.pardir,
+            "icons",
+            "publish_vred_osb.png"
+        )
+        
+        rootNode = vrScenegraph.getRootNode()
+        for n in range(0, rootNode.getNChildren()):
+            childNode = rootNode.getChild(n)
+            if childNode.getType() == "Geometry":
+                # Add node Info
+                fieldAcc = childNode.fields()
+                item = super(VREDSessionCollector, self)._collect_file(parent_item, parent_path)
+                item.name = childNode.getName()
+                item.type = 'vred.session.geometry'
+                item.display_type = 'Geometry Node'
+                item.properties['node_id'] = fieldAcc.getID()
+                item.set_icon_from_path(icon_path)

@@ -85,10 +85,12 @@ class VREDPublishFilePlugin(HookBaseClass):
         return True
 
     def publish(self, settings, item):
-        super(VREDPublishFilePlugin, self).publish(settings, item)
-        self.logger.info("Saving new version!")
         publisher = self.parent
         engine = publisher.engine
+
+        self.logger.info("Saving...")
+        engine.save_before_publish(item.properties["path"])
+        super(VREDPublishFilePlugin, self).publish(settings, item)
         engine.save_after_publish(item.properties["next_version_path"])
 
     @property
