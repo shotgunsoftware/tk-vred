@@ -255,12 +255,6 @@ class VREDEngine(tank.platform.Engine):
 
         self._window = self.get_vred_main_window()
 
-        # If the app was launched to open a file, do so
-        file_to_open = os.environ.get("TANK_FILE_TO_OPEN", None)
-        if file_to_open:
-            self.reset_scene()
-            self.load_file(file_to_open)
-
         # Create the Shotgun menu
         self.rebuild_shotgun_menu()
 
