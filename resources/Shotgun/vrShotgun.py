@@ -1,5 +1,8 @@
 import os
 import sys
+from PySide2 import QtCore
+import vrFileIO
+import vrController
 
 # Make Shotgun libraries visible
 sys.path.append(r"C:\Program Files\Shotgun\Python\Lib\site-packages")
@@ -26,6 +29,13 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         if 'SHOTGUN_ENABLE' in os.environ and os.environ['SHOTGUN_ENABLE'] == '1':
             self.context = tank.context.deserialize(os.environ.get("TANK_CONTEXT"))
             self.engine = tank.platform.start_engine('tk-vred', self.context.tank, self.context)
+            QtCore.QTimer.singleShot(0, self.init)
+
+    def init(self):
+        file_to_open = os.environ.get("SGTK_FILE_TO_OPEN", None)
+        if file_to_open:
+            vrController.newScene()
+            vrFileIO.load(file_to_open)
 
     def __del__(self):
         self.destroyMenu()
