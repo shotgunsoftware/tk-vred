@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
+import shutil
 
 import traceback
 from sgtk.util.filesystem import copy_file, ensure_folder_exists
@@ -123,7 +124,7 @@ class VREDPublishFileRendersPlugin(HookBaseClass):
         try:
             publish_folder = os.path.dirname(target_path)
             ensure_folder_exists(publish_folder)
-            copy_file(source_path, target_path)
+            shutil.copyfile(source_path, target_path)
         except Exception as e:
             raise Exception(
                 "Failed to copy work file from '%s' to '%s'.\n%s" %

@@ -79,6 +79,10 @@ class VREDLauncher(SoftwareLauncher):
         std_env = self.get_standard_plugin_environment()
         required_env.update(std_env)
 
+        if file_to_open:
+            # Add the file name to open to the launch environment
+            required_env["SGTK_FILE_TO_OPEN"] = file_to_open
+
         return LaunchInformation(exec_path, args, required_env)
 
     ##########################################################################################
