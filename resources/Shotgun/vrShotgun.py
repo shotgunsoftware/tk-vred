@@ -1,20 +1,16 @@
 import os
-import sys
+
 from PySide2 import QtCore
+from PySide2 import QtWidgets
+
 import vrFileIO
 import vrController
-
-# Make Shotgun libraries visible
-sys.path.append(r"C:\Program Files\Shotgun\Python\Lib\site-packages")
+import uiTools
 
 import tank
 
 tank.LogManager().initialize_base_file_handler("tk-vred")
 logger = tank.LogManager.get_logger(__name__)
-
-from PySide2 import QtWidgets
-import uiTools
-
 vrShotgun_form, vrShotgun_base = uiTools.loadUiType('vrShotgunGUI.ui')
 
 
