@@ -115,6 +115,7 @@ class VREDEngine(tank.platform.Engine):
             menu = QtWidgets.QMenu()
             menu.setTitle(self.shotgun_menu_text)
             cmd_and_callback_dict = dict()
+
             for name, details in self.commands.items():
                 cmd_and_callback_dict[name] = details["callback"]
             self.log_info("{}".format(cmd_and_callback_dict))
