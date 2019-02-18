@@ -71,7 +71,9 @@ class VREDLauncher(SoftwareLauncher):
         import vred_bootstrap
 
         # determine all environment variables
-        required_env = vred_bootstrap.compute_environment(self.engine_name, sgtk.context.serialize(self.context))
+        required_env = vred_bootstrap.compute_environment(self.engine_name,
+                                                          sgtk.context.serialize(self.context),
+                                                          exec_path)
         # copy the extension across to the deploy folder
         args = vred_bootstrap.compute_args(args)
 
