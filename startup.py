@@ -71,13 +71,19 @@ class VREDLauncher(SoftwareLauncher):
         import vred_bootstrap
 
         # determine all environment variables
-        required_env = vred_bootstrap.compute_environment(self.engine_name, sgtk.context.serialize(self.context))
+        required_env = vred_bootstrap.compute_environment(self.engine_name,
+                                                          sgtk.context.serialize(self.context),
+                                                          exec_path)
         # copy the extension across to the deploy folder
         args = vred_bootstrap.compute_args(args)
 
         # Add std context and site info to the env
         std_env = self.get_standard_plugin_environment()
         required_env.update(std_env)
+
+        if file_to_open:
+            # Add the file name to open to the launch environment
+            required_env["SGTK_FILE_TO_OPEN"] = file_to_open
 
         return LaunchInformation(exec_path, args, required_env)
 
