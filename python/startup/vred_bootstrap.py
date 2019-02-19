@@ -12,10 +12,10 @@ from os.path import dirname, abspath, join, expanduser, exists
 
 import sgtk
 
-CORE_SCRIPTS_DIR = r"C:\Program Files\Autodesk\VREDPro-11.0\lib\plugins\WIN64\Scripts"
+# CORE_SCRIPTS_DIR = r"C:\Program Files\Autodesk\VREDPro-11.0\lib\plugins\WIN64\Scripts"
 
 
-def compute_environment(engine_name=None, context=None):
+def compute_environment(engine_name=None, context=None, exec_path=None):
     """
     Return the env vars needed to launch the vred plugin.
     This will generate a dictionary of environment variables
@@ -30,7 +30,10 @@ def compute_environment(engine_name=None, context=None):
     # Tell VRED where to find the script
     resources_dir = join(dirname(dirname(dirname(__file__))), "resources")
     scripts_dir = join(resources_dir, "Shotgun")
-    
+
+    BASE_DIR = os.path.dirname(exec_path)
+
+    CORE_SCRIPTS_DIR = os.path.join(BASE_DIR, "Scripts")
     os.environ["VRED_SCRIPT_PLUGINS"] = "{};{}".format(scripts_dir, CORE_SCRIPTS_DIR)
     # VRED 2019 BETA SPECIFIC ENV VARIABLE - AVOID IT'S USAGE
     # environment variable VRED%YEAR%_%UPDATE%_SCRIPT_PLUGINS
@@ -48,9 +51,9 @@ def compute_environment(engine_name=None, context=None):
         os.environ['TANK_CONTEXT'] = context
         env['TANK_CONTEXT'] = os.environ['TANK_CONTEXT']
 
-    if os.path.exists(r"C:\Program Files\Autodesk\VREDPro-11.2"):
-        sgtk.util.append_path_to_env_var("PATH", r"C:\Program Files\Autodesk\VREDPro-11.2\Bin\WIN64")
-        sgtk.util.append_path_to_env_var("PATH", r"C:\Program Files\Autodesk\VREDPro-11.2\Bin\WIN64\LMV")
+    if os.path.exists(os.path.join(BASE_DIR, "LMV")):
+        sgtk.util.append_path_to_env_var("PATH", BASE_DIR)
+        sgtk.util.append_path_to_env_var("PATH", os.path.join(BASE_DIR, "LMV"))
 
         env["PATH"] = os.environ["PATH"]
 
