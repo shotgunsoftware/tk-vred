@@ -35,8 +35,6 @@ class VREDEngine(tank.platform.Engine):
         * 'Upload Files'
         * 'File Open...'
         * 'File Save...'
-        * 'Jump to Screening Room in RV'
-        * 'Jump to Screening Room Web Player'
         * 'Reload and Restart'
         * 'Open Log Folder'
         * 'Shotgun Panel...'
@@ -136,8 +134,6 @@ class VREDEngine(tank.platform.Engine):
                         self.make_action('Jump to Shot&gun', custom_action=self.jump_to_shotgun),
                         self.make_action('Jump to File S&ystem', custom_action=self.jump_to_file_system),
                         {'type': 'separator', 'show':True},
-                        self.make_action('Jump to Screening &Room Web Player', cmd_and_callback_dict),
-                        self.make_action('Jump to Screening Room in RV', cmd_and_callback_dict),
                         self.make_action('Open Log Folder', cmd_and_callback_dict, show=use_debug),
                         self.make_action('Reload and &Restart', cmd_and_callback_dict, show=use_debug),
                         self.make_action('Work Area &Info...', cmd_and_callback_dict),
