@@ -13,12 +13,12 @@ Hook that loads defines all the available actions, broken down by publish type.
 """
 import sgtk
 import os
-import commands
 import vrScenegraph
 from sgtk.platform.qt import QtGui, QtCore
 
 
 HookBaseClass = sgtk.get_hook_baseclass()
+
 
 class VredActions(HookBaseClass):
 
@@ -131,8 +131,10 @@ class VredActions(HookBaseClass):
             assignees = data["task_assignees"] or []
             assignees.append(app.context.user)
             app.shotgun.update("Task", sg_publish_data["id"], {"task_assignees": assignees})
+
         elif name == "task_to_ip":
             app.shotgun.update("Task", sg_publish_data["id"], {"sg_status_list": "ip"})
+
         else:
             # resolve path
             path = self.get_publish_path(sg_publish_data)
