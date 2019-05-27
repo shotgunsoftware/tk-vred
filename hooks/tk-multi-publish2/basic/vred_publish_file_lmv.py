@@ -24,16 +24,20 @@ HookBaseClass = sgtk.get_hook_baseclass()
 class VREDPublishLMVFilePlugin(HookBaseClass):
     TMPDIR = None
 
-    @staticmethod
-    def _get_translator():
-        return r"C:\Program Files\Autodesk\VREDPro-11.2\Bin\WIN64\LMV\viewing-vpb-lmv.exe"
+    @property
+    def vred_bin_dir(self):
+        return os.path.dirname(os.getenv("TK_VRED_EXECPATH"))
+
+    def _get_translator(self):
+        """Get viewing-vpb-lmv.exe file path"""
+        return os.path.join(self.vred_bin_dir, "LMV", "viewing-vpb-lmv.exe")
 
     def _is_translator_installed(self):
         return os.path.exists(self._get_translator())
 
-    @staticmethod
-    def _get_thumbnail_extractor():
-        return r"C:\Program Files\Autodesk\VREDPro-11.2\Bin\WIN64\extractMetaData.exe"
+    def _get_thumbnail_extractor(self):
+        """Get extractMetaData.exe file path"""
+        return os.path.join(self.vred_bin_dir, "extractMetaData.exe")
 
     @property
     def settings(self):

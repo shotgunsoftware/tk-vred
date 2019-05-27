@@ -27,9 +27,9 @@ class VREDLauncher(SoftwareLauncher):
     # strings, these allow us to alter the regex matching for any of the
     # variable components of the path in one place
     COMPONENT_REGEX_LOOKUP = {
-        "version": "[\d.]+",
-        "product": "(?:Pro|Design)",
-        "product_bck": "(?:Pro|Design)"
+        "version": r"[\d.]+",
+        "product": r"(?:Pro|Design)",
+        "product_bck": r"(?:Pro|Design)"
     }
 
     # This dictionary defines a list of executable template strings for each
@@ -84,6 +84,8 @@ class VREDLauncher(SoftwareLauncher):
         if file_to_open:
             # Add the file name to open to the launch environment
             required_env["SGTK_FILE_TO_OPEN"] = file_to_open
+
+        required_env["TK_VRED_EXECPATH"] = exec_path
 
         return LaunchInformation(exec_path, args, required_env)
 
