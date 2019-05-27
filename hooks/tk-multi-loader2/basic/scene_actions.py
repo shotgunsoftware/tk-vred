@@ -21,6 +21,10 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class VredActions(HookBaseClass):
+    MESSAGES = {
+        "success": "loaded successfully",
+        "error": "Error loading the file(s)",
+    }
 
     ##############################################################################################################
     # public interface - to be overridden by deriving classes
@@ -140,13 +144,13 @@ class VredActions(HookBaseClass):
             path = self.get_publish_path(sg_publish_data)
 
             if name == "reference":
-                self._create_reference(path, sg_publish_data)
+                return self._create_reference(path, sg_publish_data)
 
             if name == "import":
-                self._do_import(path, sg_publish_data)
+                return self._do_import(path, sg_publish_data)
 
             if name == "load":
-                self._do_load(path, sg_publish_data)
+                return self._do_load(path, sg_publish_data)
 
     def execute_multiple_actions(self, actions):
         """
@@ -173,14 +177,50 @@ class VredActions(HookBaseClass):
 
         :param list actions: Action dictionaries.
         """
+        messages = {}
+
         for single_action in actions:
             name = single_action.get("name")
             sg_publish_data = single_action.get("sg_publish_data")
             params = single_action.get("params")
-            self.execute_action(name, params, sg_publish_data)
 
-    ##############################################################################################################
-    # helper methods which can be subclassed in custom hooks to fine tune the behaviour of things
+            message = self.execute_action(name, params, sg_publish_data)
+
+            if not isinstance(messages, dict):
+                continue
+
+            message_type = message.get("message_type")
+            message_code = message.get("message_code")
+            publish_path = message.get("publish_path")
+            is_error = message.get("is_error")
+
+            if message_type not in messages:
+                messages[message_type] = {}
+
+            if message_code not in messages[message_type]:
+                messages[message_type][message_code] = dict(is_error=is_error, paths=[])
+
+            messages[message_type][message_code]["paths"].append(publish_path)
+
+        active_window = QtGui.QApplication.activeWindow()
+        for message_type, message_type_details in messages.items():
+            content = ""
+            for message_code, message_code_details in message_type_details.items():
+                if content:
+                    content += "\n\n"
+
+                is_error = message_code_details.get("is_error")
+                paths = message_code_details.get("paths")
+
+                if is_error:
+                    content += "{}: {}".format(message_code, ", ".format(paths))
+                else:
+                    if len(paths) == 1:
+                        content += "File {} {}".format(paths[0], message_code)
+                    else:
+                        content += "{} files {}".format(len(paths), message_code)
+
+            getattr(QtGui.QMessageBox, message_type)(active_window, message_type.title(), content)
 
     def _create_reference(self, path, sg_publish_data):
         if not os.path.exists(path):
@@ -189,25 +229,7 @@ class VredActions(HookBaseClass):
         namespace = "%s %s" % (sg_publish_data.get("entity").get("name"), sg_publish_data.get("name"))
         namespace = namespace.replace(" ", "_")
 
-        self.parent.engine.load_file([path],vrScenegraph.getRootNode(),False,False)
-
-    def _loaded_successfully_messagebox(self, path):
-        """
-        This will display a QMessageBox to notify the successful result
-        :param path:
-        :return:
-        """
-        message_box = QtGui.QMessageBox()
-        message_box.setWindowTitle("Load File")
-        message_box.setText("File '{!r}' loaded successfully.".format(os.path.basename(path)))
-        message_box.setIcon(QtGui.QMessageBox.Information)
-        message_box.setStandardButtons(QtGui.QMessageBox.Ok)
-        message_box.setDefaultButton(QtGui.QMessageBox.Ok)
-        message_box.show()
-        message_box.raise_()
-        message_box.activateWindow()
-        message_box.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | message_box.windowFlags())
-        message_box.exec_()
+        self.parent.engine.load_file([path], vrScenegraph.getRootNode(),False,False)
 
     def _do_load(self, path, sg_publish_data):
         """
@@ -218,7 +240,8 @@ class VredActions(HookBaseClass):
         self.parent.engine.reset_scene()
         self.parent.engine.load_file(path)
 
-        self._loaded_successfully_messagebox(path)
+        return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
+                    is_error=False)
 
     def _do_import(self, path, sg_publish_data):
         """
@@ -228,4 +251,5 @@ class VredActions(HookBaseClass):
             raise Exception("File not found on disk - '%s'" % path)
         self.parent.engine.import_file(path)
 
-        self._loaded_successfully_messagebox(path)
+        return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
+                    is_error=False)
