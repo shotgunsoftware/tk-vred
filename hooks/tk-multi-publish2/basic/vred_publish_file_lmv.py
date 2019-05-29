@@ -11,12 +11,10 @@
 import os
 import errno
 import shutil
+import subprocess
 import tempfile
-import traceback
-from subprocess import check_call
 
 import sgtk
-from sgtk.util.filesystem import ensure_folder_exists
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -113,6 +111,8 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
                 raise
 
     def _translate_file(self, source_path, item):
+        engine_logger = self.parent.engine.logger
+
         self.logger.info("Starting the translation")
 
         # PublishedFile id
@@ -147,10 +147,14 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         self.logger.info("LMV execution: {}".format(" ".join(command)))
 
         try:
-            check_call(command)
+            engine_logger.debug("Command for translation: {}".format(" ".join(command)))
+            subprocess.check_call(command, stderr=subprocess.STDOUT, shell=True)
         except Exception as e:
+            engine_logger.debug("Command for translation failed: {}".format(e))
             self.logger.error("Error ocurred {!r}".format(e))
             raise
+        else:
+            engine_logger.debug("Translation ran sucessfully")
 
         output_directory = os.path.join(self.TMPDIR, "output")
 
@@ -231,15 +235,14 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
             command = [extractor, "--icv", path, source_temporal_path]
 
             try:
-                command_line_process = Popen(command, stdout=PIPE, stderr=STDOUT)
-                process_output, _ = command_line_process.communicate()
-
-                if command_line_process.returncode != 0:
-                    self.logger.error("Thumbnail extractor failed {!r}".format(process_output))
-                    path = None
+                subprocess.check_call(command, stderr=subprocess.STDOUT, shell=True)
+                self.parent.engine.logger.debug("Getting thumbnail data with command {}".format(command))
             except Exception as e:
                 self.logger.error("Thumbnail extractor failed {!r}".format(e))
+                self.parent.engine.logger.error("Error extracting thumbnail data {}".format(e))
                 path = None
+            else:
+                self.parent.engine.logger.debug("Thumbnail data extracted successfully")
 
         if path:
             with open(path, "rb") as fh:
