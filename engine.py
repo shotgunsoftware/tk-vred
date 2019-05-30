@@ -11,7 +11,6 @@
 
 import os
 import sys
-import errno
 import random
 
 from shiboken2 import wrapInstance
@@ -51,7 +50,7 @@ class VREDEngine(tank.platform.Engine):
     def _can_show_menu(self):
         file_is_open = self.get_current_file()
         has_task = self.context.task
-        has_asset = self.context.entity and self.context.entity.get("type") == "Asset"
+        has_asset = self.context.entity and self.context.entity.get("type") != "Project"
 
         return file_is_open or (has_asset and has_task)
 
@@ -59,7 +58,7 @@ class VREDEngine(tank.platform.Engine):
         """Load information to infer and return the project title"""
         # Project menu title
         has_task = self.context.task
-        has_asset = self.context.entity and self.context.entity.get("type") == "Asset"
+        has_asset = self.context.entity and self.context.entity.get("type") != "Project"
         
         # Asset, Task
         if has_asset and has_task:
