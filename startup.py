@@ -21,14 +21,20 @@ class VREDLauncher(SoftwareLauncher):
     a tk-vred engine with the current context in the new session
     of VRED.
     """
+    # Product code names
+    CODE_NAMES = {
+        "Pro": dict(icon="icon_pro_256.png"),
+        "Design": dict(icon="icon_design_256.png"),
+    }
+
     # Named regex strings to insert into the executable template paths when
     # matching against supplied versions and code_names. Similar to the glob
     # strings, these allow us to alter the regex matching for any of the
     # variable components of the path in one place
     COMPONENT_REGEX_LOOKUP = {
         "version": r"[\d.]+",
-        "code_name": r"(?:Pro|Design)",
-        "code_name_extra": r"(?:Pro|Design)"
+        "code_name": "(?:{code_names})".format(code_names="|".join(CODE_NAMES)),
+        "code_name_extra": "(?:{code_names})".format(code_names="|".join(CODE_NAMES)),
     }
 
     # This dictionary defines a list of executable template strings for each
@@ -93,25 +99,19 @@ class VREDLauncher(SoftwareLauncher):
 
     def _icon_from_executable(self, code_name):
         """
-        Find the application icon based on the executable path and
-        current platform.
+        Find the application icon based on the code_name.
 
-        :param code_name: code_name.
+        :param code_name: Product code_name (AutoStudio, Design, ...).
 
         :returns: Full path to application icon as a string or None.
         """
-        # the engine icon in case we need to use it as a fallback
-        icon_name = "icon_256.png"
+        if code_name in self.CODE_NAMES:
+            icon_name = self.CODE_NAMES.get(code_name).get("icon")
+            path = os.path.join(self.disk_location, "icons", icon_name)
+        else:
+            path = os.path.join(self.disk_location, "icon_256.png")
 
-        if code_name == "Pro":
-            icon_name = "icon_pro_256.png"
-        elif code_name == "Design":
-            icon_name = "icon_design_256.png"
-        engine_icon = os.path.join(self.disk_location, icon_name)
-        if not os.path.exists(engine_icon):
-            engine_icon = os.path.join(self.disk_location, "icon_256.png")
-
-        return engine_icon
+        return path
 
     def scan_software(self):
         """
