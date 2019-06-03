@@ -21,15 +21,14 @@ class VREDLauncher(SoftwareLauncher):
     a tk-vred engine with the current context in the new session
     of VRED.
     """
-
     # Named regex strings to insert into the executable template paths when
-    # matching against supplied versions and products. Similar to the glob
+    # matching against supplied versions and code_names. Similar to the glob
     # strings, these allow us to alter the regex matching for any of the
     # variable components of the path in one place
     COMPONENT_REGEX_LOOKUP = {
         "version": r"[\d.]+",
-        "product": r"(?:Pro|Design)",
-        "product_bck": r"(?:Pro|Design)"
+        "code_name": r"(?:Pro|Design)",
+        "code_name_extra": r"(?:Pro|Design)"
     }
 
     # This dictionary defines a list of executable template strings for each
@@ -40,8 +39,8 @@ class VREDLauncher(SoftwareLauncher):
     # to be added here.
     EXECUTABLE_TEMPLATES = {
         "win32": [
-            # C:/Program Files/Autodesk/VREDPro-11.0/bin/WIN64/VREDPro.exe
-            "C:/Program Files/Autodesk/VRED{product}-{version}/bin/WIN64/VRED{product_bck}.exe",
+            # C:\Program Files\Autodesk\VREDPro-11.0\bin\WIN64\VREDPro.exe
+            r"C:\Program Files\Autodesk\VRED{code_name}-{version}\bin\WIN64\VRED{code_name_extra}.exe",
         ]
     }
 
@@ -64,7 +63,7 @@ class VREDLauncher(SoftwareLauncher):
         """
         # find the bootstrap script and import it.
         # note: all the business logic for how to launch is
-        #       located in the python/startup folder to be compatible
+        #       located in the python\startup folder to be compatible
         #       with older versions of the launch workflow
         bootstrap_python_path = os.path.join(self.disk_location, "python", "startup")
         sys.path.insert(0, bootstrap_python_path)
@@ -92,25 +91,26 @@ class VREDLauncher(SoftwareLauncher):
     ##########################################################################################
     # private methods
 
-    def _icon_from_executable(self, product):
+    def _icon_from_executable(self, code_name):
         """
         Find the application icon based on the executable path and
         current platform.
 
-        :param product: product.
+        :param code_name: code_name.
 
         :returns: Full path to application icon as a string or None.
         """
-
         # the engine icon in case we need to use it as a fallback
         icon_name = "icon_256.png"
-        if product == 'Pro':
+
+        if code_name == "Pro":
             icon_name = "icon_pro_256.png"
-        elif product == 'Design':
+        elif code_name == "Design":
             icon_name = "icon_design_256.png"
         engine_icon = os.path.join(self.disk_location, icon_name)
         if not os.path.exists(engine_icon):
             engine_icon = os.path.join(self.disk_location, "icon_256.png")
+
         return engine_icon
 
     def scan_software(self):
@@ -123,28 +123,24 @@ class VREDLauncher(SoftwareLauncher):
 
         supported_sw_versions = []
         for sw_version in self._find_software():
-            (supported, reason) = self._is_supported(sw_version)
+            supported, reason = self._is_supported(sw_version)
+
             if supported:
                 supported_sw_versions.append(sw_version)
             else:
-                self.logger.debug(
-                    "SoftwareVersion %s is not supported: %s" %
-                    (sw_version, reason)
-                )
+                self.logger.debug("SoftwareVersion %s is not supported: %s" % (sw_version, reason))
 
         return supported_sw_versions
 
     def _map_version_year(self, version):
         try:
             year = int(version[:2]) + 2008
-            return '{0}{1}'.format(year, version[2:])
-        except Exception:
+            return "{0}{1}".format(year, version[2:])
+        except Exception as e:
             return version
 
     def _find_software(self):
-        """
-        Find executables in the default install locations.
-        """
+        """Find executables in the default install locations."""
 
         # all the executable templates for the current OS
         executable_templates = self.EXECUTABLE_TEMPLATES.get(sys.platform, [])
@@ -156,25 +152,20 @@ class VREDLauncher(SoftwareLauncher):
 
             self.logger.debug("Processing template %s.", executable_template)
 
-            executable_matches = self._glob_and_match(
-                executable_template,
-                self.COMPONENT_REGEX_LOOKUP
-            )
+            executable_matches = self._glob_and_match(executable_template, self.COMPONENT_REGEX_LOOKUP)
 
-            # Extract all products from that executable.
+            # Extract all code_names from that executable.
             for (executable_path, key_dict) in executable_matches:
 
                 # extract the matched keys form the key_dict (default to None if
                 # not included)
-                executable_version = self._map_version_year(key_dict.get("version"))
+                version = key_dict.get("version")
+                code_name = key_dict.get("code_name")
+                executable_version = self._map_version_year(version)
 
-                sw_versions.append(
-                    SoftwareVersion(
-                        executable_version,
-                        'VRED {0}'.format(key_dict.get("product")),
-                        executable_path,
-                        self._icon_from_executable(key_dict.get('product'))
-                    )
-                )
+                sw_versions.append(SoftwareVersion(executable_version,
+                                                   "VRED {0}".format(code_name),
+                                                   executable_path,
+                                                   self._icon_from_executable(code_name)))
 
         return sw_versions
