@@ -16,8 +16,8 @@ import random
 from shiboken2 import wrapInstance
 from PySide2 import QtWidgets
 
-import tank
-from tank import TankError
+import sgtk
+from sgtk import TankError
 
 import vrVredUi
 import vrFileIO
@@ -26,7 +26,7 @@ import vrRenderSettings
 import webbrowser
 
 
-class VREDEngine(tank.platform.Engine):
+class VREDEngine(sgtk.platform.Engine):
     """
     The VRED engine.
 
@@ -235,15 +235,15 @@ class VREDEngine(tank.platform.Engine):
         self.log_info("Pre App Initalization")
         # self._initialize_dark_look_and_feel()
         # tell QT to interpret C strings as utf-8
-        utf8 = tank.platform.qt.QtCore.QTextCodec.codecForName("utf-8")
-        tank.platform.qt.QtCore.QTextCodec.setCodecForCStrings(utf8)
+        utf8 = sgtk.platform.qt.QtCore.QTextCodec.codecForName("utf-8")
+        sgtk.platform.qt.QtCore.QTextCodec.setCodecForCStrings(utf8)
         self.logger.debug("set utf-8 codec for widget text")
 
     def post_app_init(self):
         """
         Runs when all apps have initialized.
         """
-        from tank.platform.qt import QtGui
+        from sgtk.platform.qt import QtGui
 
         self.log_info("Post App Initalization")
 

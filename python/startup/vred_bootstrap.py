@@ -48,8 +48,8 @@ def compute_environment(engine_name=None, context=None, exec_path=None):
         env['SGTK_ENGINE'] = os.environ['SGTK_ENGINE']
     
     if context:
-        os.environ['TANK_CONTEXT'] = context
-        env['TANK_CONTEXT'] = os.environ['TANK_CONTEXT']
+        os.environ['SGTK_CONTEXT'] = context
+        env['SGTK_CONTEXT'] = os.environ['SGTK_CONTEXT']
 
     if os.path.exists(os.path.join(BASE_DIR, "LMV")):
         sgtk.util.append_path_to_env_var("PATH", BASE_DIR)

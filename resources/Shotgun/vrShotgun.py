@@ -7,10 +7,10 @@ import vrFileIO
 import vrController
 import uiTools
 
-import tank
+import sgtk
 
-tank.LogManager().initialize_base_file_handler("tk-vred")
-logger = tank.LogManager.get_logger(__name__)
+sgtk.LogManager().initialize_base_file_handler("tk-vred")
+logger = sgtk.LogManager.get_logger(__name__)
 vrShotgun_form, vrShotgun_base = uiTools.loadUiType('vrShotgunGUI.ui')
 
 
@@ -23,8 +23,8 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         parent.layout().addWidget(self)
         self.setupUi(self)
         if 'SHOTGUN_ENABLE' in os.environ and os.environ['SHOTGUN_ENABLE'] == '1':
-            self.context = tank.context.deserialize(os.environ.get("TANK_CONTEXT"))
-            self.engine = tank.platform.start_engine('tk-vred', self.context.tank, self.context)
+            self.context = sgtk.context.deserialize(os.environ.get("SGTK_CONTEXT"))
+            self.engine = sgtk.platform.start_engine('tk-vred', self.context.sgtk, self.context)
             QtCore.QTimer.singleShot(0, self.init)
 
     def init(self):
