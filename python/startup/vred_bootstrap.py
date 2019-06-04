@@ -12,8 +12,6 @@ from os.path import dirname, abspath, join, expanduser, exists
 
 import sgtk
 
-# CORE_SCRIPTS_DIR = r"C:\Program Files\Autodesk\VREDPro-11.0\lib\plugins\WIN64\Scripts"
-
 
 def compute_environment(engine_name=None, context=None, exec_path=None):
     """
@@ -35,11 +33,7 @@ def compute_environment(engine_name=None, context=None, exec_path=None):
 
     CORE_SCRIPTS_DIR = os.path.join(BASE_DIR, "Scripts")
     os.environ["VRED_SCRIPT_PLUGINS"] = "{};{}".format(scripts_dir, CORE_SCRIPTS_DIR)
-    # VRED 2019 BETA SPECIFIC ENV VARIABLE - AVOID IT'S USAGE
-    # environment variable VRED%YEAR%_%UPDATE%_SCRIPT_PLUGINS
-    # If is BETA just VRED%YEAR%_SCRIPT_PLUGINS
-    # os.environ["VRED2019_SCRIPT_PLUGINS"] = "{};{}".format(scripts_dir, CORE_SCRIPTS_DIR)
-    
+
     env['SHOTGUN_ENABLE'] = os.environ['SHOTGUN_ENABLE']
     env["VRED_SCRIPT_PLUGINS"] = os.environ["VRED_SCRIPT_PLUGINS"]
     
@@ -58,18 +52,3 @@ def compute_environment(engine_name=None, context=None, exec_path=None):
         env["PATH"] = os.environ["PATH"]
 
     return env
-
-
-def compute_args(app_args):
-    """
-    Return the args needed to launch the vred plugin.
-    This will generate a dictionary of args
-    needed in order to launch the vred plugin.
-    :returns: array of args.
-    """
-    app_args = (app_args or "")
-    app_args += ' -insecure_python'
-    if os.environ.get('DISABLE_VRED_OPENGL', '0') == '1':
-        app_args += ' -no_opengl'
-    
-    return app_args

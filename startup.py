@@ -71,6 +71,10 @@ class VREDLauncher(SoftwareLauncher):
         # note: all the business logic for how to launch is
         #       located in the python\startup folder to be compatible
         #       with older versions of the launch workflow
+        args += " -insecure_python"
+        if os.environ.get("DISABLE_VRED_OPENGL", "0") == "1":
+            args += " -no_opengl"
+
         bootstrap_python_path = os.path.join(self.disk_location, "python", "startup")
         sys.path.insert(0, bootstrap_python_path)
         import vred_bootstrap
@@ -79,8 +83,6 @@ class VREDLauncher(SoftwareLauncher):
         required_env = vred_bootstrap.compute_environment(self.engine_name,
                                                           sgtk.context.serialize(self.context),
                                                           exec_path)
-        # copy the extension across to the deploy folder
-        args = vred_bootstrap.compute_args(args)
 
         # Add std context and site info to the env
         std_env = self.get_standard_plugin_environment()
