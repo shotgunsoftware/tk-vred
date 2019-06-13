@@ -1,1 +1,1 @@
-Autodesk VRED integration for Shotgun
+Autodesk VRED integration with Shotgun
