@@ -25,30 +25,6 @@ def compute_environment(engine_name=None, context=None, exec_path=None):
     # Tell VRED to start the engine.
     os.environ['SHOTGUN_ENABLE'] = '1'
     
-    # Tell VRED where to find the script
-    resources_dir = join(dirname(dirname(dirname(__file__))), "resources")
-    scripts_dir = join(resources_dir, "Shotgun")
-
-    BASE_DIR = os.path.dirname(exec_path)
-
-    CORE_SCRIPTS_DIR = os.path.join(BASE_DIR, "Scripts")
-    os.environ["VRED_SCRIPT_PLUGINS"] = "{};{}".format(scripts_dir, CORE_SCRIPTS_DIR)
-
     env['SHOTGUN_ENABLE'] = os.environ['SHOTGUN_ENABLE']
-    env["VRED_SCRIPT_PLUGINS"] = os.environ["VRED_SCRIPT_PLUGINS"]
-    
-    if engine_name:
-        os.environ['SGTK_ENGINE'] = engine_name
-        env['SGTK_ENGINE'] = os.environ['SGTK_ENGINE']
-    
-    if context:
-        os.environ['SGTK_CONTEXT'] = context
-        env['SGTK_CONTEXT'] = os.environ['SGTK_CONTEXT']
-
-    if os.path.exists(os.path.join(BASE_DIR, "LMV")):
-        sgtk.util.append_path_to_env_var("PATH", BASE_DIR)
-        sgtk.util.append_path_to_env_var("PATH", os.path.join(BASE_DIR, "LMV"))
-
-        env["PATH"] = os.environ["PATH"]
 
     return env

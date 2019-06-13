@@ -88,6 +88,17 @@ class VREDLauncher(SoftwareLauncher):
         std_env = self.get_standard_plugin_environment()
         required_env.update(std_env)
 
+        # Register plugins
+        plugin_dir = os.path.join(self.disk_location, "plugins", "Shotgun")
+        vred_plugins_dir = os.path.join(os.path.dirname(exec_path), "Scripts")
+        required_env["VRED_SCRIPT_PLUGINS"] = "{};{}".format(plugin_dir, vred_plugins_dir)
+
+        # Prepare the launch environment with variables required by the
+        # classic bootstrap approach.
+        self.logger.debug("Preparing VRED Launch...")
+        required_env["SGTK_ENGINE"] = self.engine_name
+        required_env["SGTK_CONTEXT"] = sgtk.context.serialize(self.context)
+
         if file_to_open:
             # Add the file name to open to the launch environment
             required_env["SGTK_FILE_TO_OPEN"] = file_to_open
