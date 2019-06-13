@@ -67,31 +67,22 @@ class VREDLauncher(SoftwareLauncher):
         :param str file_to_open: (optional) Full path name of a file to open on launch.
         :returns: :class:`LaunchInformation` instance
         """
+        required_env = {}
+
         # find the bootstrap script and import it.
         # note: all the business logic for how to launch is
         #       located in the python\startup folder to be compatible
         #       with older versions of the launch workflow
         args += " -insecure_python"
-        if os.environ.get("DISABLE_VRED_OPENGL", "0") == "1":
+        if os.getenv("DISABLE_VRED_OPENGL", "0") == "1":
             args += " -no_opengl"
-
-        bootstrap_python_path = os.path.join(self.disk_location, "python", "startup")
-        sys.path.insert(0, bootstrap_python_path)
-        import vred_bootstrap
-
-        # determine all environment variables
-        required_env = vred_bootstrap.compute_environment(self.engine_name,
-                                                          sgtk.context.serialize(self.context),
-                                                          exec_path)
-
-        # Add std context and site info to the env
-        std_env = self.get_standard_plugin_environment()
-        required_env.update(std_env)
 
         # Register plugins
         plugin_dir = os.path.join(self.disk_location, "plugins", "Shotgun")
         vred_plugins_dir = os.path.join(os.path.dirname(exec_path), "Scripts")
         required_env["VRED_SCRIPT_PLUGINS"] = "{};{}".format(plugin_dir, vred_plugins_dir)
+
+        required_env['SHOTGUN_ENABLE'] = '1'
 
         # Prepare the launch environment with variables required by the
         # classic bootstrap approach.

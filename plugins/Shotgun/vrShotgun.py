@@ -22,10 +22,9 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         super(vrShotgun, self).__init__(parent)
         parent.layout().addWidget(self)
         self.setupUi(self)
-        if 'SHOTGUN_ENABLE' in os.environ and os.environ['SHOTGUN_ENABLE'] == '1':
-            self.context = sgtk.context.deserialize(os.environ.get("SGTK_CONTEXT"))
-            self.engine = sgtk.platform.start_engine('tk-vred', self.context.sgtk, self.context)
-            QtCore.QTimer.singleShot(0, self.init)
+        self.context = sgtk.context.deserialize(os.environ.get("SGTK_CONTEXT"))
+        self.engine = sgtk.platform.start_engine('tk-vred', self.context.sgtk, self.context)
+        QtCore.QTimer.singleShot(0, self.init)
 
     def init(self):
         file_to_open = os.environ.get("SGTK_FILE_TO_OPEN", None)
@@ -40,7 +39,9 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         from shiboken2 import wrapInstance
         return wrapInstance(VREDMainWindowId, QtWidgets.QMainWindow)
 
+
 try:
-    customMenu = vrShotgun(VREDPluginWidget)
+    if os.getenv("SHOTGUN_ENABLE") == "1":
+        shotgun = vrShotgun(VREDPluginWidget)
 except Exception as e:
     logger.exception(e)
