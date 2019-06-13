@@ -36,6 +36,6 @@ class SceneOperation(HookClass):
                 # Reset the Scene in VRED
                 self.parent.engine.reset_scene()
                
-            sgtk.platform.current_engine().rebuild_shotgun_menu()
+            sgtk.platform.current_engine().menu.rebuild_shotgun_menu()
 
             return True
