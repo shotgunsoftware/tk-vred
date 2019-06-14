@@ -23,11 +23,7 @@ import vrRenderSettings
 
 
 class VREDEngine(sgtk.platform.Engine):
-    """
-    A VRED engine for Shotgun Toolkit.
-    """
-    shotgun_menu_text = u'S&hotgun'
-
+    """A VRED engine for Shotgun Toolkit."""
     def __init__(self, tk, context, engine_instance_name, env):
         self._tk_vred = None
         self.menu = None
@@ -45,7 +41,7 @@ class VREDEngine(sgtk.platform.Engine):
         """
         self.logger.debug("%s: Post context change...", self)
         if self.context_change_allowed:
-            self.menu.rebuild_shotgun_menu()
+            self.menu.create()
 
     def pre_app_init(self):
         """
@@ -78,7 +74,7 @@ class VREDEngine(sgtk.platform.Engine):
 
         # init menu
         self.menu = self._tk_vred.VREDMenu(engine=self)
-        self.menu.rebuild_shotgun_menu()
+        self.menu.create()
 
     def destroy_engine(self):
         """

@@ -12,16 +12,16 @@
 Menu handling for Alias
 """
 
+from collections import OrderedDict
 import os
-import random
 import sys
-import webbrowser
 
 from sgtk.platform.qt import QtGui
+from sgtk.platform.qt import QtCore
 
 
 class VREDMenu(object):
-    """VRED menu handler."""
+    ROOT_MENU_TEXT = u'S&hotgun'
 
     def __init__(self, engine):
         """Initialize attributes."""
@@ -30,195 +30,196 @@ class VREDMenu(object):
 
         self.logger = self._engine.logger
 
-    def _can_show_menu(self):
-        file_is_open = self._engine.get_current_file()
-        has_task = self._engine.context.task
-        has_asset = self._engine.context.entity and self._engine.context.entity.get("type") != "Project"
+    def create(self):
+        self.logger.info("Creating Shotgun Menu")
 
-        return file_is_open or (has_asset and has_task)
+        # Destroy root menu if exists
+        if self.exists:
+            self.destroy()
 
-    def get_project_title(self):
-        """Load information to infer and return the project title"""
-        # Project menu title
-        has_task = self._engine.context.task
-        has_asset = self._engine.context.entity and self._engine.context.entity.get("type") != "Project"
+        # Create root menu
+        window = self._engine.get_vred_main_window()
+        menubar = window.menuBar()
+        root_menu = QtGui.QMenu()
+        root_menu.setTitle(self.ROOT_MENU_TEXT)
 
-        # Asset, Task
-        if has_asset and has_task:
-            title = "{}, {}".format(
-                self._engine.context.entity.get("name"),
-                self._engine.context.task.get("name")
-            )
-        # Asset
-        elif has_asset and not has_task:
-            title = self._engine.context.entity.get("name")
-        # Project
-        else:
-            title = self._engine.context.project.get("name")
-        return title
+        # Get all options
+        options = [(caption, data) for caption, data in self._engine.commands.items()]
+        if options:
+            options.sort(key=lambda option: option[0])
 
-    def make_action(self, title, actions_store={}, custom_action=None, show=True):
-        """Make an action just passing title and callbacks storage"""
-        fallback = self._engine.cmd_and_callback_dict.get(title.replace('&', ''), lambda: None)
-        action = custom_action or actions_store.get(title.replace('&', ''), fallback)
-        return {
-            'type': 'action',
-            'name': title.replace(' ', '_').replace('.', '').lower(),
-            'title': title,
-            'action': action,
-            'show': show
-        }
+        # Context submenu
+        root_menu.addMenu(self._create_context_submenu(options))
+        root_menu.addSeparator()
 
-    def _create_shotgun_menu(self):
-        """
-        Creates the shotgun menu based on the loaded apps.
-        To create the menu we use menu structure with next contracts:
-            {
-                'type': 'action|menu',
-                'name': '<name or item>',
-                'title': 'Reload and &Restart',
-                'show': True|False,
-                'action': <Python Function or Method> // Just for type=action
-                'items': <Python Array with more items> // Just for type=menu
-            }
-            or
-            {'type': 'separator', 'show':True|False},
+        # Favourites
+        favourites = self._create_favourites(options)
+        [root_menu.addAction(caption, callback) for caption, callback in favourites]
+        if favourites:
+            root_menu.addSeparator()
 
-        To enable debug create environ variable VRED_DEBUG:
-            - Windows: "SET VRED_DEBUG=1"
-            - UNIX: "export VRED_DEBUG=1"
-        """
-        try:
-            window = self._engine.get_vred_main_window()
-            menubar = window.menuBar()
-            menu = QtGui.QMenu()
-            menu.setTitle(self._engine.shotgun_menu_text)
-            cmd_and_callback_dict = dict()
+        # Apps
+        apps = self._create_apps(options)
+        for caption, callback, submenu in apps:
+            if submenu:
+                root_menu.addMenu(submenu)
+            else:
+                root_menu.addAction(caption, callback)
 
-            for name, details in self._engine.commands.items():
-                cmd_and_callback_dict[name] = details["callback"]
+        # Add root menu
+        for action in menubar.actions():
+            if action.text() == u'&Help':
+                menubar.insertMenu(action, root_menu)
+                break
 
-            self.logger.info("{}".format(cmd_and_callback_dict))
-            keys_count = len(self._engine.cmd_and_callback_dict.keys())
+    def _create_context_submenu(self, options):
+        submenu = QtGui.QMenu()
+        submenu.setTitle(self.context_name)
 
-            if keys_count == 0:
-                self._engine.cmd_and_callback_dict = cmd_and_callback_dict
+        submenu.addAction("Jump to Shotgun", self.jump_to_sg)
+        submenu.addAction("Jump to File System", self.jump_to_fs)
+        submenu.addSeparator()
 
-            self.logger.info("Creating Menu")
-            show_in_menu = self._can_show_menu()
+        options = [(caption, data) for caption, data in options
+                   if data.get("properties").get("type") == "context_menu"]
 
-            use_debug = os.getenv('VRED_DEBUG', False)
+        for caption, data in options:
+            callback = data.get("callback")
+            submenu.addAction(caption, callback)
 
-            menu_items = [
-                {
-                    'type': 'menu',
-                    'name': 'project_menu',
-                    'title': self.get_project_title(),
-                    'show': True,
-                    'items': [
-                        self.make_action('Jump to Shot&gun', custom_action=self.jump_to_shotgun),
-                        self.make_action('Jump to File S&ystem', custom_action=self.jump_to_file_system),
-                        {'type': 'separator', 'show': True},
-                        self.make_action('Open Log Folder', cmd_and_callback_dict, show=use_debug),
-                        self.make_action('Reload and &Restart', cmd_and_callback_dict, show=use_debug),
-                        self.make_action('Work Area &Info...', cmd_and_callback_dict),
-                    ]
-                },
-                {'type': 'separator', 'show': True},
-                self.make_action('File &Open...', cmd_and_callback_dict),
-                self.make_action('Snaps&hot...', cmd_and_callback_dict, show=show_in_menu),
-                self.make_action('File &Save...', cmd_and_callback_dict, show=show_in_menu),
-                self.make_action('Publish...', cmd_and_callback_dict, show=show_in_menu),
-                {'type': 'separator', 'show': True},
-                self.make_action('A&bout...', cmd_and_callback_dict, show=True),
-                self.make_action('&Load...', cmd_and_callback_dict, show=show_in_menu),
-                self.make_action('Scene Brea&kdown...', cmd_and_callback_dict, show=show_in_menu),
-                {
-                    'type': 'menu',
-                    'name': 'scene_snapshot',
-                    'title': 'Scene Snaps&hot',
-                    'show': show_in_menu,
-                    'items': [
-                        self.make_action('Snap&shot...', cmd_and_callback_dict),
-                        self.make_action('Snapshot &History...', cmd_and_callback_dict)
-                    ]
-                },
-                self.make_action('Shotgun &Panel...', cmd_and_callback_dict, show=True),
-                {
-                    'type': 'menu',
-                    'name': 'shotgun_workfiles',
-                    'title': 'Shotgun &Workfiles',
-                    'show': True,
-                    'items': [
-                        self.make_action('File &Open...', cmd_and_callback_dict),
-                        self.make_action('File &Save...', cmd_and_callback_dict)
-                    ]
-                }
-            ]
+        return submenu
 
-            self.existent = {}
-            self.prepare_menu_from_structure(menu_items, menu, self.existent)
-            for menubar_action in menubar.actions():
-                if menubar_action.text() == u'&Help':
-                    menubar.insertMenu(menubar_action, menu)
-                    break
+    def _create_favourites(self, options):
+        favourites = []
 
-        except Exception as error:
-            self.logger.info('Error creating menu: {0}'.format(error))
+        for favourite in self._engine.get_setting("menu_favourites"):
+            app_instance = favourite["app_instance"]
+            name = favourite["name"]
 
-    def prepare_menu_from_structure(self, menu_items, parentmenu, existent_elements):
-        """Create menu elements and actions accorfing passed structures"""
-        try:
-            for item in menu_items:
-                show_item = item.get('show', None)
-                elm_name = item.get('name', 'elm_{0}'.format(random.randint(0, 1000)))
-                if not show_item:
+            for caption, data in options:
+                if data.get("properties").get("type") == "context_menu":
                     continue
-                elm_type = item['type']
-                elm_key = '{0}_{1}'.format(elm_type, elm_name)
-                self.logger.info("Checking {0}".format(elm_key))
-                if not existent_elements.has_key(elm_key):
-                    if elm_type == 'menu':
-                        existent_elements[elm_key] = QtGui.QMenu()
-                        existent_elements[elm_key].setTitle(item['title'])
-                        self.prepare_menu_from_structure(item['items'],
-                                                         existent_elements[elm_key],
-                                                         existent_elements)
-                        parentmenu.addMenu(existent_elements[elm_key])
-                        self.logger.info("Adding Menu {0}".format(elm_key))
-                    elif elm_type == 'action':
-                        parentmenu.addAction(
-                            item['title'],
-                            item['action']
-                        )
-                        self.logger.info("Adding Action {0}".format(elm_key))
-                    elif elm_type == 'separator':
-                        parentmenu.addSeparator()
-        except Exception as err:
-            self.logger.info("{0}".format(err))
 
-    def _rm_shotgun_menu(self):
-        """
-        Checks for the presence of a shotgun menu.
-        Removes the shotgun menu if it exists.
-        """
-        # Remove the shotgun menu.
-        self.logger.info("Remove Shotgun Menu")
+                if 'app' in data.get("properties"):
+                    app_name = data.get("properties").get("app").name
+
+                    if caption == name and app_name == app_instance:
+                        callback = data.get("callback")
+                        favourites.append((caption, callback))
+
+        return favourites
+
+    def _create_apps(self, options):
+        # Apps to display in the bottom of the menu
+        bottom_apps = OrderedDict()
+        bottom_apps[('tk-multi-autoabout', 'About Shotgun Pipeline Toolkit')] = []
+
+        favourites = [(favourite["app_instance"], favourite["name"])
+                      for favourite in self._engine.get_setting("menu_favourites")]
+
+        options = [(caption, data) for caption, data in options
+                   if data.get("properties").get("type") != "context_menu"]
+
+        groups = OrderedDict()
+        for caption, data in options:
+            callback = data.get("callback")
+            app_name = None
+            app_display_name = None
+            if 'app' in data.get("properties"):
+                app_name = data.get("properties").get("app").name
+                app_display_name = data.get("properties").get("app").display_name
+
+            k = (app_name, app_display_name)
+
+            if k in bottom_apps:
+                bottom_apps[k].append((caption, callback))
+            else:
+                if k not in groups:
+                    groups[k] = []
+
+                groups[k].append((caption, callback))
+
+        raw_options = []
+
+        for (app_name, app_display_name), options in groups.items():
+            first_option = options[0]
+            caption = first_option[0]
+            callback = first_option[1]
+            options_number = len(options)
+
+            raw_option = None
+            if options_number == 1 and (app_name, caption) not in favourites:
+                # apps.append()
+                raw_option = (caption, caption, callback, None)
+
+            elif options_number > 1:
+                submenu = QtGui.QMenu()
+                submenu.setTitle(app_display_name)
+                for caption, callback in options:
+                    submenu.addAction(caption, callback)
+
+                raw_option = (app_display_name, None, None, submenu)
+
+            if raw_option:
+                raw_options.append(raw_option)
+
+        raw_options.sort(key=lambda option: option[0])
+
+        apps = [(caption, callback, submenu) for _, caption, callback, submenu in raw_options]
+
+        for (app_name, app_display_name), options in bottom_apps.items():
+            first_option = options[0]
+            caption = first_option[0]
+            callback = first_option[1]
+            options_number = len(options)
+
+            if options_number == 1 and (app_name, caption) not in favourites:
+                apps.append((caption, callback, None))
+            elif options_number > 1:
+                submenu = QtGui.QMenu()
+                submenu.setTitle(app_display_name)
+                for caption, callback in options:
+                    submenu.addAction(caption, callback)
+
+                apps.append((None, None, submenu))
+
+        return apps
+
+    @property
+    def exists(self):
+        window = self._engine.get_vred_main_window()
+        menu_bar = window.menuBar()
+        options = [option for option in menu_bar.actions() if option.text() == self.ROOT_MENU_TEXT]
+
+        if options:
+            return True
+
+        return False
+
+    def destroy(self):
+        self.logger.info("Destroying Shotgun Menu")
 
         window = self._engine.get_vred_main_window()
         menu_bar = window.menuBar()
+        option = [option for option in menu_bar.actions() if option.text() == self.ROOT_MENU_TEXT][0]
+        menu_bar.removeAction(option)
 
-        for menu_elm in menu_bar.actions():
-            if menu_elm.text() == self._engine.shotgun_menu_text:
-                menu_bar.removeAction(menu_elm)
+    @property
+    def context_name(self):
+        """Returns the context name used by the context submenu caption."""
+        return str(self._engine.context).decode("utf-8")
 
-    def jump_to_shotgun(self):
+    def jump_to_sg(self):
         """
-        Function to goto the current project page.
+        Jump to shotgun, launch web browser
         """
-        webbrowser.open(self._engine.context.shotgun_url)
+        url = self._engine.context.shotgun_url
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
 
-    def jump_to_file_system(self):
+    def jump_to_fs(self):
+        """
+        Jump from context to FS
+        """
         # launch one window for each location on disk
         paths = self._engine.context.filesystem_locations
 
@@ -236,17 +237,10 @@ class VREDMenu(object):
             else:
                 raise Exception("Platform '%s' is not supported." % system)
 
+            self._engine.logger.debug("Jump to filesystem command: {}".format(cmd))
+
             exit_code = os.system(cmd)
 
             if exit_code != 0:
-                self.logger.error("Failed to launch '%s'!" % cmd)
+                self.logger.error("Failed to launch '%s'!", cmd)
 
-    def rebuild_shotgun_menu(self):
-        """
-        This will remove and rebuild the menu.
-        """
-        try:
-            self._rm_shotgun_menu()
-        except Exception as error:
-            self.logger.info("Error Clearing Menu {0}".format(error))
-        self._create_shotgun_menu()
