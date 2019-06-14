@@ -22,6 +22,9 @@ from sgtk.platform.qt import QtCore
 
 class VREDMenu(object):
     ROOT_MENU_TEXT = u'S&hotgun'
+    ABOUT_MENU_TEXT = "About Shotgun Pipeline Toolkit"
+    JUMP_TO_SG_TEXT = "Jump to Shotgun"
+    JUMP_TO_FS_TEXT = "Jump to File System"
 
     def __init__(self, engine):
         """Initialize attributes."""
@@ -43,7 +46,7 @@ class VREDMenu(object):
         root_menu = QtGui.QMenu()
         root_menu.setTitle(self.ROOT_MENU_TEXT)
 
-        # Get all options
+        # Get all options and sort them
         options = [(caption, data) for caption, data in self._engine.commands.items()]
         if options:
             options.sort(key=lambda option: option[0])
@@ -60,10 +63,11 @@ class VREDMenu(object):
 
         # Apps
         apps = self._create_apps(options)
-        for caption, callback, submenu in apps:
-            if submenu:
-                root_menu.addMenu(submenu)
+        for label, is_submenu, data in apps:
+            if is_submenu:
+                root_menu.addMenu(data)
             else:
+                caption, callback = data
                 root_menu.addAction(caption, callback)
 
         # Add root menu
@@ -76,14 +80,14 @@ class VREDMenu(object):
         submenu = QtGui.QMenu()
         submenu.setTitle(self.context_name)
 
-        submenu.addAction("Jump to Shotgun", self.jump_to_sg)
-        submenu.addAction("Jump to File System", self.jump_to_fs)
+        submenu.addAction(self.JUMP_TO_SG_TEXT, self.jump_to_sg)
+        submenu.addAction(self.JUMP_TO_FS_TEXT, self.jump_to_fs)
         submenu.addSeparator()
 
-        options = [(caption, data) for caption, data in options
-                   if data.get("properties").get("type") == "context_menu"]
+        filtered_options = [(caption, data) for caption, data in options
+                            if data.get("properties").get("type") == "context_menu"]
 
-        for caption, data in options:
+        for caption, data in filtered_options:
             callback = data.get("callback")
             submenu.addAction(caption, callback)
 
@@ -112,16 +116,17 @@ class VREDMenu(object):
     def _create_apps(self, options):
         # Apps to display in the bottom of the menu
         bottom_apps = OrderedDict()
-        bottom_apps[('tk-multi-autoabout', 'About Shotgun Pipeline Toolkit')] = []
+        bottom_apps[('tk-multi-autoabout', self.ABOUT_MENU_TEXT)] = []
 
         favourites = [(favourite["app_instance"], favourite["name"])
                       for favourite in self._engine.get_setting("menu_favourites")]
 
-        options = [(caption, data) for caption, data in options
-                   if data.get("properties").get("type") != "context_menu"]
+        filtered_options = [(caption, data) for caption, data in options
+                            if data.get("properties").get("type") != "context_menu"]
 
-        groups = OrderedDict()
-        for caption, data in options:
+        # group filtered options per app
+        options_x_app = {}
+        for caption, data in filtered_options:
             callback = data.get("callback")
             app_name = None
             app_display_name = None
@@ -129,17 +134,29 @@ class VREDMenu(object):
                 app_name = data.get("properties").get("app").name
                 app_display_name = data.get("properties").get("app").display_name
 
-            k = (app_name, app_display_name)
+            key = (app_name, app_display_name)
 
-            if k in bottom_apps:
-                bottom_apps[k].append((caption, callback))
-            else:
-                if k not in groups:
-                    groups[k] = []
+            if key in bottom_apps:
+                bottom_apps[key].append((caption, callback))
+                continue
 
-                groups[k].append((caption, callback))
+            if key not in options_x_app:
+                options_x_app[key] = []
 
-        raw_options = []
+            options_x_app[key].append((caption, callback))
+
+        apps = []
+
+        if options_x_app:
+            apps += self._parse_options_x_app(options_x_app, favourites)
+
+        if bottom_apps:
+            apps += self._parse_options_x_app(bottom_apps, favourites, sort_options=False)
+
+        return apps
+
+    def _parse_options_x_app(self, groups, favourites, sort_options=True):
+        parsed_options = []
 
         for (app_name, app_display_name), options in groups.items():
             first_option = options[0]
@@ -147,43 +164,28 @@ class VREDMenu(object):
             callback = first_option[1]
             options_number = len(options)
 
-            raw_option = None
-            if options_number == 1 and (app_name, caption) not in favourites:
-                # apps.append()
-                raw_option = (caption, caption, callback, None)
-
-            elif options_number > 1:
-                submenu = QtGui.QMenu()
-                submenu.setTitle(app_display_name)
-                for caption, callback in options:
-                    submenu.addAction(caption, callback)
-
-                raw_option = (app_display_name, None, None, submenu)
-
-            if raw_option:
-                raw_options.append(raw_option)
-
-        raw_options.sort(key=lambda option: option[0])
-
-        apps = [(caption, callback, submenu) for _, caption, callback, submenu in raw_options]
-
-        for (app_name, app_display_name), options in bottom_apps.items():
-            first_option = options[0]
-            caption = first_option[0]
-            callback = first_option[1]
-            options_number = len(options)
+            if options_number <= 0:
+                continue
 
             if options_number == 1 and (app_name, caption) not in favourites:
-                apps.append((caption, callback, None))
-            elif options_number > 1:
-                submenu = QtGui.QMenu()
-                submenu.setTitle(app_display_name)
+                is_submenu = False
+                data = caption, callback
+                label = caption
+            else:
+                is_submenu = True
+                label = app_display_name
+
+                data = QtGui.QMenu()
+                data.setTitle(app_display_name)
                 for caption, callback in options:
-                    submenu.addAction(caption, callback)
+                    data.addAction(caption, callback)
 
-                apps.append((None, None, submenu))
+            parsed_options.append((label, is_submenu, data))
 
-        return apps
+        if sort_options:
+            parsed_options.sort(key=lambda option: option[0])
+
+        return parsed_options
 
     @property
     def exists(self):
