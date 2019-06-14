@@ -288,7 +288,6 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         except Exception as e:
             pass
 
-
     @property
     def item_filters(self):
         """

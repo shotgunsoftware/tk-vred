@@ -12,7 +12,6 @@ import os
 
 import sgtk
 import vrScenegraph
-import vrFieldAccess
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -52,7 +51,7 @@ class VREDSessionCollector(HookBaseClass):
 
         publisher = self.parent
         engine = publisher.engine
-        path = engine.get_current_file()
+        path = engine.operations.get_current_file()
 
         if path:
             file_info = publisher.util.get_file_path_components(path)
@@ -85,7 +84,7 @@ class VREDSessionCollector(HookBaseClass):
         """
         publisher = self.parent
         engine = publisher.engine
-        base_dir = os.path.dirname(engine.get_render_path(parent_item.properties.get("path")))
+        base_dir = os.path.dirname(engine.operations.get_render_path(parent_item.properties.get("path")))
         files = os.listdir(base_dir)
 
         if not files:

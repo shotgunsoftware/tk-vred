@@ -66,9 +66,11 @@ class VredActions(HookBaseClass):
         :param ui_area: String denoting the UI Area (see above).
         :returns List of dictionaries, each with keys name, params, caption and description
         """
-        app = self.parent
-        app.log_debug("Generate actions called for UI element %s. "
-                      "Actions: %s. Publish Data: %s" % (ui_area, actions, sg_publish_data))
+        engine = self.parent.engine
+        logger = engine.logger
+
+        logger.debug("Generate actions called for UI element %s. Actions: %s. Publish Data: %s" % (ui_area, actions,
+                                                                                                   sg_publish_data))
         action_instances = []
 
         if "assign_task" in actions:
@@ -124,21 +126,24 @@ class VredActions(HookBaseClass):
         :returns: No return value expected.
         """
         app = self.parent
-        app.log_debug("Execute action called for action %s. "
-                      "Parameters: %s. Publish Data: %s" % (name, params, sg_publish_data))
+        engine = self.parent.engine
+        logger = engine.logger
+        operations = engine.operations
+
+        logger.debug("Execute action called for action %s. Parameters: %s. Publish Data: %s" % (name, params,
+                                                                                                sg_publish_data))
 
         if name == "assign_task":
             if app.context.user is None:
                 raise Exception("Cannot establish current user!")
 
-            data = app.shotgun.find_one("Task", [["id", "is", sg_publish_data["id"]]], ["task_assignees"] )
+            data = app.shotgun.find_one("Task", [["id", "is", sg_publish_data["id"]]], ["task_assignees"])
             assignees = data["task_assignees"] or []
             assignees.append(app.context.user)
             app.shotgun.update("Task", sg_publish_data["id"], {"task_assignees": assignees})
 
         elif name == "task_to_ip":
             app.shotgun.update("Task", sg_publish_data["id"], {"sg_status_list": "ip"})
-
         else:
             # resolve path
             path = self.get_publish_path(sg_publish_data)
@@ -229,7 +234,7 @@ class VredActions(HookBaseClass):
         namespace = "%s %s" % (sg_publish_data.get("entity").get("name"), sg_publish_data.get("name"))
         namespace = namespace.replace(" ", "_")
 
-        self.parent.engine.load_file([path], vrScenegraph.getRootNode(),False,False)
+        self.parent.engine.operations.load_file([path], vrScenegraph.getRootNode(),False,False)
 
     def _do_load(self, path, sg_publish_data):
         """
@@ -237,8 +242,8 @@ class VredActions(HookBaseClass):
         """
         if not os.path.exists(path):
             raise Exception("File not found on disk - '%s'" % path)
-        self.parent.engine.reset_scene()
-        self.parent.engine.load_file(path)
+        self.parent.engine.operations.reset_scene()
+        self.parent.engine.operations.load_file(path)
 
         return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
                     is_error=False)
@@ -249,7 +254,7 @@ class VredActions(HookBaseClass):
         """
         if not os.path.exists(path):
             raise Exception("File not found on disk - '%s'" % path)
-        self.parent.engine.import_file(path)
+        self.parent.engine.operations.import_file(path)
 
         return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
                     is_error=False)
