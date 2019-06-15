@@ -12,12 +12,18 @@ import os
 
 from sgtk import TankError
 
-import vrFileIO
 import vrController
+import vrFileIO
 import vrRenderSettings
+import vrScenegraph
 
 
 class VREDOperations(object):
+    MESSAGES = {
+        "success": "loaded successfully",
+        "error": "Error loading the file(s)",
+    }
+
     def __init__(self, engine):
         """Initialize attributes."""
         self.render_path = None
@@ -126,3 +132,28 @@ class VREDOperations(object):
         Save the scene after publish in order to get a new version in the workfiles folder
         """
         self.save_current_file(path)
+
+    def create_reference(self, path):
+        if not os.path.exists(path):
+            raise Exception("File not found on disk - '%s'" % path)
+
+        self.load_file([path], vrScenegraph.getRootNode(), False, False)
+
+    def do_import(self, path):
+        if not os.path.exists(path):
+            raise Exception("File not found on disk - '%s'" % path)
+
+        self.import_file(path)
+
+        return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
+                    is_error=False)
+
+    def do_load(self, path):
+        if not os.path.exists(path):
+            raise Exception("File not found on disk - '%s'" % path)
+
+        self.reset_scene()
+        self.load_file(path)
+
+        return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
+                    is_error=False)

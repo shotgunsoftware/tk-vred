@@ -12,8 +12,6 @@
 Hook that loads defines all the available actions, broken down by publish type.
 """
 import sgtk
-import os
-import vrScenegraph
 from sgtk.platform.qt import QtGui, QtCore
 
 
@@ -21,10 +19,6 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class VredActions(HookBaseClass):
-    MESSAGES = {
-        "success": "loaded successfully",
-        "error": "Error loading the file(s)",
-    }
 
     ##############################################################################################################
     # public interface - to be overridden by deriving classes
@@ -145,17 +139,16 @@ class VredActions(HookBaseClass):
         elif name == "task_to_ip":
             app.shotgun.update("Task", sg_publish_data["id"], {"sg_status_list": "ip"})
         else:
-            # resolve path
             path = self.get_publish_path(sg_publish_data)
 
             if name == "reference":
-                return self._create_reference(path, sg_publish_data)
+                return operations.create_reference(path)
 
             if name == "import":
-                return self._do_import(path, sg_publish_data)
+                return operations.do_import(path)
 
             if name == "load":
-                return self._do_load(path, sg_publish_data)
+                return operations.do_load(path)
 
     def execute_multiple_actions(self, actions):
         """
@@ -226,35 +219,3 @@ class VredActions(HookBaseClass):
                         content += "{} files {}".format(len(paths), message_code)
 
             getattr(QtGui.QMessageBox, message_type)(active_window, message_type.title(), content)
-
-    def _create_reference(self, path, sg_publish_data):
-        if not os.path.exists(path):
-            raise Exception("File not found on disk - '%s'" % path)
-
-        namespace = "%s %s" % (sg_publish_data.get("entity").get("name"), sg_publish_data.get("name"))
-        namespace = namespace.replace(" ", "_")
-
-        self.parent.engine.operations.load_file([path], vrScenegraph.getRootNode(),False,False)
-
-    def _do_load(self, path, sg_publish_data):
-        """
-        This will load a file as a new scene.
-        """
-        if not os.path.exists(path):
-            raise Exception("File not found on disk - '%s'" % path)
-        self.parent.engine.operations.reset_scene()
-        self.parent.engine.operations.load_file(path)
-
-        return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
-                    is_error=False)
-
-    def _do_import(self, path, sg_publish_data):
-        """
-        This will import a file into an existing scene.
-        """
-        if not os.path.exists(path):
-            raise Exception("File not found on disk - '%s'" % path)
-        self.parent.engine.operations.import_file(path)
-
-        return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
-                    is_error=False)

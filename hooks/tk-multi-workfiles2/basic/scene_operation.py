@@ -12,7 +12,6 @@ class SceneOperation(HookClass):
         logger = engine.logger
 
         if operation == "current_path":
-            # Get the current file path.
             current_path = operations.get_current_file()
 
             if current_path is None:
@@ -26,19 +25,18 @@ class SceneOperation(HookClass):
                 operations.load_file(file_path)
 
             elif operation == "save":
-                # If file path not specified save in place.
                 if file_path is None:
                     file_path = operations.get_current_file()
-                logger.debug("Scene Operation, Save file: "+file_path)
+
+                logger.debug("Scene Operation, Save file: " + file_path)
                 operations.save_current_file(file_path)
 
             elif operation == "save_as":
-                logger.debug("Scene Operation, Save_as file: "+file_path)
+                logger.debug("Scene Operation, Save_as file: " + file_path)
                 operations.save_current_file(file_path)
 
             elif operation == "reset":
                 logger.debug("Scene Operation, Reset Scene")
-                # Reset the Scene in VRED
                 operations.reset_scene()
                
             engine.menu.create()
