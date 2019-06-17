@@ -10,8 +10,6 @@
 
 import os
 
-from sgtk import TankError
-
 import vrController
 import vrFileIO
 import vrRenderSettings
@@ -81,11 +79,11 @@ class VREDOperations(object):
         if not os.path.exists(file_path.decode('utf-8')):
             msg = "VRED Failed to save file {}".format(file_path)
             self.logger.error(msg)
-            raise TankError(msg)
+            raise Exception(msg)
 
         allowed_to_open = self._engine.execute_hook_method("file_usage_hook", "file_attempt_open", path=file_path)
         if not allowed_to_open:
-            raise TankError("Can't save file: a lock for this path already exists")
+            raise Exception("Can't save file: a lock for this path already exists")
 
         self.prepare_render_path(file_path)
 
