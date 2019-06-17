@@ -12,6 +12,7 @@ import os
 
 import vrController
 import vrFileIO
+import vrFieldAccess
 import vrRenderSettings
 import vrScenegraph
 
@@ -29,50 +30,39 @@ class VREDOperations(object):
         self.logger = self._engine.logger
 
     def get_current_file(self):
-        """
-        Get the current file.
-        """
+        """Get the current file."""
         return vrFileIO.getFileIOFilePath()
 
     def load_file(self, file_path):
-        """
-        Load a new file into VRED. This will reset the workspace.
-        """
-        decision = self._engine.execute_hook_method("file_usage_hook", "file_attempt_open", path=file_path)
-        if decision:
-            self.logger.debug("Load File: {}".format(file_path))
-            vrFileIO.load(file_path)
-            self.prepare_render_path(file_path)
-        else:
-            # The user chose not to open the file
-            pass
+        """Load a new file into VRED. This will reset the workspace."""
+        can_load = self._engine.execute_hook_method("file_usage_hook", "file_attempt_open", path=file_path)
+
+        if not can_load:
+            return
+
+        self.logger.debug("Loading file: {}".format(file_path))
+        vrFileIO.load(file_path)
+        self.prepare_render_path(file_path)
 
     def import_file(self, file_path):
-        """
-        Import a file into VRED. This will reset not the workspace.
-        """
-        decision = self._engine.execute_hook_method("file_usage_hook", "file_attempt_open", path=file_path)
-        if decision:
-            self.logger.debug("Import File: {}".format(file_path))
-            vrFileIO.loadGeometry(file_path)
-            self.prepare_render_path(file_path)
-        else:
-            # The user chose not to open the file
-            pass
+        """Import a file into VRED. This will reset not the workspace."""
+        can_import = self._engine.execute_hook_method("file_usage_hook", "file_attempt_open", path=file_path)
+
+        if not can_import:
+            return
+
+        self.logger.debug("Importing File: {}".format(file_path))
+        vrFileIO.loadGeometry(file_path)
+        self.prepare_render_path(file_path)
 
     def reset_scene(self):
-        """
-        Resets the Scene in VRED.
-        """
+        """Resets the Scene in VRED."""
         self.logger.debug("Reset Scene")
         self._engine.current_file_closed()
         vrController.newScene()
 
     def save_current_file(self, file_path):
-        """
-        Tell VRED to save the out the current project as a file.
-        """
-        # Save the actual file
+        """Tell VRED to save the out the current project as a file."""
         self.logger.debug("Save File: {}".format(file_path))
 
         vrFileIO.save(file_path)
@@ -102,9 +92,9 @@ class VREDOperations(object):
             if not os.path.exists(path):
                 os.makedirs(path)
             path = os.path.sep.join([path, scene_name+'.png'])
-            self.logger.debug('\nFull path value: {0}\n'.format(path))
+            self.logger.debug('Full path value: {0}'.format(path))
         except Exception as err:
-            self.logger.debug("\n\nError generating render path: {0}\n\n".format(err))
+            self.logger.debug("Error generating render path: {0}".format(err))
             path = None
 
         return path
@@ -155,3 +145,25 @@ class VREDOperations(object):
 
         return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
                     is_error=False)
+
+    def get_references(self):
+        """Get references."""
+        self.logger.debug("Getting references")
+
+        references = []
+
+        for node in vrScenegraph.getAllNodes():
+            path = None
+
+            if node.hasAttachment("FileInfo"):
+                path = vrFieldAccess.vrFieldAccess(node.getAttachment("FileInfo")).getString("filename")
+
+            if path is not None:
+                references.append({
+                    "node": node.getName(),
+                    "type": node.getType(),
+                    "path": path,
+                    "oldpath": path,
+                })
+
+        return references

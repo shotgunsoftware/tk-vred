@@ -1,7 +1,6 @@
 import sgtk
 import vrFileIO
 import vrScenegraph
-import vrFieldAccess
 import os
 import vrMaterialPtr
 
@@ -26,22 +25,11 @@ class SceneOperation(HookClass):
         any templates and try to determine if there is a more recent version
         available. Any such versions are then displayed in the UI as out of date.
         """
-        return_ref_list = []
-        _nodeList = vrScenegraph.getAllNodes()
-        for _node in _nodeList:
-            _filePath = None
-            if _node.hasAttachment("FileInfo"):
-                _att = _node.getAttachment("FileInfo")
-                _filePath = vrFieldAccess.vrFieldAccess(_att).getString("filename")
-            if _filePath is not None:
-                return_ref_list.append({
-                        "node": _node.getName(),
-                        "type": _node.getType(),
-                        "path": _filePath,
-                        "oldpath": _filePath
-                    })
-        return return_ref_list
-    
+        engine = self.parent.engine
+        operations = engine.operations
+
+        return operations.get_references()
+
     def update(self, items):
         """
         Perform replacements given a number of scene items passed from the app.
@@ -67,39 +55,42 @@ class SceneOperation(HookClass):
         """
         nodes = vrScenegraph.findNodes(item['node'])
 
-        if len(nodes) > 0:
-            node = nodes[0]
-            new_node = vrFileIO.loadGeometry(item["path"])
-            name, extension = os.path.splitext(os.path.basename(item["path"]))
-            if name == new_node.getName():
-                materials_dict = self._obtain_materials()
-                self._apply_transformations(node, new_node, materials_dict)
+        if len(nodes) <= 0:
+            return
 
-            # Delete the node
-            vrScenegraph.deleteNode(node, True)
+        node = nodes[0]
+        path = item["path"]
+        new_node = vrFileIO.loadGeometry(path)
+        name, extension = os.path.splitext(os.path.basename(path))
+
+        if name == new_node.getName():
+            materials_dict = self._obtain_materials()
+            self._apply_transformations(node, new_node, materials_dict)
+
+        vrScenegraph.deleteNode(node, True)
     
     def _obtain_materials(self):
         """
         Obtain a materials list with respective nodes
         :return: list of materials
         """
-        materials = vrMaterialPtr.getAllMaterials()
-        materials_dict = []
+        materials = []
 
-        for material in materials:
-            if material.getName() == 'DefaultShader':
+        for material in vrMaterialPtr.getAllMaterials():
+            name = material.getName()
+
+            if name == 'DefaultShader':
                 continue
 
-            material_nodes = material.getNodes()
+            nodes = [node.getName() for node in material.getNodes()]
 
-            nodes_names = [node.getName() for node in material_nodes]
-            materials_dict.append({
-                'name': material.getName(),
+            materials.append({
+                'name': name,
                 'material': material,
-                'nodes': nodes_names
+                'nodes': nodes
             })
 
-        return materials_dict
+        return materials
     
     def _apply_transformations(self, old_node, new_node, materials):
         """
@@ -134,4 +125,4 @@ class SceneOperation(HookClass):
             if old_node.getName() in material.get('nodes'):
                 materials_to_apply.append(material.get('material'))
 
-        vrScenegraph.applyMaterial([new_node, ], materials_to_apply, False, False)
+        vrScenegraph.applyMaterial([new_node], materials_to_apply, False, False)
