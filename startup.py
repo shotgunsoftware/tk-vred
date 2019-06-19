@@ -52,15 +52,13 @@ class VREDLauncher(SoftwareLauncher):
 
     @property
     def minimum_supported_version(self):
-        """
-        The minimum software version that is supported by the launcher.
-        """
+        """The minimum software version that is supported by the launcher."""
         return "11.0"
 
     def prepare_launch(self, exec_path, args, file_to_open=None):
         """
-        Prepares an environment to launch VRED in that will automatically
-        load Toolkit and the tk-vred engine when VRED starts.
+        Prepares an environment to launch VRED in that will automatically load
+        Toolkit and the tk-vred engine when VRED starts.
 
         :param str exec_path: Path to VRED executable to launch.
         :param str args: Command line arguments as strings.
@@ -69,10 +67,7 @@ class VREDLauncher(SoftwareLauncher):
         """
         required_env = {}
 
-        # find the bootstrap script and import it.
-        # note: all the business logic for how to launch is
-        #       located in the python\startup folder to be compatible
-        #       with older versions of the launch workflow
+        # Command line arguments
         args += " -insecure_python"
         if os.getenv("DISABLE_VRED_OPENGL", "0") == "1":
             args += " -no_opengl"
@@ -82,6 +77,7 @@ class VREDLauncher(SoftwareLauncher):
         vred_plugins_dir = os.path.join(os.path.dirname(exec_path), "Scripts")
         required_env["VRED_SCRIPT_PLUGINS"] = "{};{}".format(plugin_dir, vred_plugins_dir)
 
+        # SHOTGUN_ENABLE is an extra environment variable required by VRED
         required_env['SHOTGUN_ENABLE'] = '1'
 
         # Prepare the launch environment with variables required by the
@@ -90,10 +86,11 @@ class VREDLauncher(SoftwareLauncher):
         required_env["SGTK_ENGINE"] = self.engine_name
         required_env["SGTK_CONTEXT"] = sgtk.context.serialize(self.context)
 
+        # Add the `file to open` to the launch environment
         if file_to_open:
-            # Add the file name to open to the launch environment
             required_env["SGTK_FILE_TO_OPEN"] = file_to_open
 
+        # Add VRED executable path as an environment variable to be used by the translators
         required_env["TK_VRED_EXECPATH"] = exec_path
 
         return LaunchInformation(exec_path, args, required_env)
@@ -136,7 +133,8 @@ class VREDLauncher(SoftwareLauncher):
 
         return supported_sw_versions
 
-    def _map_version_year(self, version):
+    @staticmethod
+    def _map_version_year(version):
         try:
             year = int(version[:2]) + 2008
             return "{0}{1}".format(year, version[2:])
