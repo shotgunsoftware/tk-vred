@@ -1,2 +1,1 @@
-# tk-vred
-TK VRED
+Autodesk VRED integration with Shotgun

@@ -11,12 +11,10 @@
 import os
 import errno
 import shutil
+import subprocess
 import tempfile
-import traceback
-from subprocess import Popen, PIPE, STDOUT
 
 import sgtk
-from sgtk.util.filesystem import ensure_folder_exists
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -24,16 +22,20 @@ HookBaseClass = sgtk.get_hook_baseclass()
 class VREDPublishLMVFilePlugin(HookBaseClass):
     TMPDIR = None
 
-    @staticmethod
-    def _get_translator():
-        return r"C:\Program Files\Autodesk\VREDPro-11.2\Bin\WIN64\LMV\viewing-vpb-lmv.exe"
+    @property
+    def vred_bin_dir(self):
+        return os.path.dirname(os.getenv("TK_VRED_EXECPATH"))
+
+    def _get_translator(self):
+        """Get viewing-vpb-lmv.exe file path"""
+        return os.path.join(self.vred_bin_dir, "LMV", "viewing-vpb-lmv.exe")
 
     def _is_translator_installed(self):
         return os.path.exists(self._get_translator())
 
-    @staticmethod
-    def _get_thumbnail_extractor():
-        return r"C:\Program Files\Autodesk\VREDPro-11.2\Bin\WIN64\extractMetaData.exe"
+    def _get_thumbnail_extractor(self):
+        """Get extractMetaData.exe file path"""
+        return os.path.join(self.vred_bin_dir, "extractMetaData.exe")
 
     @property
     def settings(self):
@@ -108,7 +110,9 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
             else:
                 raise
 
-    def _translate_file(self, source_path, target_path, item):
+    def _translate_file(self, source_path, item):
+        engine_logger = self.parent.engine.logger
+
         self.logger.info("Starting the translation")
 
         # PublishedFile id
@@ -139,46 +143,36 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
         # Execute translation command
         command = [translator, index_path, source_path_temporal]
+
         self.logger.info("LMV execution: {}".format(" ".join(command)))
-        lmv_subprocess = Popen('"'+'" "'.join(command)+'"', stdout=PIPE, stderr=STDOUT, shell=True)
-        while lmv_subprocess.poll() is None:
-            self.logger.debug("LMV processing ... [{}]".format(lmv_subprocess.stdout.next().replace('\n', '')))
 
-        if lmv_subprocess.returncode == 0:
-            target_path_parent = os.path.dirname(target_path)
-
-            if os.path.exists(target_path):
-                shutil.rmtree(target_path)
-
-            if not os.path.exists(target_path_parent):
-                self.makedirs(target_path_parent)
-
-            output_directory = os.path.join(self.TMPDIR, "output")
-
-            # Rename svf file
-            name, _ = os.path.splitext(file_name)
-            svf_file_old_name = "{}.svf".format(name)
-            svf_file_new_name = "{}.svf".format(version_id)
-            source_file = os.path.join(output_directory, "1", svf_file_old_name)
-            target_file = os.path.join(output_directory, "1", svf_file_new_name)
-            os.rename(source_file, target_file)
-
-            shutil.copytree(output_directory, target_path)
-
-            base_name = os.path.join(self.TMPDIR, "{}".format(version_id))
-
-            self.logger.info("LMV files copied.")
+        try:
+            engine_logger.debug("Command for translation: {}".format(" ".join(command)))
+            subprocess.check_call(command, stderr=subprocess.STDOUT, shell=True)
+        except Exception as e:
+            engine_logger.debug("Command for translation failed: {}".format(e))
+            self.logger.error("Error ocurred {!r}".format(e))
+            raise
         else:
-            self.logger.error("LMV processing fail.")
-            return
+            engine_logger.debug("Translation ran sucessfully")
+
+        output_directory = os.path.join(self.TMPDIR, "output")
+
+        # Rename svf file
+        name, _ = os.path.splitext(file_name)
+        svf_file_old_name = "{}.svf".format(name)
+        svf_file_new_name = "{}.svf".format(version_id)
+        source_file = os.path.join(output_directory, "1", svf_file_old_name)
+        target_file = os.path.join(output_directory, "1", svf_file_new_name)
+        os.rename(source_file, target_file)
+
+        base_name = os.path.join(self.TMPDIR, "{}".format(version_id))
+
+        self.logger.info("LMV files copied.")
 
         thumbnail_data = self._get_thumbnail_data(item, source_path_temporal)
         if thumbnail_data:
             images_path_temporal = os.path.join(output_directory, "images")
-            images_path = os.path.join(os.path.dirname(target_path_parent), "images")
-
-            if not os.path.exists(images_path):
-                self.makedirs(images_path)
 
             if not os.path.exists(images_path_temporal):
                 self.makedirs(images_path_temporal)
@@ -199,14 +193,16 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
             self.logger.info("Updating thumbnail.")
             self.parent.engine.shotgun.upload_thumbnail("PublishedFile", publish_id, thumb_small_path)
 
+            self.logger.info("Uploading sg_uploaded_movie")
+            self.parent.engine.shotgun.upload(entity_type="Version",
+                                              entity_id=version_id,
+                                              path=thumb_small_path,
+                                              field_name="sg_uploaded_movie")
+
             self.logger.info("ZIP package")
             zip_path = shutil.make_archive(base_name=base_name,
                                            format="zip",
                                            root_dir=output_directory)
-
-            self.logger.info("Moving images")
-            shutil.copy(thumb_small_path, images_path)
-            shutil.copy(thumb_big_path, images_path)
 
             item.properties["thumb_small_path"] = thumb_small_path
         else:
@@ -239,15 +235,14 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
             command = [extractor, "--icv", path, source_temporal_path]
 
             try:
-                command_line_process = Popen(command, stdout=PIPE, stderr=STDOUT)
-                process_output, _ = command_line_process.communicate()
-
-                if command_line_process.returncode != 0:
-                    self.logger.error("Thumbnail extractor failed {!r}".format(process_output))
-                    path = None
+                subprocess.check_call(command, stderr=subprocess.STDOUT, shell=True)
+                self.parent.engine.logger.debug("Getting thumbnail data with command {}".format(command))
             except Exception as e:
                 self.logger.error("Thumbnail extractor failed {!r}".format(e))
+                self.parent.engine.logger.error("Error extracting thumbnail data {}".format(e))
                 path = None
+            else:
+                self.parent.engine.logger.debug("Thumbnail data extracted successfully")
 
         if path:
             with open(path, "rb") as fh:
@@ -266,19 +261,7 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
     def _copy_work_to_publish(self, settings, item):
         source_path = item.properties["path"]
-        target_path = self._get_target_path(item)
-
-        try:
-            publish_folder = os.path.dirname(target_path)
-            ensure_folder_exists(publish_folder)
-            self._translate_file(source_path, target_path, item)
-        except Exception as e:
-            raise Exception(
-                "Failed to copy work file from '%s' to '%s'.\n%s" %
-                (source_path, target_path, traceback.format_exc())
-            )
-
-        self.logger.debug("Copied work file '%s' to publish file '%s'." % (source_path, target_path))
+        self._translate_file(source_path, item)
 
     def get_publish_type(self, settings, item):
         return "VRED"
@@ -304,7 +287,6 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
             shutil.rmtree(self.TMPDIR)
         except Exception as e:
             pass
-
 
     @property
     def item_filters(self):

@@ -12,8 +12,6 @@
 Hook that loads defines all the available actions, broken down by publish type.
 """
 import sgtk
-import os
-import vrScenegraph
 from sgtk.platform.qt import QtGui, QtCore
 
 
@@ -62,9 +60,11 @@ class VredActions(HookBaseClass):
         :param ui_area: String denoting the UI Area (see above).
         :returns List of dictionaries, each with keys name, params, caption and description
         """
-        app = self.parent
-        app.log_debug("Generate actions called for UI element %s. "
-                      "Actions: %s. Publish Data: %s" % (ui_area, actions, sg_publish_data))
+        engine = self.parent.engine
+        logger = engine.logger
+
+        logger.debug("Generate actions called for UI element %s. Actions: %s. Publish Data: %s" % (ui_area, actions,
+                                                                                                   sg_publish_data))
         action_instances = []
 
         if "assign_task" in actions:
@@ -120,33 +120,35 @@ class VredActions(HookBaseClass):
         :returns: No return value expected.
         """
         app = self.parent
-        app.log_debug("Execute action called for action %s. "
-                      "Parameters: %s. Publish Data: %s" % (name, params, sg_publish_data))
+        engine = self.parent.engine
+        logger = engine.logger
+        operations = engine.operations
+
+        logger.debug("Execute action called for action %s. Parameters: %s. Publish Data: %s" % (name, params,
+                                                                                                sg_publish_data))
 
         if name == "assign_task":
             if app.context.user is None:
                 raise Exception("Cannot establish current user!")
 
-            data = app.shotgun.find_one("Task", [["id", "is", sg_publish_data["id"]]], ["task_assignees"] )
+            data = app.shotgun.find_one("Task", [["id", "is", sg_publish_data["id"]]], ["task_assignees"])
             assignees = data["task_assignees"] or []
             assignees.append(app.context.user)
             app.shotgun.update("Task", sg_publish_data["id"], {"task_assignees": assignees})
 
         elif name == "task_to_ip":
             app.shotgun.update("Task", sg_publish_data["id"], {"sg_status_list": "ip"})
-
         else:
-            # resolve path
             path = self.get_publish_path(sg_publish_data)
 
             if name == "reference":
-                self._create_reference(path, sg_publish_data)
+                return operations.create_reference(path)
 
             if name == "import":
-                self._do_import(path, sg_publish_data)
+                return operations.do_import(path)
 
             if name == "load":
-                self._do_load(path, sg_publish_data)
+                return operations.do_load(path)
 
     def execute_multiple_actions(self, actions):
         """
@@ -173,59 +175,47 @@ class VredActions(HookBaseClass):
 
         :param list actions: Action dictionaries.
         """
+        messages = {}
+
         for single_action in actions:
             name = single_action.get("name")
             sg_publish_data = single_action.get("sg_publish_data")
             params = single_action.get("params")
-            self.execute_action(name, params, sg_publish_data)
 
-    ##############################################################################################################
-    # helper methods which can be subclassed in custom hooks to fine tune the behaviour of things
+            message = self.execute_action(name, params, sg_publish_data)
 
-    def _create_reference(self, path, sg_publish_data):
-        if not os.path.exists(path):
-            raise Exception("File not found on disk - '%s'" % path)
+            if not isinstance(messages, dict):
+                continue
 
-        namespace = "%s %s" % (sg_publish_data.get("entity").get("name"), sg_publish_data.get("name"))
-        namespace = namespace.replace(" ", "_")
+            message_type = message.get("message_type")
+            message_code = message.get("message_code")
+            publish_path = message.get("publish_path")
+            is_error = message.get("is_error")
 
-        self.parent.engine.load_file([path],vrScenegraph.getRootNode(),False,False)
+            if message_type not in messages:
+                messages[message_type] = {}
 
-    def _loaded_successfully_messagebox(self, path):
-        """
-        This will display a QMessageBox to notify the successful result
-        :param path:
-        :return:
-        """
-        message_box = QtGui.QMessageBox()
-        message_box.setWindowTitle("Load File")
-        message_box.setText("File '{!r}' loaded successfully.".format(os.path.basename(path)))
-        message_box.setIcon(QtGui.QMessageBox.Information)
-        message_box.setStandardButtons(QtGui.QMessageBox.Ok)
-        message_box.setDefaultButton(QtGui.QMessageBox.Ok)
-        message_box.show()
-        message_box.raise_()
-        message_box.activateWindow()
-        message_box.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | message_box.windowFlags())
-        message_box.exec_()
+            if message_code not in messages[message_type]:
+                messages[message_type][message_code] = dict(is_error=is_error, paths=[])
 
-    def _do_load(self, path, sg_publish_data):
-        """
-        This will load a file as a new scene.
-        """
-        if not os.path.exists(path):
-            raise Exception("File not found on disk - '%s'" % path)
-        self.parent.engine.reset_scene()
-        self.parent.engine.load_file(path)
+            messages[message_type][message_code]["paths"].append(publish_path)
 
-        self._loaded_successfully_messagebox(path)
+        active_window = QtGui.QApplication.activeWindow()
+        for message_type, message_type_details in messages.items():
+            content = ""
+            for message_code, message_code_details in message_type_details.items():
+                if content:
+                    content += "\n\n"
 
-    def _do_import(self, path, sg_publish_data):
-        """
-        This will import a file into an existing scene.
-        """
-        if not os.path.exists(path):
-            raise Exception("File not found on disk - '%s'" % path)
-        self.parent.engine.import_file(path)
+                is_error = message_code_details.get("is_error")
+                paths = message_code_details.get("paths")
 
-        self._loaded_successfully_messagebox(path)
+                if is_error:
+                    content += "{}: {}".format(message_code, ", ".format(paths))
+                else:
+                    if len(paths) == 1:
+                        content += "File {} {}".format(paths[0], message_code)
+                    else:
+                        content += "{} files {}".format(len(paths), message_code)
+
+            getattr(QtGui.QMessageBox, message_type)(active_window, message_type.title(), content)

@@ -89,9 +89,9 @@ class VREDPublishFilePlugin(HookBaseClass):
         engine = publisher.engine
 
         self.logger.info("Saving...")
-        engine.save_before_publish(item.properties["path"])
+        engine.operations.save_before_publish(item.properties["path"])
         super(VREDPublishFilePlugin, self).publish(settings, item)
-        engine.save_after_publish(item.properties["next_version_path"])
+        engine.operations.save_after_publish(item.properties["next_version_path"])
 
     @property
     def item_filters(self):

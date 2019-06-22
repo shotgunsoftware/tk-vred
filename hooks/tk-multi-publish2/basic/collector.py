@@ -12,7 +12,6 @@ import os
 
 import sgtk
 import vrScenegraph
-import vrFieldAccess
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -52,7 +51,7 @@ class VREDSessionCollector(HookBaseClass):
 
         publisher = self.parent
         engine = publisher.engine
-        path = engine.get_current_file()
+        path = engine.operations.get_current_file()
 
         if path:
             file_info = publisher.util.get_file_path_components(path)
@@ -63,13 +62,9 @@ class VREDSessionCollector(HookBaseClass):
         session_item = super(VREDSessionCollector, self)._collect_file(parent_item, path, frame_sequence=True)
 
         # get the icon path to display for this item
-        icon_path = os.path.join(
-            self.disk_location,
-            os.pardir,
-            "icons",
-            "vred.png"
-        )
+        icon_path = os.path.join(self.disk_location, os.pardir, "icons", "vred.png")
         session_item.set_icon_from_path(icon_path)
+
         session_item.type = "vred.session"
         session_item.name = display_name
         session_item.display_type = "VRED Session"
@@ -85,7 +80,7 @@ class VREDSessionCollector(HookBaseClass):
         """
         publisher = self.parent
         engine = publisher.engine
-        base_dir = os.path.dirname(engine.get_render_path(parent_item.properties.get("path")))
+        base_dir = os.path.dirname(engine.operations.get_render_path(parent_item.properties.get("path")))
         files = os.listdir(base_dir)
 
         if not files:
@@ -107,22 +102,19 @@ class VREDSessionCollector(HookBaseClass):
         """
 
         # get the icon path to display for this item
-        icon_path = os.path.join(
-            self.disk_location,
-            os.pardir,
-            "icons",
-            "publish_vred_osb.png"
-        )
+        icon_path = os.path.join(self.disk_location, os.pardir, "icons", "publish_vred_osb.png")
         
         rootNode = vrScenegraph.getRootNode()
         for n in range(0, rootNode.getNChildren()):
             childNode = rootNode.getChild(n)
-            if childNode.getType() == "Geometry":
-                # Add node Info
-                fieldAcc = childNode.fields()
-                item = super(VREDSessionCollector, self)._collect_file(parent_item, parent_path)
-                item.name = childNode.getName()
-                item.type = 'vred.session.geometry'
-                item.display_type = 'Geometry Node'
-                item.properties['node_id'] = fieldAcc.getID()
-                item.set_icon_from_path(icon_path)
+
+            if childNode.getType() != "Geometry":
+                continue
+
+            fieldAcc = childNode.fields()
+            item = super(VREDSessionCollector, self)._collect_file(parent_item, parent_path)
+            item.name = childNode.getName()
+            item.type = 'vred.session.geometry'
+            item.display_type = 'Geometry Node'
+            item.properties['node_id'] = fieldAcc.getID()
+            item.set_icon_from_path(icon_path)
