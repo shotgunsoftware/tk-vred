@@ -115,8 +115,8 @@ class VREDMenu(object):
 
     def _create_apps(self, options):
         # Apps to display in the bottom of the menu
+        # i.e.: bottom_apps[('tk-multi-autoabout', self.ABOUT_MENU_TEXT)] = []
         bottom_apps = OrderedDict()
-        bottom_apps[('tk-multi-autoabout', self.ABOUT_MENU_TEXT)] = []
 
         favourites = [(favourite["app_instance"], favourite["name"])
                       for favourite in self._engine.get_setting("menu_favourites")]
