@@ -1,0 +1,36 @@
+The following licenses and copyright notices apply to various components
+of the Shotgun Pipeline Toolkit VRED Engine as outlined below.
+
+=== PySide (http://qt-project.org/wiki/About-PySide)  =======================
+
+Copyright (C) 2016 The Qt Company Ltd.  This Autodesk software contains Pyside v.2.0.0.  Pyside is licensed under the GNU Lesser General Public License v.3,
+which can be found at https://www.gnu.org/licenses/lgpl-3.0.txt.   A text copy of this license is included on the media provided by Autodesk or with the download of this Autodesk software.  You may obtain a copy of the source code for Pyside v.2.0.0 from www.autodesk.com/lgplsource or by sending a written request to:
+
+Autodesk, Inc.
+
+Attention:  General Counsel
+
+Legal Department
+
+111 McInnis Parkway
+San Rafael, CA 94903
+
+Your written request must:
+
+1. Contain a self-addressed CD/DVD mailer (or envelope sufficiently large to hold a DVD) with postage sufficient to cover the amount of the current U.S.
+Post Office First Class postage rate for CD/DVD mailers (or the envelope you have chosen) weighing  5 ounces from San Rafael, California USA to your indicated address; and
+
+2. Identify:
+
+a. This Autodesk software name and release number;
+b. That you are requesting  the source code for Pyside v.2.0.0; and
+c. The above URL (www.autodesk.com/lgplsource)
+
+so that Autodesk may properly respond to your request.  The offer to receive this Pyside source code via the above URL (www.autodesk.com/lgplsource) or
+by written request to Autodesk is valid for a period of three (3) years from the date you purchased your license to this Autodesk software.
+
+You may modify, debug and relink Pyside to this Autodesk software as provided under the terms of the GNU Lesser General Public License v.3.
+
+=== Shiboken (https://github.com/PySide/Shiboken)  ==========================
+
+PySide is licensed under the LGPL version 2.1 license.
