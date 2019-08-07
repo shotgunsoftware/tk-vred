@@ -70,11 +70,8 @@ class VREDMenu(object):
                 caption, callback = data
                 root_menu.addAction(caption, callback)
 
-        # Add root menu
-        for action in menubar.actions():
-            if action.text() == u'&Help':
-                menubar.insertMenu(action, root_menu)
-                break
+        actions = menubar.actions()
+        menubar.insertMenu(actions[-1], root_menu)
 
     def _create_context_submenu(self, options):
         submenu = QtGui.QMenu()

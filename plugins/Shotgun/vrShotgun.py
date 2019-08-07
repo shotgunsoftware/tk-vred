@@ -23,10 +23,10 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         parent.layout().addWidget(self)
         self.setupUi(self)
         self.context = sgtk.context.deserialize(os.environ.get("SGTK_CONTEXT"))
-        self.engine = sgtk.platform.start_engine('tk-vred', self.context.sgtk, self.context)
         QtCore.QTimer.singleShot(0, self.init)
 
     def init(self):
+        self.engine = sgtk.platform.start_engine('tk-vred', self.context.sgtk, self.context)
         file_to_open = os.environ.get("SGTK_FILE_TO_OPEN", None)
         if file_to_open:
             vrController.newScene()

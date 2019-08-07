@@ -69,8 +69,12 @@ class VREDLauncher(SoftwareLauncher):
 
         # Command line arguments
         args += " -insecure_python"
+
         if os.getenv("DISABLE_VRED_OPENGL", "0") == "1":
             args += " -no_opengl"
+
+        if os.getenv("ENABLE_VRED_CONSOLE", "0") == "1":
+            args += " -console"
 
         # Register plugins
         plugin_dir = os.path.join(self.disk_location, "plugins", "Shotgun")
