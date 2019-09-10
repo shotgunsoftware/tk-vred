@@ -80,7 +80,7 @@ class VREDSessionCollector(HookBaseClass):
         """
         publisher = self.parent
         engine = publisher.engine
-        base_dir = os.path.dirname(engine.operations.get_render_path(parent_item.properties.get("path")))
+        base_dir = os.path.dirname(engine.operations.get_render_path())
         files = os.listdir(base_dir)
 
         if not files:

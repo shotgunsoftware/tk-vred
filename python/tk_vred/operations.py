@@ -77,11 +77,16 @@ class VREDOperations(object):
 
         self.prepare_render_path(file_path)
 
-    def get_render_path(self, file_path):
+    def get_render_path(self):
         """
         Get render path when the file is selected or saved
         """
-        self.logger.debug('Generating render path')
+        return vrRenderSettings.getRenderFilename()
+
+    def prepare_render_path(self, file_path):
+        """
+        Prepare render path when the file selected or saved
+        """
         try:
             template = self._engine.get_template_by_name(self._engine.get_setting('render_template'))
             context_fields = self._engine.context.as_template_fields(template, validate=True)
@@ -96,14 +101,6 @@ class VREDOperations(object):
         except Exception as err:
             self.logger.debug("Error generating render path: {0}".format(err))
             path = None
-
-        return path
-
-    def prepare_render_path(self, file_path):
-        """
-        Prepare render path when the file selected or saved
-        """
-        path = self.get_render_path(file_path)
 
         if path:
             self.render_path = path
