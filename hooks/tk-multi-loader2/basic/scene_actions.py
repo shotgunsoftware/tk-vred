@@ -60,28 +60,17 @@ class VredActions(HookBaseClass):
         :param ui_area: String denoting the UI Area (see above).
         :returns List of dictionaries, each with keys name, params, caption and description
         """
-        engine = self.parent.engine
-        logger = engine.logger
+        app = self.parent
+        app.log_debug("Generate actions called for UI element %s. "
+                      "Actions: %s. Publish Data: %s" % (ui_area, actions, sg_publish_data))
 
-        logger.debug("Generate actions called for UI element %s. Actions: %s. Publish Data: %s" % (ui_area, actions,
-                                                                                                   sg_publish_data))
         action_instances = []
-
-        if "assign_task" in actions:
-            action_instances.append({
-                "name": "assign_task",
-                "params": None,
-                "caption": "Assign Task to yourself",
-                "description": "Assign this task to yourself."
-            })
-
-        if "task_to_ip" in actions:
-            action_instances.append({
-                "name": "task_to_ip",
-                "params": None,
-                "caption": "Set to In Progress",
-                "description": "Set the task status to In Progress."
-            })
+        try:
+            # call base class first
+            action_instances += HookBaseClass.generate_actions(self, sg_publish_data, actions, ui_area)
+        except AttributeError:
+            # base class doesn't have the method, so ignore and continue
+            pass
 
         if "reference" in actions:
             action_instances.append({
@@ -120,35 +109,22 @@ class VredActions(HookBaseClass):
         :returns: No return value expected.
         """
         app = self.parent
-        engine = self.parent.engine
-        logger = engine.logger
+        engine = app.engine
         operations = engine.operations
 
-        logger.debug("Execute action called for action %s. Parameters: %s. Publish Data: %s" % (name, params,
-                                                                                                sg_publish_data))
+        app.log_debug("Execute action called for action %s. "
+                      "Parameters: %s. Publish Data: %s" % (name, params, sg_publish_data))
 
-        if name == "assign_task":
-            if app.context.user is None:
-                raise Exception("Cannot establish current user!")
+        path = self.get_publish_path(sg_publish_data)
 
-            data = app.shotgun.find_one("Task", [["id", "is", sg_publish_data["id"]]], ["task_assignees"])
-            assignees = data["task_assignees"] or []
-            assignees.append(app.context.user)
-            app.shotgun.update("Task", sg_publish_data["id"], {"task_assignees": assignees})
+        if name == "reference":
+            return operations.create_reference(path)
 
-        elif name == "task_to_ip":
-            app.shotgun.update("Task", sg_publish_data["id"], {"sg_status_list": "ip"})
-        else:
-            path = self.get_publish_path(sg_publish_data)
+        if name == "import":
+            return operations.do_import(path)
 
-            if name == "reference":
-                return operations.create_reference(path)
-
-            if name == "import":
-                return operations.do_import(path)
-
-            if name == "load":
-                return operations.do_load(path)
+        if name == "load":
+            return operations.do_load(path)
 
     def execute_multiple_actions(self, actions):
         """
