@@ -23,7 +23,28 @@ class VREDSessionCollector(HookBaseClass):
     """
     @property
     def settings(self):
+        """
+        Dictionary defining the settings that this collector expects to receive
+        through the settings parameter in the process_current_session and
+        process_file methods.
+
+        A dictionary on the following form::
+
+            {
+                "Settings Name": {
+                    "type": "settings_type",
+                    "default": "default_value",
+                    "description": "One line description of the setting"
+            }
+
+        The type string should be one of the data types that toolkit accepts as
+        part of its environment configuration.
+        """
+
+        # grab any base class settings
         collector_settings = super(VREDSessionCollector, self).settings or {}
+
+        # settings specific to this collector
         vred_session_settings = {
             "Work Template": {
                 "type": "template",
@@ -36,6 +57,7 @@ class VREDSessionCollector(HookBaseClass):
             },
         }
 
+        # update the base settings with these settings
         collector_settings.update(vred_session_settings)
 
         return collector_settings
@@ -48,29 +70,79 @@ class VREDSessionCollector(HookBaseClass):
         :param dict settings: Configured settings for this collector
         :param parent_item: Root item instance
         """
+        publisher = self.parent
+        operations = publisher.engine.operations
+
+        # get the path to the current file
+        path = operations.get_current_file()
+
+        # create an item representing the current VRED session
+        item = self.collect_current_vred_session(settings, parent_item)
+
+        self._collect_session_renders(item)
+        self._collect_geometries(item, path)
+
+    def collect_current_vred_session(self, settings, parent_item):
+        """
+        Creates an item that represents the current VRED session.
+
+        :param dict settings: Configured settings for this collector
+        :param parent_item: Root item instance
+
+        :returns: Item of type vred.session
+        """
 
         publisher = self.parent
-        engine = publisher.engine
-        path = engine.operations.get_current_file()
+        operations = publisher.engine.operations
 
+        # get the path to the current file
+        path = operations.get_current_file()
+
+        # determine the display name for the item
         if path:
             file_info = publisher.util.get_file_path_components(path)
             display_name = file_info["filename"]
         else:
             display_name = "Current VRED Session"
 
-        session_item = super(VREDSessionCollector, self)._collect_file(parent_item, path, frame_sequence=True)
+        # create the session item for the publish hierarchy
+        session_item = parent_item.create_item(
+            "vred.session",
+            "VRED Session",
+            display_name
+        )
 
         # get the icon path to display for this item
-        icon_path = os.path.join(self.disk_location, os.pardir, "icons", "vred.png")
+        icon_path = os.path.join(
+            self.disk_location,
+            os.pardir,
+            "icons",
+            "vred.png"
+        )
         session_item.set_icon_from_path(icon_path)
 
-        session_item.type = "vred.session"
-        session_item.name = display_name
-        session_item.display_type = "VRED Session"
+        # if a work template is defined, add it to the item properties so
+        # that it can be used by attached publish plugins
+        work_template_setting = settings.get("Work Template")
+        if work_template_setting:
+            work_template = publisher.engine.get_template_by_name(
+                work_template_setting.value)
 
-        self._collect_session_renders(session_item)
-        self._collect_geometries(session_item, path)
+            # store the template on the item for use by publish plugins. we
+            # can't evaluate the fields here because there's no guarantee the
+            # current session path won't change once the item has been created.
+            # the attached publish plugins will need to resolve the fields at
+            # execution time.
+            session_item.properties["work_template"] = work_template
+            self.logger.debug("Work template defined for VRED collection.")
+
+        self.logger.info("Collected current VRED scene")
+
+        # Need to store the path on properties to backward compatibility
+        # TODO: clean LMV plugin to remove the path query
+        session_item.properties["path"] = path
+
+        return session_item
 
     def _collect_session_renders(self, parent_item):
         """
