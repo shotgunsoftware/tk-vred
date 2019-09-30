@@ -224,6 +224,120 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         self.logger.info("LMV processing finished successfully.")
         self.logger.info('Translate VRED file to LMV file locally (DONE).')
 
+    def _upload_thumbnail_without_lmv(self, source_path, item):
+        engine_logger = self.parent.engine.logger
+
+        self.logger.info("Starting the translation")
+
+        # PublishedFile id
+        publish_id = item.properties.sg_publish_data["id"]
+
+        # Version id
+        version_id = item.properties.sg_version_data["id"]
+
+        # Get translator
+        translator = self._get_translator()
+
+        # Temporal dir
+        self.TMPDIR = tempfile.mkdtemp(prefix='sgtk_')
+
+        # VRED file name
+        file_name = os.path.basename(source_path)
+
+        # JSON file
+        self.logger.info("Creating JSON file")
+        index_path = os.path.join(self.TMPDIR, 'index.json')
+        with open(index_path, 'w') as _:
+            pass
+
+        # Copy source file locally
+        self.logger.info("Copy file {} locally.".format(source_path))
+        source_path_temporal = os.path.join(self.TMPDIR, file_name)
+        shutil.copyfile(source_path, source_path_temporal)
+
+        # Execute translation command
+        command = [translator, index_path, source_path_temporal]
+
+        self.logger.info("LMV execution: {}".format(" ".join(command)))
+
+        try:
+            engine_logger.debug("Command for translation: {}".format(" ".join(command)))
+            subprocess.check_call(command, stderr=subprocess.STDOUT, shell=True)
+        except Exception as e:
+            engine_logger.debug("Command for translation failed: {}".format(e))
+            self.logger.error("Error ocurred {!r}".format(e))
+            raise
+        else:
+            engine_logger.debug("Translation ran sucessfully")
+
+        output_directory = os.path.join(self.TMPDIR, "output")
+
+        # Rename svf file
+        name, _ = os.path.splitext(file_name)
+        svf_file_old_name = "{}.svf".format(name)
+        svf_file_new_name = "{}.svf".format(version_id)
+        source_file = os.path.join(output_directory, "1", svf_file_old_name)
+        target_file = os.path.join(output_directory, "1", svf_file_new_name)
+        os.rename(source_file, target_file)
+
+        # base_name = os.path.join(self.TMPDIR, "{}".format(version_id))
+
+        self.logger.info("LMV files copied.")
+
+        thumbnail_data = self._get_thumbnail_data(item, source_path_temporal)
+        if thumbnail_data:
+            images_path_temporal = os.path.join(output_directory, "images")
+
+            if not os.path.exists(images_path_temporal):
+                self.makedirs(images_path_temporal)
+
+            thumb_big_filename = "{}.jpg".format(version_id)
+            thumb_small_filename = "{}_thumb.jpg".format(version_id)
+            thumb_big_path = os.path.join(images_path_temporal, thumb_big_filename)
+            thumb_small_path = os.path.join(images_path_temporal, thumb_small_filename)
+
+            with open(thumb_big_path, 'wb') as thumbnail:
+                thumbnail.write(thumbnail_data)
+                self.logger.info("LMV image created.")
+
+            with open(thumb_small_path, 'wb') as thumbnail:
+                thumbnail.write(thumbnail_data)
+                self.logger.info("LMV thumbnail created.")
+
+            self.logger.info("Updating thumbnail.")
+            self.parent.engine.shotgun.upload_thumbnail("PublishedFile", publish_id, thumb_small_path)
+
+            self.logger.info("Uploading sg_uploaded_movie")
+            self.parent.engine.shotgun.upload(entity_type="Version",
+                                              entity_id=version_id,
+                                              path=thumb_small_path,
+                                              field_name="sg_uploaded_movie")
+
+            self.logger.info("ZIP package")
+            # zip_path = shutil.make_archive(base_name=base_name,
+            #                                format="zip",
+            #                                root_dir=output_directory)
+
+            item.properties["thumb_small_path"] = thumb_small_path
+        else:
+            self.logger.info("ZIP package without images")
+            # zip_path = shutil.make_archive(base_name=base_name,
+            #                                format="zip",
+            #                                root_dir=output_directory)
+
+        # self.logger.info("Uploading lmv files")
+        # self.parent.engine.shotgun.upload(entity_type="Version",
+        #                                   entity_id=version_id,
+        #                                   path=zip_path,
+        #                                   field_name="sg_translation_files")
+
+        # self.parent.engine.shotgun.update(entity_type="Version",
+        #                                   entity_id=version_id,
+        #                                   data=dict(sg_translation_type="LMV"))
+
+        # self.logger.info("LMV processing finished successfully.")
+        # self.logger.info('Translate VRED file to LMV file locally (DONE).')
+
     def _get_thumbnail_data(self, item, source_temporal_path):
         path = item.get_thumbnail_as_path()
         data = None
@@ -261,7 +375,14 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
     def _copy_work_to_publish(self, settings, item):
         source_path = item.properties["path"]
-        self._translate_file(source_path, item)
+        import sys
+        sys.path.append(
+            r"C:\Users\ariel.calzada\AppData\Local\JetBrains\Toolbox\apps\PyCharm-P\ch-0\192.6603.34\debug-eggs\pydevd-pycharm.egg")
+        import pydevd
+        pydevd.settrace('localhost', port=5490, stdoutToServer=True, stderrToServer=True)
+
+        # self._translate_file(source_path, item)
+        self._upload_thumbnail_without_lmv(source_path, item)
 
     def get_publish_type(self, settings, item):
         return "VRED"
