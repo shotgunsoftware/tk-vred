@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
+import re
 
 import sgtk
 import vrScenegraph
@@ -79,7 +80,9 @@ class VREDSessionCollector(HookBaseClass):
         # create an item representing the current VRED session
         item = self.collect_current_vred_session(settings, parent_item)
 
-        self._collect_session_renders(item)
+        # look at the render folder to find rendered images on disk
+        self.collect_rendered_images(item)
+        # self._collect_session_renders(item)
         self._collect_geometries(item, path)
 
     def collect_current_vred_session(self, settings, parent_item):
@@ -144,26 +147,70 @@ class VREDSessionCollector(HookBaseClass):
 
         return session_item
 
-    def _collect_session_renders(self, parent_item):
+    def collect_rendered_images(self, parent_item):
         """
-        Creates items for session renders to be exported.
+       Creates items for any image sequence or single image that
+       can be found in the render folder.
 
-        :param parent_item: Parent Item instance
-        """
+       :param parent_item: Parent Item instance
+       :return:
+       """
+
         publisher = self.parent
-        engine = publisher.engine
-        base_dir = os.path.dirname(engine.operations.get_render_path())
-        files = os.listdir(base_dir)
+        operations = publisher.engine.operations
 
-        if not files:
+        render_path = operations.get_render_path()
+        render_folder = os.path.dirname(render_path)
+
+        if not os.path.isdir(render_folder):
+            self.logger.info("Render folder doesn't exist on disk. Skip image collection.")
             return
 
-        for file_name in files:
-            path = os.path.join(base_dir, file_name)
-            item = super(VREDSessionCollector, self)._collect_file(parent_item, path)
-            item.type = "vred.session.renders"
-            item.name = file_name
-            item.display_type = "VRED Session Render"
+        # build the pattern we'll use to collect all the images on disk
+        # corresponding to the current render path
+        file_name, file_ext = os.path.splitext(os.path.basename(render_path))
+        regex_pattern = r"{0}(?P<render_pass>-\D+)*(?P<frame>-\d+)*\{1}".format(file_name, file_ext)
+
+        # go through all the files of the render folder to find the render images
+        for f in os.listdir(render_folder):
+            m = re.search(regex_pattern, f)
+            if not m:
+                continue
+            if m.group("frame"):
+                # TODO: manage image sequence
+                continue
+
+            item = super(VREDSessionCollector, self)._collect_file(
+                parent_item,
+                os.path.join(render_folder, f),
+                frame_sequence=False
+            )
+
+            if m.group("render_pass"):
+                item.name = "%s (Render Pass: %s)" % (f, m.group("render_pass"))
+            else:
+                item.name = f
+
+    # def _collect_session_renders(self, parent_item):
+    #     """
+    #     Creates items for session renders to be exported.
+    #
+    #     :param parent_item: Parent Item instance
+    #     """
+    #     publisher = self.parent
+    #     engine = publisher.engine
+    #     base_dir = os.path.dirname(engine.operations.get_render_path())
+    #     files = os.listdir(base_dir)
+    #
+    #     if not files:
+    #         return
+    #
+    #     for file_name in files:
+    #         path = os.path.join(base_dir, file_name)
+    #         item = super(VREDSessionCollector, self)._collect_file(parent_item, path)
+    #         item.type = "vred.session.renders"
+    #         item.name = file_name
+    #         item.display_type = "VRED Session Render"
     
     def _collect_geometries(self, parent_item, parent_path):
         """
