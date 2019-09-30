@@ -224,6 +224,51 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         self.logger.info("LMV processing finished successfully.")
         self.logger.info('Translate VRED file to LMV file locally (DONE).')
 
+    def _upload_thumbnail_without_lmv(self, source_path, item):
+        publish_id = item.properties.sg_publish_data["id"]
+        version_id = item.properties.sg_version_data["id"]
+
+        self.TMPDIR = tempfile.mkdtemp(prefix='sgtk_')
+
+        # VRED file name
+        file_name = os.path.basename(source_path)
+
+        # Copy source file locally
+        self.logger.info("Copy file {} locally.".format(source_path))
+        source_path_temporal = os.path.join(self.TMPDIR, file_name)
+        shutil.copyfile(source_path, source_path_temporal)
+
+        output_directory = os.path.join(self.TMPDIR, "output")
+
+        thumbnail_data = self._get_thumbnail_data(item, source_path_temporal)
+        if thumbnail_data:
+            images_path_temporal = os.path.join(output_directory, "images")
+
+            if not os.path.exists(images_path_temporal):
+                self.makedirs(images_path_temporal)
+
+            thumb_big_filename = "{}.jpg".format(version_id)
+            thumb_small_filename = "{}_thumb.jpg".format(version_id)
+            thumb_big_path = os.path.join(images_path_temporal, thumb_big_filename)
+            thumb_small_path = os.path.join(images_path_temporal, thumb_small_filename)
+
+            with open(thumb_big_path, 'wb') as thumbnail:
+                thumbnail.write(thumbnail_data)
+
+            with open(thumb_small_path, 'wb') as thumbnail:
+                thumbnail.write(thumbnail_data)
+
+            self.logger.info("Updating thumbnail.")
+            self.parent.engine.shotgun.upload_thumbnail("PublishedFile", publish_id, thumb_small_path)
+
+            self.logger.info("Uploading sg_uploaded_movie")
+            self.parent.engine.shotgun.upload(entity_type="Version",
+                                              entity_id=version_id,
+                                              path=thumb_small_path,
+                                              field_name="sg_uploaded_movie")
+
+            item.properties["thumb_small_path"] = thumb_small_path
+
     def _get_thumbnail_data(self, item, source_temporal_path):
         path = item.get_thumbnail_as_path()
         data = None
@@ -261,7 +306,10 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
     def _copy_work_to_publish(self, settings, item):
         source_path = item.properties["path"]
-        self._translate_file(source_path, item)
+        # LMV translation disabled
+        # self._translate_file(source_path, item)
+
+        self._upload_thumbnail_without_lmv(source_path, item)
 
     def get_publish_type(self, settings, item):
         return "VRED"
