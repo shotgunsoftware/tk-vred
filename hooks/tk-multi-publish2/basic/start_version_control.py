@@ -220,13 +220,13 @@ class VREDStartVersionControlPlugin(HookBaseClass):
         path = sgtk.util.ShotgunPath.normalize(_session_path())
 
         # ensure the session is saved in its current state
-        operations.save_file()
+        operations.save_current_file(path)
 
         # get the path to a versioned copy of the file.
         version_path = publisher.util.get_version_path(path, "v001")
 
         # save to the new version path
-        operations.save_file_as(version_path)
+        operations.save_current_file(version_path)
         self.logger.info("A version number has been added to the VRED file...")
         self.logger.info("  VRED file path: %s" % (version_path,))
 
