@@ -13,6 +13,7 @@ import os
 import vrController
 import vrFileIO
 import vrFieldAccess
+import vrFileDialog
 import vrRenderSettings
 import vrScenegraph
 
@@ -164,3 +165,21 @@ class VREDOperations(object):
                 })
 
         return references
+
+    def open_save_as_dialog(self):
+        """
+        Launch a Qt file browser to select a file, then save the supplied
+        project to that path.
+        """
+        path = vrFileDialog.getSaveFileName(
+            caption="Save As",
+            filename="",
+            filter=[
+                "VRED Essentials Project Binary (*.vpe)",
+                "VRED Project Binary (*.vpb)",
+                "VRED Project File (*.vpf)"
+            ]
+        )
+
+        if path:
+            self.save_current_file(path)
