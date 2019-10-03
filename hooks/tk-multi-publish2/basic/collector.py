@@ -169,49 +169,61 @@ class VREDSessionCollector(HookBaseClass):
         # build the pattern we'll use to collect all the images on disk
         # corresponding to the current render path
         file_name, file_ext = os.path.splitext(os.path.basename(render_path))
-        regex_pattern = r"{0}(?P<render_pass>-\D+)*(?P<frame>-\d+)*\{1}".format(file_name, file_ext)
+        regex_pattern = r"{0}(?P<aov_name>-\D+)*(?P<frame>-\d+)*\{1}".format(file_name, file_ext)
 
         # go through all the files of the render folder to find the render images
+        render_files = {}
         for f in os.listdir(render_folder):
+
             m = re.search(regex_pattern, f)
             if not m:
                 continue
+
+            aov_name = None if not m.group("aov_name") else m.group("aov_name")[1:]
+
+            # image sequence case
             if m.group("frame"):
-                # TODO: manage image sequence
-                continue
+                # replace the frame number by a * character to have the sequence name without any frame number
+                sequence_path = re.sub(
+                    r"-\d+{0}".format(file_ext),
+                    "-*{0}".format(file_ext),
+                    f
+                )
+                if sequence_path not in render_files.keys():
+                    render_files[sequence_path] = {
+                        "aov_name": aov_name,
+                        "is_sequence": True,
+                        "render_paths": []
+                    }
+                    render_files[sequence_path]["render_paths"].append(f)
 
-            item = super(VREDSessionCollector, self)._collect_file(
-                parent_item,
-                os.path.join(render_folder, f),
-                frame_sequence=False
-            )
-
-            if m.group("render_pass"):
-                item.name = "%s (Render Pass: %s)" % (f, m.group("render_pass"))
+            # single image case
             else:
-                item.name = f
+                render_files[f] = {
+                    "aov_name": aov_name,
+                    "is_sequence": False
+                }
 
-    # def _collect_session_renders(self, parent_item):
-    #     """
-    #     Creates items for session renders to be exported.
-    #
-    #     :param parent_item: Parent Item instance
-    #     """
-    #     publisher = self.parent
-    #     engine = publisher.engine
-    #     base_dir = os.path.dirname(engine.operations.get_render_path())
-    #     files = os.listdir(base_dir)
-    #
-    #     if not files:
-    #         return
-    #
-    #     for file_name in files:
-    #         path = os.path.join(base_dir, file_name)
-    #         item = super(VREDSessionCollector, self)._collect_file(parent_item, path)
-    #         item.type = "vred.session.renders"
-    #         item.name = file_name
-    #         item.display_type = "VRED Session Render"
-    
+        for f, rd in render_files.iteritems():
+
+            if rd["is_sequence"]:
+                item = super(VREDSessionCollector, self)._collect_file(
+                    parent_item,
+                    os.path.join(render_folder, rd["render_paths"][0]),
+                    frame_sequence=True
+                )
+                item.set_icon_from_path(os.path.join(render_folder, rd["render_paths"][0]))
+            else:
+                item = super(VREDSessionCollector, self)._collect_file(
+                    parent_item,
+                    os.path.join(render_folder, f),
+                    frame_sequence=False
+                )
+                item.set_icon_from_path(os.path.join(render_folder, f))
+
+            if rd["aov_name"]:
+                item.name = "%s (Render Pass: %s)" % (item.name, rd["aov_name"])
+
     def _collect_geometries(self, parent_item, parent_path):
         """
         Creates items for osb to be exported.
