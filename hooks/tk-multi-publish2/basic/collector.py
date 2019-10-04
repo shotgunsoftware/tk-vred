@@ -212,15 +212,17 @@ class VREDSessionCollector(HookBaseClass):
                     os.path.join(render_folder, rd["render_paths"][0]),
                     frame_sequence=True
                 )
-                item.set_icon_from_path(os.path.join(render_folder, rd["render_paths"][0]))
+                icon_path = os.path.join(render_folder, rd["render_paths"][0])
+
             else:
                 item = super(VREDSessionCollector, self)._collect_file(
                     parent_item,
                     os.path.join(render_folder, f),
                     frame_sequence=False
                 )
-                item.set_icon_from_path(os.path.join(render_folder, f))
+                icon_path = os.path.join(render_folder, f)
 
+            item.set_icon_from_path(icon_path)
             if rd["aov_name"]:
                 item.name = "%s (Render Pass: %s)" % (item.name, rd["aov_name"])
 
