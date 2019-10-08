@@ -128,7 +128,7 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
 
         # do not validate the plugin if we have a different version between the rendering and the current scene
         publish_version = self.get_publish_version(settings, item)
-        if publish_version != item.parent.properties["publish_version"]:
+        if publish_template and publish_version != item.parent.properties["publish_version"]:
             self.logger.warning(
                 "Your rendering files don't have the same version number than your current work session."
             )
