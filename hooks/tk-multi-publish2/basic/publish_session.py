@@ -286,6 +286,9 @@ class VREDSessionPublishPlugin(HookBaseClass):
         # step. NOTE: this path could change prior to the publish phase.
         item.properties["path"] = path
 
+        # store the item publish version
+        item.properties["publish_version"] = self.get_publish_version(settings, item)
+
         # run the base class validation
         return super(VREDSessionPublishPlugin, self).validate(settings, item)
 
