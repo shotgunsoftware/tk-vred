@@ -168,7 +168,7 @@ class VREDMenu(object):
                 is_submenu = False
                 data = caption, callback
                 label = caption
-            else:
+            elif options_number > 1:
                 is_submenu = True
                 label = app_display_name
 
