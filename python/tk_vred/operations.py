@@ -183,3 +183,58 @@ class VREDOperations(object):
 
         if path:
             self.save_current_file(path)
+
+    @staticmethod
+    def get_geometry_nodes():
+        """
+        Returns all the geometry nodes of the current VRED scene
+
+        :return: A list of VRED geometry nodes
+        :rtype: list
+        """
+
+        root_node = vrScenegraph.getRootNode()
+
+        node_list = []
+        for n in range(0, root_node.getNChildren()):
+
+            child_node = root_node.getChild(n)
+            if child_node.getType() != "Geometry":
+                continue
+
+            node_list.append(child_node)
+
+        return node_list
+
+    def get_geometry_node_by_id(self, node_id):
+        """
+        Get the geometry node given it id
+
+        :param node_id: ID of the node we want to find
+        :return: The VRED geometry node
+        :rtype: vrNodePtr
+        """
+
+        geometry_nodes = self.get_geometry_nodes()
+
+        for geometry_node in geometry_nodes:
+            geometry_node_id = geometry_node.fields().getID()
+            if geometry_node_id == node_id:
+                return geometry_node
+
+        return None
+
+    def export_geometry(self, geometry_node, path):
+        """
+        Export geometry node to an osb file
+
+        :param geometry_node: Geometry node to export
+        :param path: Path to export the geometry
+        """
+
+        if geometry_node.getType() != "Geometry":
+            raise ValueError("Couldn't export geometry node: bad node type")
+
+        vrFileIO.saveGeometry(geometry_node, path)
+
+
