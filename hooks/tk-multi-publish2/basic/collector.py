@@ -70,6 +70,7 @@ class VREDSessionCollector(HookBaseClass):
         :param dict settings: Configured settings for this collector
         :param parent_item: Root item instance
         """
+
         publisher = self.parent
         operations = publisher.engine.operations
 
@@ -80,7 +81,7 @@ class VREDSessionCollector(HookBaseClass):
         item = self.collect_current_vred_session(settings, parent_item)
 
         self._collect_session_renders(item)
-        self._collect_geometries(item, path)
+        self.collect_geometry_nodes(item)
 
     def collect_current_vred_session(self, settings, parent_item):
         """
@@ -164,29 +165,39 @@ class VREDSessionCollector(HookBaseClass):
             item.type = "vred.session.renders"
             item.name = file_name
             item.display_type = "VRED Session Render"
-    
-    def _collect_geometries(self, parent_item, parent_path):
+
+    def collect_geometry_nodes(self, parent_item):
         """
-        Creates items for osb to be exported.
+        Creates items for session geometry to be exported.
 
         :param parent_item: Parent Item instance
-        :param parent_path: Parent path
         """
 
+        publisher = self.parent
+        operations = publisher.engine.operations
+
         # get the icon path to display for this item
-        icon_path = os.path.join(self.disk_location, os.pardir, "icons", "publish_vred_osb.png")
-        
-        rootNode = vrScenegraph.getRootNode()
-        for n in range(0, rootNode.getNChildren()):
-            childNode = rootNode.getChild(n)
+        icon_path = os.path.join(
+            self.disk_location,
+            os.pardir,
+            "icons",
+            "geometry.png"
+        )
 
-            if childNode.getType() != "Geometry":
-                continue
+        # get all the geometry nodes
+        geometry_nodes = operations.get_geometry_nodes()
 
-            fieldAcc = childNode.fields()
-            item = super(VREDSessionCollector, self)._collect_file(parent_item, parent_path)
-            item.name = childNode.getName()
-            item.type = 'vred.session.geometry'
-            item.display_type = 'Geometry Node'
-            item.properties['node_id'] = fieldAcc.getID()
+        for geometry_node in geometry_nodes:
+
+            node_fields = geometry_node.fields()
+
+            item = parent_item.create_item(
+                "vred.session.geometry",
+                "VRED Geometry Node",
+                geometry_node.getName()
+            )
             item.set_icon_from_path(icon_path)
+            item.properties["extra_template_fields"] = {
+                "node_name": item.name
+            }
+            item.properties["node_id"] = node_fields.getID()
