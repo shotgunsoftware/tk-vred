@@ -234,7 +234,7 @@ class VREDSessionCollector(HookBaseClass):
             if rd["render_pass"]:
                 item.name = "%s (Render Pass: %s)" % (item.name, rd["render_pass"])
 
-    def _collect_geometries(self, parent_item, parent_path):
+    def collect_geometry_nodes(self, parent_item):
         """
         Creates items for session geometry to be exported.
 
