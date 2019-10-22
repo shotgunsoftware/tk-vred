@@ -14,9 +14,9 @@ import sgtk
 HookBaseClass = sgtk.get_hook_baseclass()
 
 
-class VREDSessionPublishPlugin(HookBaseClass):
+class VREDSessionGeometryPublishPlugin(HookBaseClass):
     """
-    Plugin for publishing an open VRED session.
+    Plugin for publishing VRED geometry nodes.
 
     This hook relies on functionality found in the base file publisher hook in
     the publish2 app and should inherit from it in the configuration. The hook
@@ -35,53 +35,11 @@ class VREDSessionPublishPlugin(HookBaseClass):
         contain simple html for formatting.
         """
 
-        loader_url = "https://support.shotgunsoftware.com/hc/en-us/articles/219033078"
-
         return """
-            Publishes the file to Shotgun. A <b>Publish</b> entry will be
-            created in Shotgun which will include a reference to the file's current
-            path on disk. If a publish template is configured, a copy of the
-            current session will be copied to the publish template path which
-            will be the file that is published. Other users will be able to access
-            the published file via the <b><a href='%s'>Loader</a></b> so long as
-            they have access to the file's location on disk.
-
-            If the session has not been saved, validation will fail and a button
-            will be provided in the logging output to save the file.
-
-            <h3>File versioning</h3>
-            If the filename contains a version number, the process will bump the
-            file to the next version after publishing.
-
-            The <code>version</code> field of the resulting <b>Publish</b> in
-            Shotgun will also reflect the version number identified in the filename.
-            The basic worklfow recognizes the following version formats by default:
-
-            <ul>
-            <li><code>filename.v###.ext</code></li>
-            <li><code>filename_v###.ext</code></li>
-            <li><code>filename-v###.ext</code></li>
-            </ul>
-
-            After publishing, if a version number is detected in the work file, the
-            work file will automatically be saved to the next incremental version
-            number. For example, <code>filename.v001.ext</code> will be published
-            and copied to <code>filename.v002.ext</code>
-
-            If the next incremental version of the file already exists on disk, the
-            validation step will produce a warning, and a button will be provided in
-            the logging output which will allow saving the session to the next
-            available version number prior to publishing.
-
-            <br><br><i>NOTE: any amount of version number padding is supported. for
-            non-template based workflows.</i>
-
-            <h3>Overwriting an existing publish</h3>
-            In non-template workflows, a file can be published multiple times,
-            however only the most recent publish will be available to other users.
-            Warnings will be provided during validation if there are previous
-            publishes.
-            """ % (loader_url,)
+        <p>This plugin publishes VRED geometry nodes for the current session. Any
+        session geometry nodes will be exported to the path defined by this plugin's
+        configured "Publish Template" setting.</p>
+        """
 
     @property
     def settings(self):
@@ -102,9 +60,8 @@ class VREDSessionPublishPlugin(HookBaseClass):
         The type string should be one of the data types that toolkit accepts as
         part of its environment configuration.
         """
-
         # inherit the settings from the base publish plugin
-        base_settings = super(VREDSessionPublishPlugin, self).settings or {}
+        base_settings = super(VREDSessionGeometryPublishPlugin, self).settings or {}
 
         # settings specific to this class
         vred_publish_settings = {
@@ -131,7 +88,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         accept() method. Strings can contain glob patters such as *, for example
         ["maya.*", "file.maya"]
         """
-        return ["vred.session"]
+        return ["vred.session.geometry"]
 
     def accept(self, settings, item):
         """
@@ -182,7 +139,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         )
         return {
             "accepted": True,
-            "checked": True
+            "checked": False
         }
 
     def validate(self, settings, item):
@@ -198,7 +155,6 @@ class VREDSessionPublishPlugin(HookBaseClass):
         """
 
         publisher = self.parent
-        operations = publisher.engine.operations
         path = _session_path()
 
         # ---- ensure the session has been saved
@@ -223,55 +179,25 @@ class VREDSessionPublishPlugin(HookBaseClass):
         # if the session item has a known work template, see if the path
         # matches. if not, warn the user and provide a way to save the file to
         # a different path
-        work_template = item.properties.get("work_template")
-        if work_template:
-            if not work_template.validate(path):
-                self.logger.warning(
-                    "The current session does not match the configured work "
-                    "file template.",
-                    extra={
-                        "action_button": {
-                            "label": "Save File",
-                            "tooltip": "Save the current VRED session to a "
-                                       "different file name",
-                            # will launch wf2 if configured
-                            "callback": _get_save_as_action()
-                        }
-                    }
-                )
-            else:
-                self.logger.debug(
-                    "Work template configured and matches session file.")
-        else:
-            self.logger.debug("No work template configured.")
-
-        # ---- see if the version can be bumped post-publish
-
-        # check to see if the next version of the work file already exists on
-        # disk. if so, warn the user and provide the ability to jump to save
-        # to that version now
-        (next_version_path, version) = self._get_next_version_info(path, item)
-        if next_version_path and os.path.exists(next_version_path):
-
-            # determine the next available version_number. just keep asking for
-            # the next one until we get one that doesn't exist.
-            while os.path.exists(next_version_path):
-                (next_version_path, version) = self._get_next_version_info(
-                    next_version_path, item)
-
-            error_msg = "The next version of this file already exists on disk."
-            self.logger.error(
-                error_msg,
+        work_template = item.parent.properties.get("work_template")
+        if not work_template or not work_template.validate(path):
+            self.logger.warning(
+                "The current session does not match the configured work "
+                "file template.",
                 extra={
                     "action_button": {
-                        "label": "Save to v%s" % (version,),
-                        "tooltip": "Save to the next available version number, "
-                                   "v%s" % (version,),
-                        "callback": lambda: operations.save_current_file(next_version_path)
+                        "label": "Save File",
+                        "tooltip": "Save the current VRED session to a "
+                                   "different file name",
+                        # will launch wf2 if configured
+                        "callback": _get_save_as_action()
                     }
                 }
             )
-            raise Exception(error_msg)
+            return False
+        else:
+            self.logger.debug(
+                "Work template configured and matches session file.")
 
         # ---- populate the necessary properties and call base class validation
 
@@ -286,11 +212,16 @@ class VREDSessionPublishPlugin(HookBaseClass):
         # step. NOTE: this path could change prior to the publish phase.
         item.properties["path"] = path
 
-        # store the item publish version
-        item.properties["publish_version"] = self.get_publish_version(settings, item)
+        # if we don't have a publish path, we can't publish
+        publish_path = self.get_publish_path(settings, item)
+        if not publish_path:
+            self.logger.warning(
+                "Couldn't find a valid publish path for the geometry file."
+            )
+            return False
 
         # run the base class validation
-        return super(VREDSessionPublishPlugin, self).validate(settings, item)
+        return super(VREDSessionGeometryPublishPlugin, self).validate(settings, item)
 
     def publish(self, settings, item):
         """
@@ -301,39 +232,103 @@ class VREDSessionPublishPlugin(HookBaseClass):
             instances.
         :param item: Item to process
         """
-        operations = self.parent.engine.operations
 
-        # get the path in a normalized state. no trailing separator, separators
-        # are appropriate for current os, no double separators, etc.
-        path = sgtk.util.ShotgunPath.normalize(_session_path())
+        publisher = self.parent
+        operations = publisher.engine.operations
 
-        # ensure the session is saved
-        operations.save_current_file(path)
+        # be sure the geometry node is still in the current scene
+        geometry_node = operations.get_geometry_node_by_id(item.properties.node_id)
+        if not geometry_node:
+            self.logger.error(
+                "Couldn't find node %s in the current VRED session." % item.name
+            )
+            return
 
-        # update the item with the saved session path
-        item.properties["path"] = path
+        # get the path to create and publish
+        publish_path = self.get_publish_path(settings, item)
 
-        # let the base class register the publish
-        super(VREDSessionPublishPlugin, self).publish(settings, item)
+        # ensure the publish folder exists:
+        publish_folder = os.path.dirname(publish_path)
+        self.parent.ensure_folder_exists(publish_folder)
 
-    def finalize(self, settings, item):
+        # save the geometry at the right place
+        try:
+            operations.export_geometry(geometry_node, publish_path)
+        except Exception, e:
+            self.logger.error(
+                "Failed to export geometry: %s" % str(e)
+            )
+            return
+
+        # change the value of the item path property in order to have the right publish name and file type
+        item.properties["path"] = publish_path
+
+        # Now that the path has been generated, hand it off to the
+        super(VREDSessionGeometryPublishPlugin, self).publish(settings, item)
+
+    def get_publish_path(self, settings, item):
         """
-        Execute the finalization pass. This pass executes once all the publish
-        tasks have completed, and can for example be used to version up files.
+        Get a publish path for the supplied settings and item.
 
-        :param settings: Dictionary of Settings. The keys are strings, matching
-            the keys returned in the settings property. The values are `Setting`
-            instances.
-        :param item: Item to process
+        :param settings: This plugin instance's configured settings
+        :param item: The item to determine the publish path for
+
+        :return: A string representing the output path to supply when
+            registering a publish for the supplied item
+
+        Extracts the publish path via the configured work and publish templates
+        if possible.
         """
 
-        operations = self.parent.engine.operations
+        # publish type explicitly set or defined on the item
+        publish_path = item.get_property("publish_path")
+        if publish_path:
+            return publish_path
 
-        # do the base class finalization
-        super(VREDSessionPublishPlugin, self).finalize(settings, item)
+        # fall back to template/path logic
+        path = item.properties.path
 
-        # bump the session file to the next version
-        self._save_to_next_version(item.properties["path"], item, operations.save_current_file)
+        work_template = item.parent.properties.get("work_template")
+        publish_template = self.get_publish_template(settings, item)
+
+        work_fields = []
+        publish_path = None
+
+        # We need both work and publish template to be defined for template
+        # support to be enabled.
+        if work_template and publish_template:
+            if work_template.validate(path):
+                work_fields = work_template.get_fields(path)
+
+            if "extra_template_fields" in item.properties:
+                work_fields.update(item.properties.extra_template_fields)
+
+            missing_keys = publish_template.missing_keys(work_fields)
+
+            if missing_keys:
+                self.logger.warning(
+                    "Not enough keys to apply work fields (%s) to "
+                    "publish template (%s)" % (work_fields, publish_template))
+            else:
+                publish_path = publish_template.apply_fields(work_fields)
+                self.logger.debug(
+                    "Used publish template to determine the publish path: %s" %
+                    (publish_path,)
+                )
+        else:
+            self.logger.debug("publish_template: %s" % publish_template)
+            self.logger.debug("work_template: %s" % work_template)
+
+        if not publish_path:
+            return None
+            publish_path = path
+            self.logger.debug(
+                "Could not validate a publish template.")
+
+        # store the publish path
+        item.properties["publish_path"] = publish_path
+
+        return publish_path
 
 
 def _session_path():

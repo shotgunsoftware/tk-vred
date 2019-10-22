@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
+import re
 
 import sgtk
 import vrScenegraph
@@ -70,6 +71,7 @@ class VREDSessionCollector(HookBaseClass):
         :param dict settings: Configured settings for this collector
         :param parent_item: Root item instance
         """
+
         publisher = self.parent
         operations = publisher.engine.operations
 
@@ -79,8 +81,9 @@ class VREDSessionCollector(HookBaseClass):
         # create an item representing the current VRED session
         item = self.collect_current_vred_session(settings, parent_item)
 
-        self._collect_session_renders(item)
-        self._collect_geometries(item, path)
+        # look at the render folder to find rendered images on disk
+        self.collect_rendered_images(item)
+        self.collect_geometry_nodes(item)
 
     def collect_current_vred_session(self, settings, parent_item):
         """
@@ -144,49 +147,125 @@ class VREDSessionCollector(HookBaseClass):
 
         return session_item
 
-    def _collect_session_renders(self, parent_item):
+    def collect_rendered_images(self, parent_item):
         """
-        Creates items for session renders to be exported.
+       Creates items for any image sequence or single image that
+       can be found in the render folder.
 
-        :param parent_item: Parent Item instance
-        """
+       :param parent_item: Parent Item instance
+       :return:
+       """
+
         publisher = self.parent
-        engine = publisher.engine
-        base_dir = os.path.dirname(engine.operations.get_render_path())
-        files = os.listdir(base_dir)
+        operations = publisher.engine.operations
 
-        if not files:
+        render_path = operations.get_render_path()
+        render_folder = os.path.dirname(render_path)
+
+        if not os.path.isdir(render_folder):
+            self.logger.info("Render folder doesn't exist on disk. Skip image collection.")
             return
 
-        for file_name in files:
-            path = os.path.join(base_dir, file_name)
-            item = super(VREDSessionCollector, self)._collect_file(parent_item, path)
-            item.type = "vred.session.renders"
-            item.name = file_name
-            item.display_type = "VRED Session Render"
-    
-    def _collect_geometries(self, parent_item, parent_path):
-        """
-        Creates items for osb to be exported.
+        # build the pattern we'll use to collect all the images on disk
+        # corresponding to the current render path
+        file_name, file_ext = os.path.splitext(os.path.basename(render_path))
+        regex_pattern = r"{0}(?P<render_pass>-\D+)*(?P<frame>-\d+)*\{1}".format(file_name, file_ext)
 
-        :param parent_item: Parent Item instance
-        :param parent_path: Parent path
-        """
+        # go through all the files of the render folder to find the render images
+        render_files = {}
+        for f in os.listdir(render_folder):
 
-        # get the icon path to display for this item
-        icon_path = os.path.join(self.disk_location, os.pardir, "icons", "publish_vred_osb.png")
-        
-        rootNode = vrScenegraph.getRootNode()
-        for n in range(0, rootNode.getNChildren()):
-            childNode = rootNode.getChild(n)
-
-            if childNode.getType() != "Geometry":
+            m = re.search(regex_pattern, f)
+            if not m:
                 continue
 
-            fieldAcc = childNode.fields()
-            item = super(VREDSessionCollector, self)._collect_file(parent_item, parent_path)
-            item.name = childNode.getName()
-            item.type = 'vred.session.geometry'
-            item.display_type = 'Geometry Node'
-            item.properties['node_id'] = fieldAcc.getID()
+            render_pass = None if not m.group("render_pass") else m.group("render_pass")[1:]
+
+            # image sequence case
+            if m.group("frame"):
+                # replace the frame number by a * character to have the sequence name without any frame number
+                sequence_path = re.sub(
+                    r"-\d+{0}".format(file_ext),
+                    "-*{0}".format(file_ext),
+                    f
+                )
+                if sequence_path not in render_files.keys():
+                    render_files[sequence_path] = {
+                        "render_pass": render_pass,
+                        "is_sequence": True,
+                        "render_paths": []
+                    }
+                render_files[sequence_path]["render_paths"].append(
+                    os.path.join(render_folder, f)
+                )
+
+            # single image case
+            else:
+                render_files[f] = {
+                    "render_pass": render_pass,
+                    "is_sequence": False
+                }
+
+        for f, rd in render_files.iteritems():
+
+            if rd["is_sequence"]:
+                item = super(VREDSessionCollector, self)._collect_file(
+                    parent_item,
+                    rd["render_paths"][0],
+                    frame_sequence=True
+                )
+                icon_path = rd["render_paths"][0]
+                item.properties["sequence_paths"] = rd["render_paths"]
+
+            else:
+                item = super(VREDSessionCollector, self)._collect_file(
+                    parent_item,
+                    os.path.join(render_folder, f),
+                    frame_sequence=False
+                )
+                icon_path = os.path.join(render_folder, f)
+
+            # fill in some item properties manually
+            item.type = "vred.session.image"
+            item.type_display = "VRED Rendering"
+            item.properties["publish_type"] = "Rendered Image"
             item.set_icon_from_path(icon_path)
+
+            if rd["render_pass"]:
+                item.name = "%s (Render Pass: %s)" % (item.name, rd["render_pass"])
+
+    def collect_geometry_nodes(self, parent_item):
+        """
+        Creates items for session geometry to be exported.
+
+        :param parent_item: Parent Item instance
+        """
+
+        publisher = self.parent
+        operations = publisher.engine.operations
+
+        # get the icon path to display for this item
+        icon_path = os.path.join(
+            self.disk_location,
+            os.pardir,
+            "icons",
+            "geometry.png"
+        )
+
+        # get all the geometry nodes
+        geometry_nodes = operations.get_geometry_nodes()
+
+        for geometry_node in geometry_nodes:
+
+            node_fields = geometry_node.fields()
+
+            item = parent_item.create_item(
+                "vred.session.geometry",
+                "VRED Geometry Node",
+                geometry_node.getName()
+            )
+            item.set_icon_from_path(icon_path)
+            item.properties["extra_template_fields"] = {
+                "node_name": item.name
+            }
+            item.properties["node_id"] = node_fields.getID()
