@@ -84,16 +84,8 @@ class VredActions(HookBaseClass):
             action_instances.append({
                 "name": "import",
                 "params": None,
-                "caption": "Import into VRED Scene",
+                "caption": "Import into Scene",
                 "description": "This will import the item into the current VRED Scene."
-            })
-
-        if "load" in actions:
-            action_instances.append({
-                "name": "load",
-                "params": None,
-                "caption": "Load VRED Scene",
-                "description": "This will load file as a new VRED Scene"
             })
 
         return action_instances
@@ -122,9 +114,6 @@ class VredActions(HookBaseClass):
 
         if name == "import":
             return operations.do_import(path)
-
-        if name == "load":
-            return operations.do_load(path)
 
     def execute_multiple_actions(self, actions):
         """
