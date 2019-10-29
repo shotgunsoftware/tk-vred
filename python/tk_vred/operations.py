@@ -43,7 +43,7 @@ class VREDOperations(object):
 
         self.logger.debug("Loading file: {}".format(file_path))
         vrFileIO.load(file_path)
-        self.prepare_render_path(file_path)
+        self.set_render_path(file_path)
 
     def import_file(self, file_path):
         """Import a file into VRED. This will reset not the workspace."""
@@ -70,7 +70,7 @@ class VREDOperations(object):
         if not allowed_to_open:
             raise Exception("Can't save file: a lock for this path already exists")
 
-        self.prepare_render_path(file_path)
+        self.set_render_path(file_path)
 
     def get_render_path(self):
         """
@@ -78,28 +78,40 @@ class VREDOperations(object):
         """
         return vrRenderSettings.getRenderFilename()
 
-    def prepare_render_path(self, file_path):
+    def set_render_path(self, file_path=None):
         """
         Prepare render path when the file selected or saved
         """
-        try:
-            template = self._engine.get_template_by_name(self._engine.get_setting('render_template'))
-            context_fields = self._engine.context.as_template_fields(template, validate=True)
-            scene_name = file_path.split(os.path.sep)[-1].replace('.vpb', '')
-            context_fields.update({'scene_name': scene_name})
-            path = template.apply_fields(context_fields)
-            self.logger.debug('Path value: {0}'.format(path))
-            if not os.path.exists(path):
-                os.makedirs(path)
-            path = os.path.sep.join([path, scene_name+'.png'])
-            self.logger.debug('Full path value: {0}'.format(path))
-        except Exception as err:
-            self.logger.debug("Error generating render path: {0}".format(err))
-            path = None
+        render_template = self._engine.get_template_by_name(self._engine.get_setting("render_template"))
+        if not render_template:
+            self.logger.debug("Couldn't get render template from engine settings")
+            return
 
-        if path:
-            self.render_path = path
-            vrRenderSettings.setRenderFilename(self.render_path)
+        if file_path is None:
+            file_path = self.get_current_file()
+            if file_path is None:
+                self.logger.debug("Couldn't get current scene path")
+                return
+
+        work_template = self._engine.sgtk.template_from_path(file_path)
+        if not work_template:
+            self.logger.debug("Couldn't find a template which match the current scene path")
+            return
+        template_fields = work_template.get_fields(file_path)
+
+        # update the template fields with the context ones to be sure to have all the required fields
+        context_fields = self._engine.context.as_template_fields(render_template)
+        for k in context_fields:
+            if k not in template_fields.keys():
+                template_fields[k] = context_fields[k]
+
+        missing_keys = render_template.missing_keys(template_fields, skip_defaults=True)
+        if missing_keys:
+            self.logger.debug("Couldn't resolve render path from template: missing keys %s" % str(missing_keys))
+            return
+
+        self.render_path = render_template.apply_fields(template_fields)
+        vrRenderSettings.setRenderFilename(self.render_path)
 
     def save_before_publish(self, path):
         """
