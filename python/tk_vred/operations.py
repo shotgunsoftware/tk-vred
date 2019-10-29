@@ -47,14 +47,8 @@ class VREDOperations(object):
 
     def import_file(self, file_path):
         """Import a file into VRED. This will reset not the workspace."""
-        can_import = self._engine.execute_hook_method("file_usage_hook", "file_attempt_open", path=file_path)
-
-        if not can_import:
-            return
-
         self.logger.debug("Importing File: {}".format(file_path))
         vrFileIO.loadGeometry(file_path)
-        self.set_render_path(file_path)
 
     def reset_scene(self):
         """Resets the Scene in VRED."""
