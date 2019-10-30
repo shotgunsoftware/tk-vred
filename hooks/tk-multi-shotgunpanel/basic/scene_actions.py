@@ -75,14 +75,6 @@ class VREDActions(HookBaseClass):
                 "description": "This will import the item into the current universe."
             })
 
-        if "load" in actions:
-            action_instances.append({
-                "name": "load",
-                "params": None,
-                "caption": "Load Scene",
-                "description": "This will load the item as a new scene."
-            })
-
         return action_instances
 
     def execute_action(self, name, params, sg_data):
@@ -105,10 +97,6 @@ class VREDActions(HookBaseClass):
         if name == "import":
             path = self.get_publish_path(sg_data)
             operations.do_import(path)
-
-        elif name == "load":
-            path = self.get_publish_path(sg_data)
-            operations.do_load(path)
 
         else:
             try:
