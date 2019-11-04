@@ -26,7 +26,6 @@ class VREDOperations(object):
 
     def __init__(self, engine):
         """Initialize attributes."""
-        self.render_path = None
         self._engine = engine
         self.logger = self._engine.logger
 
@@ -110,8 +109,14 @@ class VREDOperations(object):
             self.logger.debug("Couldn't resolve render path from template: missing keys %s" % str(missing_keys))
             return
 
-        self.render_path = render_template.apply_fields(template_fields)
-        vrRenderSettings.setRenderFilename(self.render_path)
+        render_path = render_template.apply_fields(template_fields)
+
+        # be sure the render folder is created
+        render_folder = os.path.dirname(render_path)
+        if not os.path.isdir(render_folder):
+            os.makedirs(render_folder)
+
+        vrRenderSettings.setRenderFilename(render_path)
 
     def save_before_publish(self, path):
         """
