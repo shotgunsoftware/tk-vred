@@ -91,7 +91,10 @@ class VREDEngine(sgtk.platform.Engine):
             self.execute_hook_method("file_usage_hook", "file_closed", path=path)
 
     def quit(self):
-        self.current_file_closed()
+        try:
+            self.current_file_closed()
+        except Exception as e:
+            self.logger.exception("Error quitting vred engine")
 
     def _get_dialog_parent(self):
         """
