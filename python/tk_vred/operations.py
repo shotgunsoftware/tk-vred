@@ -33,7 +33,7 @@ class VREDOperations(object):
         """Get the current file."""
         return vrFileIO.getFileIOFilePath()
 
-    def load_file(self, file_path):
+    def load_file(self, file_path, with_options=False):
         """Load a new file into VRED. This will reset the workspace."""
         can_load = self._engine.execute_hook_method("file_usage_hook", "file_attempt_open", path=file_path)
 
@@ -41,11 +41,20 @@ class VREDOperations(object):
             return
 
         self.logger.debug("Loading file: {}".format(file_path))
-        vrFileIO.load(file_path)
+
+        if not with_options:
+            vrFileIO.load(file_path)
+        else:
+            filenames = [file_path]
+            parent = vrScenegraph.getRootNode()
+            new_file = False
+            show_options = True
+            vrFileIO.load(filenames, parent, new_file, show_options)
+
         self.set_render_path(file_path)
 
     def import_file(self, file_path):
-        """Import a file into VRED. This will reset not the workspace."""
+        """Import a file into VRED. This will not reset the workspace."""
         self.logger.debug("Importing File: {}".format(file_path))
         vrFileIO.loadGeometry(file_path)
 
@@ -145,12 +154,12 @@ class VREDOperations(object):
         return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
                     is_error=False)
 
-    def do_load(self, path):
+    def do_load(self, path, with_options=False):
         if not os.path.exists(path):
             raise Exception("File not found on disk - '%s'" % path)
 
         self.reset_scene()
-        self.load_file(path)
+        self.load_file(path, with_options)
 
         return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
                     is_error=False)

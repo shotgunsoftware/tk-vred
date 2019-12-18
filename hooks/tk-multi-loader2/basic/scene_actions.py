@@ -88,6 +88,13 @@ class VredActions(HookBaseClass):
                 "description": "This will import the item into the current VRED Scene."
             })
 
+            action_instances.append({
+                "name": "import_with_options",
+                "params": None,
+                "caption": "Import into Scene with options",
+                "description": "This will import the item into the current VRED Scene."
+            })
+
         return action_instances
 
     def execute_action(self, name, params, sg_publish_data):
@@ -114,6 +121,9 @@ class VredActions(HookBaseClass):
 
         if name == "import":
             return operations.do_import(path)
+
+        if name == "import_with_options":
+            return operations.do_load(path, with_options=True)
 
     def execute_multiple_actions(self, actions):
         """
