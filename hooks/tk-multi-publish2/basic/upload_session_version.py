@@ -241,6 +241,14 @@ class UploadVersionPlugin(HookBaseClass):
             thumbnail_path=item.get_thumbnail_as_path()
         )
 
+        if not thumbnail_path:
+            thumbnail_path = os.path.join(
+                self.disk_location,
+                os.pardir,
+                "icons",
+                "no_preview_vred.png"
+            )
+
         return package_path, thumbnail_path, lmv_translator.output_directory
 
     def _get_thumbnail_from_lmv(self, item):
