@@ -272,8 +272,13 @@ class UploadVersionPlugin(HookBaseClass):
         self.logger.info("Extracting thumbnails from LMV")
         thumbnail_path = lmv_translator.extract_thumbnail()
         if not thumbnail_path:
-            self.logger.warning("Couldn't retrieve thumbnail data from LMV. Version won't have any associated media")
-            return lmv_translator.output_directory
+            self.logger.warning("Couldn't retrieve thumbnail data from LMV. Version would use a default image.")
+            thumbnail_path = os.path.join(
+                self.disk_location,
+                os.pardir,
+                "icons",
+                "no_preview_vred.png"
+            )
 
         return lmv_translator.output_directory, thumbnail_path
 
