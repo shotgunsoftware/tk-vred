@@ -10,6 +10,9 @@
 import os
 import shutil
 import sgtk
+import tempfile
+
+import vrMovieExport
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -189,31 +192,17 @@ class UploadVersionPlugin(HookBaseClass):
 
         else:
             thumbnail_path = item.get_thumbnail_as_path()
-            self.logger.debug("Using thumbnail image as Version media")
-            if thumbnail_path:
-                self.parent.shotgun.upload(
-                        entity_type="Version",
-                        entity_id=item.properties["sg_version_data"]["id"],
-                        path=thumbnail_path,
-                        field_name="sg_uploaded_movie"
-                    )
-            else:
-                self.logger.debug("Converting file to LMV to extract thumbnails")
-                output_directory, thumbnail_path = self._get_thumbnail_from_lmv(item)
-                if thumbnail_path:
-                    self.parent.shotgun.upload(
-                        entity_type="Version",
-                        entity_id=item.properties["sg_version_data"]["id"],
-                        path=thumbnail_path,
-                        field_name="sg_uploaded_movie"
-                    )
-                    self.parent.shotgun.upload_thumbnail(
-                        entity_type="Version",
-                        entity_id=item.properties["sg_version_data"]["id"],
-                        path=thumbnail_path
-                    )
-                self.logger.debug("Deleting temporary folder")
-                shutil.rmtree(output_directory)
+            if not thumbnail_path:
+                self.logger.debug("Using VRED api to take a thumbnail for the current scene.")
+                thumbnail_path = tempfile.NamedTemporaryFile(suffix=".jpg", prefix="sgtk_thumb", delete=False).name
+                vrMovieExport.createSnapshotFastInit(800, 600)
+                vrMovieExport.createSnapshotFast(thumbnail_path)
+            self.parent.shotgun.upload(
+                entity_type="Version",
+                entity_id=item.properties["sg_version_data"]["id"],
+                path=thumbnail_path,
+                field_name="sg_uploaded_movie"
+            )
 
     def _translate_file_to_lmv(self, item):
         """
@@ -234,11 +223,19 @@ class UploadVersionPlugin(HookBaseClass):
         self.logger.info("Converting file to LMV")
         lmv_translator.translate()
 
+        # if the user hasn't taken a screenshot of the current VRED scene, use the API to take one
+        thumbnail_path = item.get_thumbnail_as_path()
+        if not thumbnail_path:
+            self.logger.debug("Use VRED API to get the current scene thumbnail")
+            thumbnail_path = tempfile.NamedTemporaryFile(suffix=".jpg", prefix="sgtk_thumb", delete=False).name
+            vrMovieExport.createSnapshotFastInit(640, 320)
+            vrMovieExport.createSnapshotFast(thumbnail_path)
+
         # package it up
         self.logger.info("Packaging LMV files")
         package_path, thumbnail_path = lmv_translator.package(
             svf_file_name=str(item.properties["sg_version_data"]["id"]),
-            thumbnail_path=item.get_thumbnail_as_path()
+            thumbnail_path=thumbnail_path
         )
 
         if not thumbnail_path:
@@ -250,36 +247,3 @@ class UploadVersionPlugin(HookBaseClass):
             )
 
         return package_path, thumbnail_path, lmv_translator.output_directory
-
-    def _get_thumbnail_from_lmv(self, item):
-        """
-        Extract the thumbnail from the source file, using the LMV conversion
-
-        :param item: Item to process
-        :returns:
-            - The path to the temporary folder where the LMV files have been processed
-            - The path to the LMV thumbnail
-        """
-
-        framework_lmv = self.load_framework("tk-framework-lmv_v0.1.x")
-        translator = framework_lmv.import_module("translator")
-
-        # translate the file to lmv
-        lmv_translator = translator.LMVTranslator(item.properties.path)
-        self.logger.info("Converting file to LMV")
-        lmv_translator.translate()
-
-        self.logger.info("Extracting thumbnails from LMV")
-        thumbnail_path = lmv_translator.extract_thumbnail()
-        if not thumbnail_path:
-            self.logger.warning("Couldn't retrieve thumbnail data from LMV. Version would use a default image.")
-            thumbnail_path = os.path.join(
-                self.disk_location,
-                os.pardir,
-                "icons",
-                "no_preview_vred.png"
-            )
-
-        return lmv_translator.output_directory, thumbnail_path
-
-
