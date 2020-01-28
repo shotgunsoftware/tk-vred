@@ -197,6 +197,7 @@ class UploadVersionPlugin(HookBaseClass):
                 thumbnail_path = tempfile.NamedTemporaryFile(suffix=".jpg", prefix="sgtk_thumb", delete=False).name
                 vrMovieExport.createSnapshotFastInit(800, 600)
                 vrMovieExport.createSnapshotFast(thumbnail_path)
+                vrMovieExport.createSnapshotFastTerminate()
             self.parent.shotgun.upload(
                 entity_type="Version",
                 entity_id=item.properties["sg_version_data"]["id"],
@@ -230,6 +231,7 @@ class UploadVersionPlugin(HookBaseClass):
             thumbnail_path = tempfile.NamedTemporaryFile(suffix=".jpg", prefix="sgtk_thumb", delete=False).name
             vrMovieExport.createSnapshotFastInit(640, 320)
             vrMovieExport.createSnapshotFast(thumbnail_path)
+            vrMovieExport.createSnapshotFastTerminate()
 
         # package it up
         self.logger.info("Packaging LMV files")
