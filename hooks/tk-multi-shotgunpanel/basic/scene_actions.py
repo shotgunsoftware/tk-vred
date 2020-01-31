@@ -101,7 +101,7 @@ class VREDActions(HookBaseClass):
         else:
             try:
                 HookBaseClass.execute_action(self, name, params, sg_data)
-            except AttributeError, e:
+            except AttributeError:
                 # base class doesn't have the method, so ignore and continue
                 pass
 
