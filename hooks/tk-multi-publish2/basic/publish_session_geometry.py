@@ -254,7 +254,7 @@ class VREDSessionGeometryPublishPlugin(HookBaseClass):
         # save the geometry at the right place
         try:
             operations.export_geometry(geometry_node, publish_path)
-        except Exception, e:
+        except Exception as e:
             self.logger.error(
                 "Failed to export geometry: %s" % str(e)
             )
