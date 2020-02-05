@@ -9,6 +9,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import sys
 
 import sgtk
 
@@ -113,6 +114,11 @@ class VREDEngine(sgtk.platform.Engine):
         from shiboken2 import wrapInstance
         import vrVredUi
 
-        window = wrapInstance(long(vrVredUi.getMainWindow()), QtGui.QMainWindow)
+        if sys.version_info[0] == 2:
+            mw = long(vrVredUi.getMainWindow())
+        else:
+            mw = int(vrVredUi.getMainWindow())
+
+        window = wrapInstance(mw, QtGui.QMainWindow)
 
         return window

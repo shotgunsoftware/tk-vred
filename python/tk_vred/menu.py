@@ -224,7 +224,12 @@ class VREDMenu(object):
     @property
     def context_name(self):
         """Returns the context name used by the context submenu caption."""
-        return str(self._engine.context).decode("utf-8")
+        cn = str(self._engine.context)
+
+        if sys.version_info[0] == 2:
+            cn = cn.decode("utf-8")
+
+        return cn
 
     def jump_to_sg(self):
         """
