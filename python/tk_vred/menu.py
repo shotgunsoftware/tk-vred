@@ -12,6 +12,7 @@
 Menu handling for Alias
 """
 
+from builtins import str
 from collections import OrderedDict
 import os
 import sys
@@ -224,12 +225,7 @@ class VREDMenu(object):
     @property
     def context_name(self):
         """Returns the context name used by the context submenu caption."""
-        cn = str(self._engine.context)
-
-        if sys.version_info[0] == 2:
-            cn = cn.decode("utf-8")
-
-        return cn
+        return str(self._engine.context)
 
     def jump_to_sg(self):
         """
