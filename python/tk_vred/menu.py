@@ -12,13 +12,14 @@
 Menu handling for Alias
 """
 
-from builtins import str
 from collections import OrderedDict
 import os
-import sys
 
 from sgtk.platform.qt import QtGui
 from sgtk.platform.qt import QtCore
+
+from tank_vendor import six
+from sgtk.util import is_windows, is_linux, is_macos
 
 
 class VREDMenu(object):
@@ -225,7 +226,7 @@ class VREDMenu(object):
     @property
     def context_name(self):
         """Returns the context name used by the context submenu caption."""
-        return str(self._engine.context)
+        return six.ensure_str(str(self._engine.context))
 
     def jump_to_sg(self):
         """
@@ -242,22 +243,17 @@ class VREDMenu(object):
         paths = self._engine.context.filesystem_locations
 
         for disk_location in paths:
-            # get the setting
-            system = sys.platform
-
-            # run the app
-            if system == "linux2":
+            if is_linux():
                 cmd = 'xdg-open "%s"' % disk_location
-            elif system == "darwin":
+            elif is_macos():
                 cmd = 'open "%s"' % disk_location
-            elif system == "win32":
+            elif is_windows():
                 cmd = 'cmd.exe /C start "Folder" "%s"' % disk_location
             else:
-                raise Exception("Platform '%s' is not supported." % system)
+                raise Exception("Platform is not supported.")
 
             self._engine.logger.debug("Jump to filesystem command: {}".format(cmd))
 
             exit_code = os.system(cmd)
-
             if exit_code != 0:
-                self.logger.error("Failed to launch '%s'!", cmd)
+                self._engine.logger.error("Failed to launch '%s'!", cmd)
