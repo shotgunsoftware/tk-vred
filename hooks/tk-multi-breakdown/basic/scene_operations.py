@@ -47,13 +47,13 @@ class SceneOperation(HookClass):
         # Perform update for each item selected.
         for item in items:
             self._update_node(item)
-        
+
     def _update_node(self, item):
         """
         Perform an update of the selected node, applies transformation and materials
         :param item: item to be updated
         """
-        nodes = vrScenegraph.findNodes(item['node'])
+        nodes = vrScenegraph.findNodes(item["node"])
 
         if len(nodes) <= 0:
             return
@@ -68,7 +68,7 @@ class SceneOperation(HookClass):
             self._apply_transformations(node, new_node, materials_dict)
 
         vrScenegraph.deleteNode(node, True)
-    
+
     def _obtain_materials(self):
         """
         Obtain a materials list with respective nodes
@@ -79,19 +79,15 @@ class SceneOperation(HookClass):
         for material in vrMaterialPtr.getAllMaterials():
             name = material.getName()
 
-            if name == 'DefaultShader':
+            if name == "DefaultShader":
                 continue
 
             nodes = [node.getName() for node in material.getNodes()]
 
-            materials.append({
-                'name': name,
-                'material': material,
-                'nodes': nodes
-            })
+            materials.append({"name": name, "material": material, "nodes": nodes})
 
         return materials
-    
+
     def _apply_transformations(self, old_node, new_node, materials):
         """
         Recursive to apply transformations and materials to node and childs
@@ -99,7 +95,7 @@ class SceneOperation(HookClass):
         :param new_node: new node to apply transformations and materials
         :param materials: list of materials
         """
-        if old_node.getName() == 'Surface':
+        if old_node.getName() == "Surface":
             return
 
         vrScenegraph.copyTransformation(old_node, new_node)
@@ -109,9 +105,11 @@ class SceneOperation(HookClass):
         for i in range(0, old_node.getNChildren()):
             for j in range(0, new_node.getNChildren()):
                 if old_node.getChild(i).getName() == new_node.getChild(j).getName():
-                    self._apply_transformations(old_node.getChild(i), new_node.getChild(j), materials)
+                    self._apply_transformations(
+                        old_node.getChild(i), new_node.getChild(j), materials
+                    )
                     break
-                    
+
     def _apply_materials(self, old_node, new_node, materials):
         """
         Apply materials for the new node based on old node
@@ -122,7 +120,7 @@ class SceneOperation(HookClass):
         materials_to_apply = []
 
         for material in materials:
-            if old_node.getName() in material.get('nodes'):
-                materials_to_apply.append(material.get('material'))
+            if old_node.getName() in material.get("nodes"):
+                materials_to_apply.append(material.get("material"))
 
         vrScenegraph.applyMaterial([new_node], materials_to_apply, False, False)

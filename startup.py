@@ -21,6 +21,7 @@ class VREDLauncher(SoftwareLauncher):
     a tk-vred engine with the current context in the new session
     of VRED.
     """
+
     # Product code names
     CODE_NAMES = {
         "Pro": dict(icon="icon_pro_256.png"),
@@ -79,10 +80,12 @@ class VREDLauncher(SoftwareLauncher):
         # Register plugins
         plugin_dir = os.path.join(self.disk_location, "plugins", "Shotgun")
         vred_plugins_dir = os.path.join(os.path.dirname(exec_path), "Scripts")
-        required_env["VRED_SCRIPT_PLUGINS"] = "{};{}".format(plugin_dir, vred_plugins_dir)
+        required_env["VRED_SCRIPT_PLUGINS"] = "{};{}".format(
+            plugin_dir, vred_plugins_dir
+        )
 
         # SHOTGUN_ENABLE is an extra environment variable required by VRED
-        required_env['SHOTGUN_ENABLE'] = '1'
+        required_env["SHOTGUN_ENABLE"] = "1"
 
         # Prepare the launch environment with variables required by the
         # classic bootstrap approach.
@@ -133,7 +136,9 @@ class VREDLauncher(SoftwareLauncher):
             if supported:
                 supported_sw_versions.append(sw_version)
             else:
-                self.logger.debug("SoftwareVersion %s is not supported: %s" % (sw_version, reason))
+                self.logger.debug(
+                    "SoftwareVersion %s is not supported: %s" % (sw_version, reason)
+                )
 
         return supported_sw_versions
 
@@ -158,7 +163,9 @@ class VREDLauncher(SoftwareLauncher):
 
             self.logger.debug("Processing template %s.", executable_template)
 
-            executable_matches = self._glob_and_match(executable_template, self.COMPONENT_REGEX_LOOKUP)
+            executable_matches = self._glob_and_match(
+                executable_template, self.COMPONENT_REGEX_LOOKUP
+            )
 
             # Extract all code_names from that executable.
             for (executable_path, key_dict) in executable_matches:
@@ -169,9 +176,13 @@ class VREDLauncher(SoftwareLauncher):
                 code_name = key_dict.get("code_name")
                 executable_version = self._map_version_year(version)
 
-                sw_versions.append(SoftwareVersion(executable_version,
-                                                   "VRED {0}".format(code_name),
-                                                   executable_path,
-                                                   self._icon_from_executable(code_name)))
+                sw_versions.append(
+                    SoftwareVersion(
+                        executable_version,
+                        "VRED {0}".format(code_name),
+                        executable_path,
+                        self._icon_from_executable(code_name),
+                    )
+                )
 
         return sw_versions

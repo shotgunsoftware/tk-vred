@@ -1,11 +1,11 @@
 # Copyright (c) 2017 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import sgtk
@@ -59,15 +59,10 @@ class PublishOSBVersionPlugin(HookBaseClass):
         :returns: dictionary with boolean keys accepted, required and enabled
         """
 
-        return {
-            "accepted": True,
-            "visible": False,
-            "checked": False,
-            "enabled": True
-        }
+        return {"accepted": True, "visible": False, "checked": False, "enabled": True}
 
     def publish(self, settings, item):
-        publish_name = item.properties['publish_name']
+        publish_name = item.properties["publish_name"]
         name, extension = os.path.splitext(publish_name)
-        item.properties['publish_name'] = name
+        item.properties["publish_name"] = name
         super(PublishOSBVersionPlugin, self).publish(settings, item)

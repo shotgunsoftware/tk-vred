@@ -21,7 +21,7 @@ from sgtk.platform.qt import QtCore
 
 
 class VREDMenu(object):
-    ROOT_MENU_TEXT = u'S&hotgun'
+    ROOT_MENU_TEXT = u"S&hotgun"
     ABOUT_MENU_TEXT = "About Shotgun Pipeline Toolkit"
     JUMP_TO_SG_TEXT = "Jump to Shotgun"
     JUMP_TO_FS_TEXT = "Jump to File System"
@@ -81,8 +81,11 @@ class VREDMenu(object):
         submenu.addAction(self.JUMP_TO_FS_TEXT, self.jump_to_fs)
         submenu.addSeparator()
 
-        filtered_options = [(caption, data) for caption, data in options
-                            if data.get("properties").get("type") == "context_menu"]
+        filtered_options = [
+            (caption, data)
+            for caption, data in options
+            if data.get("properties").get("type") == "context_menu"
+        ]
 
         for caption, data in filtered_options:
             callback = data.get("callback")
@@ -101,7 +104,7 @@ class VREDMenu(object):
                 if data.get("properties").get("type") == "context_menu":
                     continue
 
-                if 'app' in data.get("properties"):
+                if "app" in data.get("properties"):
                     app_name = data.get("properties").get("app").name
 
                     if caption == name and app_name == app_instance:
@@ -115,11 +118,16 @@ class VREDMenu(object):
         # i.e.: bottom_apps[('tk-multi-autoabout', self.ABOUT_MENU_TEXT)] = []
         bottom_apps = OrderedDict()
 
-        favourites = [(favourite["app_instance"], favourite["name"])
-                      for favourite in self._engine.get_setting("menu_favourites")]
+        favourites = [
+            (favourite["app_instance"], favourite["name"])
+            for favourite in self._engine.get_setting("menu_favourites")
+        ]
 
-        filtered_options = [(caption, data) for caption, data in options
-                            if data.get("properties").get("type") != "context_menu"]
+        filtered_options = [
+            (caption, data)
+            for caption, data in options
+            if data.get("properties").get("type") != "context_menu"
+        ]
 
         # group filtered options per app
         options_x_app = {}
@@ -127,7 +135,7 @@ class VREDMenu(object):
             callback = data.get("callback")
             app_name = None
             app_display_name = None
-            if 'app' in data.get("properties"):
+            if "app" in data.get("properties"):
                 app_name = data.get("properties").get("app").name
                 app_display_name = data.get("properties").get("app").display_name
 
@@ -148,7 +156,9 @@ class VREDMenu(object):
             apps += self._parse_options_x_app(options_x_app, favourites)
 
         if bottom_apps:
-            apps += self._parse_options_x_app(bottom_apps, favourites, sort_options=False)
+            apps += self._parse_options_x_app(
+                bottom_apps, favourites, sort_options=False
+            )
 
         return apps
 
@@ -188,7 +198,11 @@ class VREDMenu(object):
     def exists(self):
         window = self._engine.get_vred_main_window()
         menu_bar = window.menuBar()
-        options = [option for option in menu_bar.actions() if option.text() == self.ROOT_MENU_TEXT]
+        options = [
+            option
+            for option in menu_bar.actions()
+            if option.text() == self.ROOT_MENU_TEXT
+        ]
 
         if options:
             return True
@@ -200,7 +214,11 @@ class VREDMenu(object):
 
         window = self._engine.get_vred_main_window()
         menu_bar = window.menuBar()
-        option = [option for option in menu_bar.actions() if option.text() == self.ROOT_MENU_TEXT][0]
+        option = [
+            option
+            for option in menu_bar.actions()
+            if option.text() == self.ROOT_MENU_TEXT
+        ][0]
         menu_bar.removeAction(option)
 
     @property
@@ -242,4 +260,3 @@ class VREDMenu(object):
 
             if exit_code != 0:
                 self.logger.error("Failed to launch '%s'!", cmd)
-

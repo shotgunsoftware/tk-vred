@@ -61,32 +61,40 @@ class VredActions(HookBaseClass):
         :returns List of dictionaries, each with keys name, params, caption and description
         """
         app = self.parent
-        app.log_debug("Generate actions called for UI element %s. "
-                      "Actions: %s. Publish Data: %s" % (ui_area, actions, sg_publish_data))
+        app.log_debug(
+            "Generate actions called for UI element %s. "
+            "Actions: %s. Publish Data: %s" % (ui_area, actions, sg_publish_data)
+        )
 
         action_instances = []
         try:
             # call base class first
-            action_instances += HookBaseClass.generate_actions(self, sg_publish_data, actions, ui_area)
+            action_instances += HookBaseClass.generate_actions(
+                self, sg_publish_data, actions, ui_area
+            )
         except AttributeError:
             # base class doesn't have the method, so ignore and continue
             pass
 
         if "reference" in actions:
-            action_instances.append({
-                "name": "reference",
-                "params": None,
-                "caption": "Create Reference",
-                "description": "This will add the item to the universe as a standard reference."
-            })
+            action_instances.append(
+                {
+                    "name": "reference",
+                    "params": None,
+                    "caption": "Create Reference",
+                    "description": "This will add the item to the universe as a standard reference.",
+                }
+            )
 
         if "import" in actions:
-            action_instances.append({
-                "name": "import",
-                "params": None,
-                "caption": "Import into Scene",
-                "description": "This will import the item into the current VRED Scene."
-            })
+            action_instances.append(
+                {
+                    "name": "import",
+                    "params": None,
+                    "caption": "Import into Scene",
+                    "description": "This will import the item into the current VRED Scene.",
+                }
+            )
 
         return action_instances
 
@@ -104,8 +112,10 @@ class VredActions(HookBaseClass):
         engine = app.engine
         operations = engine.operations
 
-        app.log_debug("Execute action called for action %s. "
-                      "Parameters: %s. Publish Data: %s" % (name, params, sg_publish_data))
+        app.log_debug(
+            "Execute action called for action %s. "
+            "Parameters: %s. Publish Data: %s" % (name, params, sg_publish_data)
+        )
 
         path = self.get_publish_path(sg_publish_data)
 
@@ -183,4 +193,6 @@ class VredActions(HookBaseClass):
                     else:
                         content += "{} files {}".format(len(paths), message_code)
 
-            getattr(QtGui.QMessageBox, message_type)(active_window, message_type.title(), content)
+            getattr(QtGui.QMessageBox, message_type)(
+                active_window, message_type.title(), content
+            )

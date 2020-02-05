@@ -15,6 +15,7 @@ import sgtk
 
 class VREDEngine(sgtk.platform.Engine):
     """A VRED engine for Shotgun Toolkit."""
+
     def __init__(self, tk, context, engine_instance_name, env):
         self._tk_vred = None
         self.menu = None

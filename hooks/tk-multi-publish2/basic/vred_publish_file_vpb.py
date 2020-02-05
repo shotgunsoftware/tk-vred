@@ -1,11 +1,11 @@
 # Copyright (c) 2017 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
@@ -27,8 +27,8 @@ class VREDPublishFilePlugin(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for published work files. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
+                "correspond to a template defined in "
+                "templates.yml.",
             }
         }
 
@@ -39,8 +39,8 @@ class VREDPublishFilePlugin(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for published work files. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
+                "correspond to a template defined in "
+                "templates.yml.",
             }
         }
 
@@ -52,7 +52,9 @@ class VREDPublishFilePlugin(HookBaseClass):
         publisher = self.parent
 
         publish_template_setting = settings.get("Publish Template")
-        publish_template = publisher.engine.get_template_by_name(publish_template_setting.value)
+        publish_template = publisher.engine.get_template_by_name(
+            publish_template_setting.value
+        )
 
         if not publish_template:
             return False
@@ -61,7 +63,9 @@ class VREDPublishFilePlugin(HookBaseClass):
             item.properties["publish_template"] = publish_template
 
         workfile_template_setting = settings.get("Work Template")
-        workfile_template = publisher.engine.get_template_by_name(workfile_template_setting.value)
+        workfile_template = publisher.engine.get_template_by_name(
+            workfile_template_setting.value
+        )
 
         if not workfile_template:
             return False
@@ -123,9 +127,4 @@ class VREDPublishFilePlugin(HookBaseClass):
         :returns: dictionary with boolean keys accepted, required and enabled
         """
 
-        return {
-            "accepted": True,
-            "visible": True,
-            "checked": True,
-            "enabled": False
-        }
+        return {"accepted": True, "visible": True, "checked": True, "enabled": False}

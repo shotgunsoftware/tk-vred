@@ -68,16 +68,16 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for published single render image. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
+                "correspond to a template defined in "
+                "templates.yml.",
             },
             "Publish Sequence Template": {
                 "type": "template",
                 "default": None,
                 "description": "Template path for published render sequence. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
-            }
+                "correspond to a template defined in "
+                "templates.yml.",
+            },
         }
 
         # update the base settings
@@ -121,14 +121,18 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
         else:
             publish_template_setting = settings.get("Publish Sequence Template")
         publish_template = publisher.engine.get_template_by_name(
-            publish_template_setting.value)
+            publish_template_setting.value
+        )
 
         if publish_template:
             item.properties["publish_template"] = publish_template
 
         # do not validate the plugin if we have a different version between the rendering and the current scene
         publish_version = self.get_publish_version(settings, item)
-        if publish_template and publish_version != item.parent.properties["publish_version"]:
+        if (
+            publish_template
+            and publish_version != item.parent.properties["publish_version"]
+        ):
             self.logger.warning(
                 "Your rendering files don't have the same version number than your current work session."
             )
