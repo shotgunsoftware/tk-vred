@@ -17,6 +17,8 @@ import vrFileDialog
 import vrRenderSettings
 import vrScenegraph
 
+from tank_vendor import six
+
 
 class VREDOperations(object):
     MESSAGES = {
@@ -62,7 +64,8 @@ class VREDOperations(object):
         self.logger.debug("Save File: {}".format(file_path))
 
         vrFileIO.save(file_path)
-        if not os.path.exists(file_path.decode("utf-8")):
+
+        if not os.path.exists(six.ensure_str(str(file_path))):
             msg = "VRED Failed to save file {}".format(file_path)
             self.logger.error(msg)
             raise Exception(msg)
