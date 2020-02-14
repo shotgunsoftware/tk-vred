@@ -17,6 +17,8 @@ import vrFileDialog
 import vrRenderSettings
 import vrScenegraph
 
+from tank_vendor import six
+
 
 class VREDOperations(object):
     MESSAGES = {
@@ -35,7 +37,9 @@ class VREDOperations(object):
 
     def load_file(self, file_path):
         """Load a new file into VRED. This will reset the workspace."""
-        can_load = self._engine.execute_hook_method("file_usage_hook", "file_attempt_open", path=file_path)
+        can_load = self._engine.execute_hook_method(
+            "file_usage_hook", "file_attempt_open", path=file_path
+        )
 
         if not can_load:
             return
@@ -60,12 +64,15 @@ class VREDOperations(object):
         self.logger.debug("Save File: {}".format(file_path))
 
         vrFileIO.save(file_path)
-        if not os.path.exists(file_path.decode('utf-8')):
+
+        if not os.path.exists(six.ensure_str(str(file_path))):
             msg = "VRED Failed to save file {}".format(file_path)
             self.logger.error(msg)
             raise Exception(msg)
 
-        allowed_to_open = self._engine.execute_hook_method("file_usage_hook", "file_attempt_open", path=file_path)
+        allowed_to_open = self._engine.execute_hook_method(
+            "file_usage_hook", "file_attempt_open", path=file_path
+        )
         if not allowed_to_open:
             raise Exception("Can't save file: a lock for this path already exists")
 
@@ -81,7 +88,9 @@ class VREDOperations(object):
         """
         Prepare render path when the file selected or saved
         """
-        render_template = self._engine.get_template_by_name(self._engine.get_setting("render_template"))
+        render_template = self._engine.get_template_by_name(
+            self._engine.get_setting("render_template")
+        )
         if not render_template:
             self.logger.debug("Couldn't get render template from engine settings")
             return
@@ -94,7 +103,9 @@ class VREDOperations(object):
 
         work_template = self._engine.sgtk.template_from_path(file_path)
         if not work_template:
-            self.logger.debug("Couldn't find a template which match the current scene path")
+            self.logger.debug(
+                "Couldn't find a template which match the current scene path"
+            )
             return
         template_fields = work_template.get_fields(file_path)
 
@@ -106,7 +117,10 @@ class VREDOperations(object):
 
         missing_keys = render_template.missing_keys(template_fields, skip_defaults=True)
         if missing_keys:
-            self.logger.debug("Couldn't resolve render path from template: missing keys %s" % str(missing_keys))
+            self.logger.debug(
+                "Couldn't resolve render path from template: missing keys %s"
+                % str(missing_keys)
+            )
             return
 
         render_path = render_template.apply_fields(template_fields)
@@ -142,8 +156,12 @@ class VREDOperations(object):
 
         self.import_file(path)
 
-        return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
-                    is_error=False)
+        return dict(
+            message_type="information",
+            message_code=self.MESSAGES["success"],
+            publish_path=path,
+            is_error=False,
+        )
 
     def do_load(self, path):
         if not os.path.exists(path):
@@ -152,8 +170,12 @@ class VREDOperations(object):
         self.reset_scene()
         self.load_file(path)
 
-        return dict(message_type="information", message_code=self.MESSAGES["success"], publish_path=path,
-                    is_error=False)
+        return dict(
+            message_type="information",
+            message_code=self.MESSAGES["success"],
+            publish_path=path,
+            is_error=False,
+        )
 
     def get_references(self):
         """Get references."""
@@ -165,15 +187,19 @@ class VREDOperations(object):
             path = None
 
             if node.hasAttachment("FileInfo"):
-                path = vrFieldAccess.vrFieldAccess(node.getAttachment("FileInfo")).getString("filename")
+                path = vrFieldAccess.vrFieldAccess(
+                    node.getAttachment("FileInfo")
+                ).getString("filename")
 
             if path is not None:
-                references.append({
-                    "node": node.getName(),
-                    "type": node.getType(),
-                    "path": path,
-                    "oldpath": path,
-                })
+                references.append(
+                    {
+                        "node": node.getName(),
+                        "type": node.getType(),
+                        "path": path,
+                        "oldpath": path,
+                    }
+                )
 
         return references
 
@@ -188,8 +214,8 @@ class VREDOperations(object):
             filter=[
                 "VRED Essentials Project Binary (*.vpe)",
                 "VRED Project Binary (*.vpb)",
-                "VRED Project File (*.vpf)"
-            ]
+                "VRED Project File (*.vpf)",
+            ],
         )
 
         if path:
@@ -247,5 +273,3 @@ class VREDOperations(object):
             raise ValueError("Couldn't export geometry node: bad node type")
 
         vrFileIO.saveGeometry(geometry_node, path)
-
-

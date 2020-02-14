@@ -69,8 +69,8 @@ class VREDSessionGeometryPublishPlugin(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for published work files. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
+                "correspond to a template defined in "
+                "templates.yml.",
             }
         }
 
@@ -129,18 +129,13 @@ class VREDSessionGeometryPublishPlugin(HookBaseClass):
             # provide a save button. the session will need to be saved before
             # validation will succeed.
             self.logger.warn(
-                "The VRED session has not been saved.",
-                extra=_get_save_as_action()
+                "The VRED session has not been saved.", extra=_get_save_as_action()
             )
 
         self.logger.info(
-            "VRED '%s' plugin accepted the current VRED session." %
-            (self.name,)
+            "VRED '%s' plugin accepted the current VRED session." % (self.name,)
         )
-        return {
-            "accepted": True,
-            "checked": False
-        }
+        return {"accepted": True, "checked": False}
 
     def validate(self, settings, item):
         """
@@ -163,10 +158,7 @@ class VREDSessionGeometryPublishPlugin(HookBaseClass):
             # the session still requires saving. provide a save button.
             # validation fails.
             error_msg = "The VRED session has not been saved."
-            self.logger.error(
-                error_msg,
-                extra=_get_save_as_action()
-            )
+            self.logger.error(error_msg, extra=_get_save_as_action())
             raise Exception(error_msg)
 
         # ---- check the session against any attached work template
@@ -188,23 +180,23 @@ class VREDSessionGeometryPublishPlugin(HookBaseClass):
                     "action_button": {
                         "label": "Save File",
                         "tooltip": "Save the current VRED session to a "
-                                   "different file name",
+                        "different file name",
                         # will launch wf2 if configured
-                        "callback": _get_save_as_action()
+                        "callback": _get_save_as_action(),
                     }
-                }
+                },
             )
             return False
         else:
-            self.logger.debug(
-                "Work template configured and matches session file.")
+            self.logger.debug("Work template configured and matches session file.")
 
         # ---- populate the necessary properties and call base class validation
 
         # populate the publish template on the item if found
         publish_template_setting = settings.get("Publish Template")
         publish_template = publisher.engine.get_template_by_name(
-            publish_template_setting.value)
+            publish_template_setting.value
+        )
         if publish_template:
             item.properties["publish_template"] = publish_template
 
@@ -255,9 +247,7 @@ class VREDSessionGeometryPublishPlugin(HookBaseClass):
         try:
             operations.export_geometry(geometry_node, publish_path)
         except Exception as e:
-            self.logger.error(
-                "Failed to export geometry: %s" % str(e)
-            )
+            self.logger.error("Failed to export geometry: %s" % str(e))
             return
 
         # change the value of the item path property in order to have the right publish name and file type
@@ -308,12 +298,13 @@ class VREDSessionGeometryPublishPlugin(HookBaseClass):
             if missing_keys:
                 self.logger.warning(
                     "Not enough keys to apply work fields (%s) to "
-                    "publish template (%s)" % (work_fields, publish_template))
+                    "publish template (%s)" % (work_fields, publish_template)
+                )
             else:
                 publish_path = publish_template.apply_fields(work_fields)
                 self.logger.debug(
-                    "Used publish template to determine the publish path: %s" %
-                    (publish_path,)
+                    "Used publish template to determine the publish path: %s"
+                    % (publish_path,)
                 )
         else:
             self.logger.debug("publish_template: %s" % publish_template)
@@ -322,8 +313,7 @@ class VREDSessionGeometryPublishPlugin(HookBaseClass):
         if not publish_path:
             return None
             publish_path = path
-            self.logger.debug(
-                "Could not validate a publish template.")
+            self.logger.debug("Could not validate a publish template.")
 
         # store the publish path
         item.properties["publish_path"] = publish_path
@@ -363,6 +353,6 @@ def _get_save_as_action():
         "action_button": {
             "label": "Save As...",
             "tooltip": "Save the current session",
-            "callback": callback
+            "callback": callback,
         }
     }

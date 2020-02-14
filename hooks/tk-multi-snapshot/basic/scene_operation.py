@@ -4,8 +4,16 @@ HookClass = sgtk.get_hook_baseclass()
 
 
 class SceneOperation(HookClass):
-    def execute(self, operation, file_path=None, context=None, parent_action=None, file_version=None, read_only=None,
-                **kwargs):
+    def execute(
+        self,
+        operation,
+        file_path=None,
+        context=None,
+        parent_action=None,
+        file_version=None,
+        read_only=None,
+        **kwargs
+    ):
         engine = self.parent.engine
         operations = engine.operations
         logger = engine.logger
@@ -37,8 +45,7 @@ class SceneOperation(HookClass):
             elif operation == "reset":
                 logger.debug("Scene Operation, Reset Scene")
                 operations.reset_scene()
-               
+
             engine.menu.create()
 
             return True
-

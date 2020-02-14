@@ -11,7 +11,7 @@ import sgtk
 
 sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
-vrShotgun_form, vrShotgun_base = uiTools.loadUiType('vrShotgunGUI.ui')
+vrShotgun_form, vrShotgun_base = uiTools.loadUiType("vrShotgunGUI.ui")
 
 
 class vrShotgun(vrShotgun_form, vrShotgun_base):
@@ -26,7 +26,9 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         QtCore.QTimer.singleShot(0, self.init)
 
     def init(self):
-        self.engine = sgtk.platform.start_engine('tk-vred', self.context.sgtk, self.context)
+        self.engine = sgtk.platform.start_engine(
+            "tk-vred", self.context.sgtk, self.context
+        )
         file_to_open = os.environ.get("SGTK_FILE_TO_OPEN", None)
         if file_to_open:
             vrController.newScene()
@@ -37,6 +39,7 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
 
     def getVredMainWindow(self):
         from shiboken2 import wrapInstance
+
         return wrapInstance(VREDMainWindowId, QtWidgets.QMainWindow)
 
 

@@ -9,12 +9,13 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-
 import sgtk
+from tank_vendor import six
 
 
 class VREDEngine(sgtk.platform.Engine):
     """A VRED engine for Shotgun Toolkit."""
+
     def __init__(self, tk, context, engine_instance_name, env):
         self._tk_vred = None
         self.menu = None
@@ -112,6 +113,11 @@ class VREDEngine(sgtk.platform.Engine):
         from shiboken2 import wrapInstance
         import vrVredUi
 
-        window = wrapInstance(long(vrVredUi.getMainWindow()), QtGui.QMainWindow)
+        if six.PY2:
+            window = wrapInstance(
+                long(vrVredUi.getMainWindow()), QtGui.QMainWindow  # noqa
+            )
+        else:
+            window = wrapInstance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
 
         return window

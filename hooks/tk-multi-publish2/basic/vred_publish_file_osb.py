@@ -1,11 +1,11 @@
 # Copyright (c) 2017 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
@@ -30,8 +30,8 @@ class VREDPublishOSBFilePlugin(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for published work files. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
+                "correspond to a template defined in "
+                "templates.yml.",
             }
         }
 
@@ -42,19 +42,14 @@ class VREDPublishOSBFilePlugin(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for published work files. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
+                "correspond to a template defined in "
+                "templates.yml.",
             }
         }
 
         base_settings.update(workfile_settings)
 
-        translator_settings = {
-            "Translator": {
-                "type": "dictionary",
-                "default": None
-            }
-        }
+        translator_settings = {"Translator": {"type": "dictionary", "default": None}}
 
         base_settings.update(translator_settings)
 
@@ -64,7 +59,9 @@ class VREDPublishOSBFilePlugin(HookBaseClass):
         publisher = self.parent
 
         publish_template_setting = settings.get("Publish Template")
-        publish_template = publisher.engine.get_template_by_name(publish_template_setting.value)
+        publish_template = publisher.engine.get_template_by_name(
+            publish_template_setting.value
+        )
 
         if not publish_template:
             return False
@@ -72,7 +69,9 @@ class VREDPublishOSBFilePlugin(HookBaseClass):
         item.properties["publish_template"] = publish_template
 
         workfile_template_setting = settings.get("Work Template")
-        workfile_template = publisher.engine.get_template_by_name(workfile_template_setting.value)
+        workfile_template = publisher.engine.get_template_by_name(
+            workfile_template_setting.value
+        )
 
         if not workfile_template:
             return False
@@ -94,7 +93,10 @@ class VREDPublishOSBFilePlugin(HookBaseClass):
         for _n in range(0, _rootNode.getNChildren()):
             _childNode = _rootNode.getChild(_n)
             if _childNode.getType() == "Geometry":
-                if _childNode.getName() == item.name and _childNode.fields().getID() == item.properties['node_id']:
+                if (
+                    _childNode.getName() == item.name
+                    and _childNode.fields().getID() == item.properties["node_id"]
+                ):
                     vrNodePtr = _childNode
                     break
 
@@ -107,7 +109,12 @@ class VREDPublishOSBFilePlugin(HookBaseClass):
             try:
                 vrFileIO.saveGeometry(vrNodePtr, target_path)
             except:
-                e = "Failed to save Node ( " + item.name + " )Geometry OSB file for " + target_path
+                e = (
+                    "Failed to save Node ( "
+                    + item.name
+                    + " )Geometry OSB file for "
+                    + target_path
+                )
                 self.logger.error("Error ocurred {!r}".format(e))
                 raise Exception("Error ocurred {!r}".format(e))
 
@@ -156,11 +163,13 @@ class VREDPublishOSBFilePlugin(HookBaseClass):
             self._translate_file(source_path, target_path, item)
         except Exception as e:
             raise Exception(
-                "Failed to copy work file from '%s' to '%s'.\n%s" %
-                (source_path, target_path, traceback.format_exc())
+                "Failed to copy work file from '%s' to '%s'.\n%s"
+                % (source_path, target_path, traceback.format_exc())
             )
 
-        self.logger.debug("Copied work file '%s' to publish file '%s'." % (source_path, target_path))
+        self.logger.debug(
+            "Copied work file '%s' to publish file '%s'." % (source_path, target_path)
+        )
 
     def get_publish_type(self, settings, item):
         publisher = self.parent
@@ -190,12 +199,12 @@ class VREDPublishOSBFilePlugin(HookBaseClass):
         path_info = publisher.util.get_file_path_components(path)
 
         # determine the publish type
-        return path_info['filename']
+        return path_info["filename"]
 
     def publish(self, settings, item):
         item.local_properties.publish_type = self.get_publish_type(settings, item)
         item.local_properties.publish_path = self._get_target_path(item)
-        item.properties['publish_name'] = self.get_publish_name(settings, item)
+        item.properties["publish_name"] = self.get_publish_name(settings, item)
         super(VREDPublishOSBFilePlugin, self).publish(settings, item)
 
     @property

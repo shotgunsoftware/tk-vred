@@ -47,8 +47,8 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for published work files. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
+                "correspond to a template defined in "
+                "templates.yml.",
             }
         }
 
@@ -59,8 +59,8 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for work files. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
+                "correspond to a template defined in "
+                "templates.yml.",
             }
         }
 
@@ -72,7 +72,9 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         publisher = self.parent
 
         publish_template_setting = settings.get("VRED LMV Publish Template")
-        publish_template = publisher.engine.get_template_by_name(publish_template_setting.value)
+        publish_template = publisher.engine.get_template_by_name(
+            publish_template_setting.value
+        )
 
         if not publish_template:
             return False
@@ -80,7 +82,9 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         item.properties["vred_publish_template"] = publish_template
 
         work_template_setting = settings.get("VRED LMV Work Template")
-        work_template = publisher.engine.get_template_by_name(work_template_setting.value)
+        work_template = publisher.engine.get_template_by_name(
+            work_template_setting.value
+        )
 
         if not work_template:
             return False
@@ -92,12 +96,9 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
     def accept(self, settings, item):
         base_accept = super(VREDPublishLMVFilePlugin, self).accept(settings, item)
 
-        base_accept.update({
-            "accepted": True,
-            "visible": True,
-            "checked": True,
-            "enabled": False
-        })
+        base_accept.update(
+            {"accepted": True, "visible": True, "checked": True, "enabled": False}
+        )
         return base_accept
 
     @staticmethod
@@ -117,7 +118,7 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
         # PublishedFile id
         publish_id = item.properties.sg_publish_data["id"]
-        
+
         # Version id
         version_id = item.properties.sg_version_data["id"]
 
@@ -125,15 +126,15 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         translator = self._get_translator()
 
         # Temporal dir
-        self.TMPDIR = tempfile.mkdtemp(prefix='sgtk_')
+        self.TMPDIR = tempfile.mkdtemp(prefix="sgtk_")
 
         # VRED file name
         file_name = os.path.basename(source_path)
 
         # JSON file
         self.logger.info("Creating JSON file")
-        index_path = os.path.join(self.TMPDIR, 'index.json')
-        with open(index_path, 'w') as _:
+        index_path = os.path.join(self.TMPDIR, "index.json")
+        with open(index_path, "w") as _:
             pass
 
         # Copy source file locally
@@ -182,53 +183,61 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
             thumb_big_path = os.path.join(images_path_temporal, thumb_big_filename)
             thumb_small_path = os.path.join(images_path_temporal, thumb_small_filename)
 
-            with open(thumb_big_path, 'wb') as thumbnail:
+            with open(thumb_big_path, "wb") as thumbnail:
                 thumbnail.write(thumbnail_data)
                 self.logger.info("LMV image created.")
 
-            with open(thumb_small_path, 'wb') as thumbnail:
+            with open(thumb_small_path, "wb") as thumbnail:
                 thumbnail.write(thumbnail_data)
                 self.logger.info("LMV thumbnail created.")
 
             self.logger.info("Updating thumbnail.")
-            self.parent.engine.shotgun.upload_thumbnail("PublishedFile", publish_id, thumb_small_path)
+            self.parent.engine.shotgun.upload_thumbnail(
+                "PublishedFile", publish_id, thumb_small_path
+            )
 
             self.logger.info("Uploading sg_uploaded_movie")
-            self.parent.engine.shotgun.upload(entity_type="Version",
-                                              entity_id=version_id,
-                                              path=thumb_small_path,
-                                              field_name="sg_uploaded_movie")
+            self.parent.engine.shotgun.upload(
+                entity_type="Version",
+                entity_id=version_id,
+                path=thumb_small_path,
+                field_name="sg_uploaded_movie",
+            )
 
             self.logger.info("ZIP package")
-            zip_path = shutil.make_archive(base_name=base_name,
-                                           format="zip",
-                                           root_dir=output_directory)
+            zip_path = shutil.make_archive(
+                base_name=base_name, format="zip", root_dir=output_directory
+            )
 
             item.properties["thumb_small_path"] = thumb_small_path
         else:
             self.logger.info("ZIP package without images")
-            zip_path = shutil.make_archive(base_name=base_name,
-                                           format="zip",
-                                           root_dir=output_directory)
+            zip_path = shutil.make_archive(
+                base_name=base_name, format="zip", root_dir=output_directory
+            )
 
         self.logger.info("Uploading lmv files")
-        self.parent.engine.shotgun.upload(entity_type="Version",
-                                          entity_id=version_id,
-                                          path=zip_path,
-                                          field_name="sg_translation_files")
+        self.parent.engine.shotgun.upload(
+            entity_type="Version",
+            entity_id=version_id,
+            path=zip_path,
+            field_name="sg_translation_files",
+        )
 
-        self.parent.engine.shotgun.update(entity_type="Version",
-                                          entity_id=version_id,
-                                          data=dict(sg_translation_type="LMV"))
+        self.parent.engine.shotgun.update(
+            entity_type="Version",
+            entity_id=version_id,
+            data=dict(sg_translation_type="LMV"),
+        )
 
         self.logger.info("LMV processing finished successfully.")
-        self.logger.info('Translate VRED file to LMV file locally (DONE).')
+        self.logger.info("Translate VRED file to LMV file locally (DONE).")
 
     def _upload_thumbnail_without_lmv(self, source_path, item):
         publish_id = item.properties.sg_publish_data["id"]
         version_id = item.properties.sg_version_data["id"]
 
-        self.TMPDIR = tempfile.mkdtemp(prefix='sgtk_')
+        self.TMPDIR = tempfile.mkdtemp(prefix="sgtk_")
 
         # VRED file name
         file_name = os.path.basename(source_path)
@@ -252,20 +261,24 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
             thumb_big_path = os.path.join(images_path_temporal, thumb_big_filename)
             thumb_small_path = os.path.join(images_path_temporal, thumb_small_filename)
 
-            with open(thumb_big_path, 'wb') as thumbnail:
+            with open(thumb_big_path, "wb") as thumbnail:
                 thumbnail.write(thumbnail_data)
 
-            with open(thumb_small_path, 'wb') as thumbnail:
+            with open(thumb_small_path, "wb") as thumbnail:
                 thumbnail.write(thumbnail_data)
 
             self.logger.info("Updating thumbnail.")
-            self.parent.engine.shotgun.upload_thumbnail("PublishedFile", publish_id, thumb_small_path)
+            self.parent.engine.shotgun.upload_thumbnail(
+                "PublishedFile", publish_id, thumb_small_path
+            )
 
             self.logger.info("Uploading sg_uploaded_movie")
-            self.parent.engine.shotgun.upload(entity_type="Version",
-                                              entity_id=version_id,
-                                              path=thumb_small_path,
-                                              field_name="sg_uploaded_movie")
+            self.parent.engine.shotgun.upload(
+                entity_type="Version",
+                entity_id=version_id,
+                path=thumb_small_path,
+                field_name="sg_uploaded_movie",
+            )
 
             item.properties["thumb_small_path"] = thumb_small_path
 
@@ -275,16 +288,22 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
         if not path:
             extractor = self._get_thumbnail_extractor()
-            path = tempfile.NamedTemporaryFile(suffix=".jpg", prefix="sgtk_thumb", delete=False).name
+            path = tempfile.NamedTemporaryFile(
+                suffix=".jpg", prefix="sgtk_thumb", delete=False
+            ).name
 
             command = [extractor, "--icv", path, source_temporal_path]
 
             try:
                 subprocess.check_call(command, stderr=subprocess.STDOUT, shell=True)
-                self.parent.engine.logger.debug("Getting thumbnail data with command {}".format(command))
+                self.parent.engine.logger.debug(
+                    "Getting thumbnail data with command {}".format(command)
+                )
             except Exception as e:
                 self.logger.error("Thumbnail extractor failed {!r}".format(e))
-                self.parent.engine.logger.error("Error extracting thumbnail data {}".format(e))
+                self.parent.engine.logger.error(
+                    "Error extracting thumbnail data {}".format(e)
+                )
                 path = None
             else:
                 self.parent.engine.logger.debug("Thumbnail data extracted successfully")
@@ -297,9 +316,9 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
     def _get_target_path(self, item):
         root_path = item.properties.publish_template.root_path
-        version_id = str(item.properties.sg_version_data['id'])
-        target_path = os.path.join(root_path, 'translations', 'lmv', version_id)
-        images_path = os.path.join(root_path, 'translations', 'images')
+        version_id = str(item.properties.sg_version_data["id"])
+        target_path = os.path.join(root_path, "translations", "lmv", version_id)
+        images_path = os.path.join(root_path, "translations", "images")
         self.makedirs(images_path)
 
         return target_path
@@ -316,10 +335,10 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
     def publish(self, settings, item):
         # Create version
-        path = item.properties['path']
+        path = item.properties["path"]
         file_name = os.path.basename(path)
         name, extension = os.path.splitext(file_name)
-        item.properties['publish_name'] = name
+        item.properties["publish_name"] = name
         super(VREDPublishLMVFilePlugin, self).publish(settings, item)
 
         if self._is_translator_installed():
@@ -327,9 +346,11 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
 
         thumbnail_path = item.get_thumbnail_as_path()
         if not thumbnail_path and "thumb_small_path" in item.properties:
-            self.parent.engine.shotgun.upload_thumbnail(entity_type="Version",
-                                                        entity_id=item.properties["sg_version_data"]["id"],
-                                                        path=item.properties["thumb_small_path"])
+            self.parent.engine.shotgun.upload_thumbnail(
+                entity_type="Version",
+                entity_id=item.properties["sg_version_data"]["id"],
+                path=item.properties["thumb_small_path"],
+            )
 
         try:
             shutil.rmtree(self.TMPDIR)
@@ -353,14 +374,14 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
         Verbose, multi-line description of what the plugin does. This can
         contain simple html for formatting.
         """
-    
+
         publisher = self.parent
-    
+
         shotgun_url = publisher.sgtk.shotgun_url
-    
+
         media_page_url = "%s/page/media_center" % (shotgun_url,)
         review_url = "https://www.shotgunsoftware.com/features/#review"
-    
+
         return """
                 Publishes the file to Shotgun in a valid LMV format (In case translator is installed)<br>
                 Upload the file to Shotgun for review.<br><br>
@@ -369,4 +390,8 @@ class VREDPublishLMVFilePlugin(HookBaseClass):
                 copy of the file will be attached to it. The file can then be reviewed
                 via the project's <a href='%s'>Media</a> page, <a href='%s'>RV</a>, or
                 the <a href='%s'>Shotgun Review</a> mobile app.
-                """ % (media_page_url, review_url, review_url)
+                """ % (
+            media_page_url,
+            review_url,
+            review_url,
+        )

@@ -32,12 +32,7 @@ class UploadVersionPlugin(HookBaseClass):
             return self.plugin_icon
 
         # look for icon one level up from this hook's folder in "icons" folder
-        return os.path.join(
-            self.disk_location,
-            os.pardir,
-            "icons",
-            "review.png"
-        )
+        return os.path.join(self.disk_location, os.pardir, "icons", "review.png")
 
     @property
     def settings(self):
@@ -71,7 +66,7 @@ class UploadVersionPlugin(HookBaseClass):
             "Upload": {
                 "type": "bool",
                 "default": False,
-                "description": "Upload content to Shotgun?"
+                "description": "Upload content to Shotgun?",
             },
         }
 
@@ -119,10 +114,7 @@ class UploadVersionPlugin(HookBaseClass):
 
         if settings.get("3D Version").value is True:
             self.plugin_icon = os.path.join(
-                self.disk_location,
-                os.pardir,
-                "icons",
-                "3d_model.png"
+                self.disk_location, os.pardir, "icons", "3d_model.png"
             )
 
         return {"accepted": True, "checked": True}
@@ -141,9 +133,7 @@ class UploadVersionPlugin(HookBaseClass):
 
         framework_lmv = self.load_framework("tk-framework-lmv_v0.1.x")
         if not framework_lmv:
-            self.logger.error(
-                "Could not run LMV translation: missing ATF framework"
-            )
+            self.logger.error("Could not run LMV translation: missing ATF framework")
             return False
 
         return True
@@ -164,27 +154,29 @@ class UploadVersionPlugin(HookBaseClass):
         if settings.get("3D Version").value is True:
             self.logger.debug("Creating LMV files from source file")
             # translate the file to lmv and upload the corresponding package to the Version
-            package_path, thumbnail_path, output_directory = self._translate_file_to_lmv(item)
+            (
+                package_path,
+                thumbnail_path,
+                output_directory,
+            ) = self._translate_file_to_lmv(item)
             self.logger.debug("Uploading LMV file to Shotgun")
             self.parent.shotgun.upload(
                 entity_type="Version",
                 entity_id=item.properties["sg_version_data"]["id"],
                 path=package_path,
-                field_name="sg_translation_files"
+                field_name="sg_translation_files",
             )
             self.parent.shotgun.update(
                 entity_type="Version",
                 entity_id=item.properties["sg_version_data"]["id"],
-                data={
-                    "sg_translation_type": "LMV"
-                }
+                data={"sg_translation_type": "LMV"},
             )
             # if the Version thumbnail is empty, update it with the newly created thumbnail
             if not item.get_thumbnail_as_path() and thumbnail_path:
                 self.parent.shotgun.upload_thumbnail(
                     entity_type="Version",
                     entity_id=item.properties["sg_version_data"]["id"],
-                    path=thumbnail_path
+                    path=thumbnail_path,
                 )
             # delete the temporary folder on disk
             self.logger.debug("Deleting temporary folder")
@@ -193,8 +185,12 @@ class UploadVersionPlugin(HookBaseClass):
         else:
             thumbnail_path = item.get_thumbnail_as_path()
             if not thumbnail_path:
-                self.logger.debug("Using VRED api to take a thumbnail for the current scene.")
-                thumbnail_path = tempfile.NamedTemporaryFile(suffix=".jpg", prefix="sgtk_thumb", delete=False).name
+                self.logger.debug(
+                    "Using VRED api to take a thumbnail for the current scene."
+                )
+                thumbnail_path = tempfile.NamedTemporaryFile(
+                    suffix=".jpg", prefix="sgtk_thumb", delete=False
+                ).name
                 vrMovieExport.createSnapshotFastInit(800, 600)
                 vrMovieExport.createSnapshotFast(thumbnail_path)
                 vrMovieExport.createSnapshotFastTerminate()
@@ -202,7 +198,7 @@ class UploadVersionPlugin(HookBaseClass):
                 entity_type="Version",
                 entity_id=item.properties["sg_version_data"]["id"],
                 path=thumbnail_path,
-                field_name="sg_uploaded_movie"
+                field_name="sg_uploaded_movie",
             )
 
     def _translate_file_to_lmv(self, item):
@@ -228,7 +224,9 @@ class UploadVersionPlugin(HookBaseClass):
         thumbnail_path = item.get_thumbnail_as_path()
         if not thumbnail_path:
             self.logger.debug("Use VRED API to get the current scene thumbnail")
-            thumbnail_path = tempfile.NamedTemporaryFile(suffix=".jpg", prefix="sgtk_thumb", delete=False).name
+            thumbnail_path = tempfile.NamedTemporaryFile(
+                suffix=".jpg", prefix="sgtk_thumb", delete=False
+            ).name
             vrMovieExport.createSnapshotFastInit(640, 320)
             vrMovieExport.createSnapshotFast(thumbnail_path)
             vrMovieExport.createSnapshotFastTerminate()
@@ -237,15 +235,12 @@ class UploadVersionPlugin(HookBaseClass):
         self.logger.info("Packaging LMV files")
         package_path, thumbnail_path = lmv_translator.package(
             svf_file_name=str(item.properties["sg_version_data"]["id"]),
-            thumbnail_path=thumbnail_path
+            thumbnail_path=thumbnail_path,
         )
 
         if not thumbnail_path:
             thumbnail_path = os.path.join(
-                self.disk_location,
-                os.pardir,
-                "icons",
-                "no_preview_vred.png"
+                self.disk_location, os.pardir, "icons", "no_preview_vred.png"
             )
 
         return package_path, thumbnail_path, lmv_translator.output_directory

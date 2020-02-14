@@ -1,11 +1,11 @@
 # Copyright (c) 2017 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
@@ -43,8 +43,8 @@ class VREDPublishFileRendersPlugin(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for published work files. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
+                "correspond to a template defined in "
+                "templates.yml.",
             }
         }
 
@@ -55,8 +55,8 @@ class VREDPublishFileRendersPlugin(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for published work files. Should"
-                               "correspond to a template defined in "
-                               "templates.yml.",
+                "correspond to a template defined in "
+                "templates.yml.",
             }
         }
 
@@ -68,7 +68,9 @@ class VREDPublishFileRendersPlugin(HookBaseClass):
         publisher = self.parent
 
         publish_template_setting = settings.get("Publish Template")
-        publish_template = publisher.engine.get_template_by_name(publish_template_setting.value)
+        publish_template = publisher.engine.get_template_by_name(
+            publish_template_setting.value
+        )
 
         if not publish_template:
             return False
@@ -100,14 +102,16 @@ class VREDPublishFileRendersPlugin(HookBaseClass):
         source_path = item.properties["path"]
         publish_template = item.properties.get("publish_template")
         scene_name = os.path.basename(os.path.dirname(source_path))
-        context_fields = publisher.context.as_template_fields(publish_template, validate=True)
-        context_fields.update({'scene_name': scene_name})
+        context_fields = publisher.context.as_template_fields(
+            publish_template, validate=True
+        )
+        context_fields.update({"scene_name": scene_name})
         target_path = publish_template.apply_fields(context_fields)
         if not os.path.exists(target_path):
             os.makedirs(target_path)
-        target_path = os.path.sep.join([target_path, scene_name + '.png'])
+        target_path = os.path.sep.join([target_path, scene_name + ".png"])
         return target_path
-    
+
     def _copy_work_to_publish(self, settings, item):
         publish_template = item.properties.get("publish_template")
         if not publish_template:
@@ -127,11 +131,13 @@ class VREDPublishFileRendersPlugin(HookBaseClass):
             shutil.copyfile(source_path, target_path)
         except Exception as e:
             raise Exception(
-                "Failed to copy work file from '%s' to '%s'.\n%s" %
-                (source_path, target_path, traceback.format_exc())
+                "Failed to copy work file from '%s' to '%s'.\n%s"
+                % (source_path, target_path, traceback.format_exc())
             )
 
-        self.logger.debug("Copied work file '%s' to publish file '%s'." % (source_path, target_path))
+        self.logger.debug(
+            "Copied work file '%s' to publish file '%s'." % (source_path, target_path)
+        )
 
     def publish(self, settings, item):
         item.local_properties.publish_path = self._get_target_path(item)

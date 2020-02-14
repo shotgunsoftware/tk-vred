@@ -1,11 +1,11 @@
 ﻿# Copyright (c) 2017 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
@@ -22,6 +22,7 @@ class VREDSessionCollector(HookBaseClass):
     Collector that operates on the vred session. Should inherit from the basic
     collector hook.
     """
+
     @property
     def settings(self):
         """
@@ -51,10 +52,10 @@ class VREDSessionCollector(HookBaseClass):
                 "type": "template",
                 "default": None,
                 "description": "Template path for artist work files. Should "
-                               "correspond to a template defined in "
-                               "templates.yml. If configured, is made available"
-                               "to publish plugins via the collected item's "
-                               "properties. ",
+                "correspond to a template defined in "
+                "templates.yml. If configured, is made available"
+                "to publish plugins via the collected item's "
+                "properties. ",
             },
         }
 
@@ -110,18 +111,11 @@ class VREDSessionCollector(HookBaseClass):
 
         # create the session item for the publish hierarchy
         session_item = parent_item.create_item(
-            "vred.session",
-            "VRED Session",
-            display_name
+            "vred.session", "VRED Session", display_name
         )
 
         # get the icon path to display for this item
-        icon_path = os.path.join(
-            self.disk_location,
-            os.pardir,
-            "icons",
-            "vred.png"
-        )
+        icon_path = os.path.join(self.disk_location, os.pardir, "icons", "vred.png")
         session_item.set_icon_from_path(icon_path)
 
         # if a work template is defined, add it to the item properties so
@@ -129,7 +123,8 @@ class VREDSessionCollector(HookBaseClass):
         work_template_setting = settings.get("Work Template")
         if work_template_setting:
             work_template = publisher.engine.get_template_by_name(
-                work_template_setting.value)
+                work_template_setting.value
+            )
 
             # store the template on the item for use by publish plugins. we
             # can't evaluate the fields here because there's no guarantee the
@@ -163,13 +158,17 @@ class VREDSessionCollector(HookBaseClass):
         render_folder = os.path.dirname(render_path)
 
         if not os.path.isdir(render_folder):
-            self.logger.info("Render folder doesn't exist on disk. Skip image collection.")
+            self.logger.info(
+                "Render folder doesn't exist on disk. Skip image collection."
+            )
             return
 
         # build the pattern we'll use to collect all the images on disk
         # corresponding to the current render path
         file_name, file_ext = os.path.splitext(os.path.basename(render_path))
-        regex_pattern = r"{0}(?P<render_pass>-\D+)*(?P<frame>-\d+)*\{1}".format(file_name, file_ext)
+        regex_pattern = r"{0}(?P<render_pass>-\D+)*(?P<frame>-\d+)*\{1}".format(
+            file_name, file_ext
+        )
 
         # go through all the files of the render folder to find the render images
         render_files = {}
@@ -179,21 +178,21 @@ class VREDSessionCollector(HookBaseClass):
             if not m:
                 continue
 
-            render_pass = None if not m.group("render_pass") else m.group("render_pass")[1:]
+            render_pass = (
+                None if not m.group("render_pass") else m.group("render_pass")[1:]
+            )
 
             # image sequence case
             if m.group("frame"):
                 # replace the frame number by a * character to have the sequence name without any frame number
                 sequence_path = re.sub(
-                    r"-\d+{0}".format(file_ext),
-                    "-*{0}".format(file_ext),
-                    f
+                    r"-\d+{0}".format(file_ext), "-*{0}".format(file_ext), f
                 )
                 if sequence_path not in render_files.keys():
                     render_files[sequence_path] = {
                         "render_pass": render_pass,
                         "is_sequence": True,
-                        "render_paths": []
+                        "render_paths": [],
                     }
                 render_files[sequence_path]["render_paths"].append(
                     os.path.join(render_folder, f)
@@ -201,27 +200,20 @@ class VREDSessionCollector(HookBaseClass):
 
             # single image case
             else:
-                render_files[f] = {
-                    "render_pass": render_pass,
-                    "is_sequence": False
-                }
+                render_files[f] = {"render_pass": render_pass, "is_sequence": False}
 
         for f, rd in render_files.iteritems():
 
             if rd["is_sequence"]:
                 item = super(VREDSessionCollector, self)._collect_file(
-                    parent_item,
-                    rd["render_paths"][0],
-                    frame_sequence=True
+                    parent_item, rd["render_paths"][0], frame_sequence=True
                 )
                 icon_path = rd["render_paths"][0]
                 item.properties["sequence_paths"] = rd["render_paths"]
 
             else:
                 item = super(VREDSessionCollector, self)._collect_file(
-                    parent_item,
-                    os.path.join(render_folder, f),
-                    frame_sequence=False
+                    parent_item, os.path.join(render_folder, f), frame_sequence=False
                 )
                 icon_path = os.path.join(render_folder, f)
 
@@ -245,12 +237,7 @@ class VREDSessionCollector(HookBaseClass):
         operations = publisher.engine.operations
 
         # get the icon path to display for this item
-        icon_path = os.path.join(
-            self.disk_location,
-            os.pardir,
-            "icons",
-            "geometry.png"
-        )
+        icon_path = os.path.join(self.disk_location, os.pardir, "icons", "geometry.png")
 
         # get all the geometry nodes
         geometry_nodes = operations.get_geometry_nodes()
@@ -260,12 +247,8 @@ class VREDSessionCollector(HookBaseClass):
             node_fields = geometry_node.fields()
 
             item = parent_item.create_item(
-                "vred.session.geometry",
-                "VRED Geometry Node",
-                geometry_node.getName()
+                "vred.session.geometry", "VRED Geometry Node", geometry_node.getName()
             )
             item.set_icon_from_path(icon_path)
-            item.properties["extra_template_fields"] = {
-                "node_name": item.name
-            }
+            item.properties["extra_template_fields"] = {"node_name": item.name}
             item.properties["node_id"] = node_fields.getID()
