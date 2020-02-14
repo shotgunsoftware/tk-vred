@@ -115,8 +115,8 @@ class VREDEngine(sgtk.platform.Engine):
 
         if six.PY2:
             window = wrapInstance(
-                long(vrVredUi.getMainWindow()), QtGui.QMainWindow
-            )  # noqa
+                long(vrVredUi.getMainWindow()), QtGui.QMainWindow  # noqa
+            )
         else:
             window = wrapInstance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
 
