@@ -44,37 +44,46 @@ class VREDEngine(sgtk.platform.Engine):
         # unicode characters returned by the shotgun api need to be converted
         # to display correctly in all of the app windows
         # tell QT to interpret C strings as utf-8
-        from sgtk.platform.qt import QtCore
+        from sgtk.platform.qt import QtCore, QtGui
 
         utf8 = QtCore.QTextCodec.codecForName("utf-8")
         QtCore.QTextCodec.setCodecForCStrings(utf8)
         self.logger.debug("set utf-8 codec for widget text")
-
-    def post_app_init(self):
-        """
-        Runs after all apps have been initialized.
-        """
-        from sgtk.platform.qt import QtGui
-
-        self.logger.debug("%s: Post Initializing...", self)
 
         # import python/tk_vred module
         self._tk_vred = self.import_module("tk_vred")
 
         QtGui.QApplication.instance().aboutToQuit.connect(self.quit)
 
+        # init operations
+        self.operations = self._tk_vred.VREDOperations(engine=self)
+
+    def post_app_init(self):
+        """
+        Runs after all apps have been initialized.
+        """
+
+        self.logger.debug("%s: Post Initializing...", self)
+
         # init menu
         self.menu = self._tk_vred.VREDMenu(engine=self)
         self.menu.create()
-
-        # init operations
-        self.operations = self._tk_vred.VREDOperations(engine=self)
 
     def destroy_engine(self):
         """
         Called when the engine should tear down itself and all its apps.
         """
         self.logger.debug("%s: Destroying...", self)
+
+        # Close all Shotgun app dialogs that are still opened since
+        # some apps do threads cleanup in their onClose event handler
+        # Note that this function is called when the engine is restarted (through "Reload Engine and Apps")
+
+        # Important: Copy the list of dialogs still opened since the call to close() will modify created_qt_dialogs
+        dialogs_still_opened = self.created_qt_dialogs[:]
+
+        for dialog in dialogs_still_opened:
+            dialog.close()
 
     @property
     def context_change_allowed(self):
