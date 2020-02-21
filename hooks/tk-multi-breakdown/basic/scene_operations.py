@@ -67,6 +67,9 @@ class SceneOperation(HookClass):
             materials_dict = self._obtain_materials()
             self._apply_transformations(node, new_node, materials_dict)
 
+        # Put the new node as a child of the old's node parent
+        node.getParent().addChild(new_node)
+
         vrScenegraph.deleteNode(node, True)
 
     def _obtain_materials(self):
