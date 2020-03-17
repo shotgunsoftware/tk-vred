@@ -21,6 +21,7 @@ configuration:
                       This should be a string specifying the template to use but can also be
                       empty if you do not wish the VRED render path to be automatically set."
         allows_empty: true
+        fields: context, *
 
 # the Shotgun fields that this engine needs in order to operate correctly
 requires_shotgun_fields:
