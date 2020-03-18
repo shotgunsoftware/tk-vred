@@ -84,7 +84,7 @@ class VREDLauncher(SoftwareLauncher):
         # be sure to not override the VRED_SCRIPT_PLUGINS environment variable if it's already declared
         if "VRED_SCRIPT_PLUGINS" in os.environ.keys():
             required_env["VRED_SCRIPT_PLUGINS"] = "{};{};{}".format(
-                os.environ["VRED_SCRIPT_PLUGINS"], plugin_dir, vred_plugins_dir
+                plugin_dir, vred_plugins_dir, os.environ["VRED_SCRIPT_PLUGINS"]
             )
         else:
             required_env["VRED_SCRIPT_PLUGINS"] = "{};{}".format(
