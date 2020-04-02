@@ -165,4 +165,3 @@ class VREDEngine(sgtk.platform.Engine):
         parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock_widget)
 
         return widget_instance
-
