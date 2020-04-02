@@ -156,27 +156,43 @@ class VREDEngine(sgtk.platform.Engine):
             if command_dict is None:
                 self.logger.warning(
                     "%s configuration setting 'run_at_startup' requests app '%s' that is not installed.",
-                    self.name, app_instance_name)
+                    self.name,
+                    app_instance_name,
+                )
             else:
                 if not setting_command_name:
                     # Run all commands of the given app instance.
                     for (command_name, command_function) in command_dict.iteritems():
-                        self.logger.debug("%s startup running app '%s' command '%s'.",
-                                          self.name, app_instance_name, command_name)
+                        self.logger.debug(
+                            "%s startup running app '%s' command '%s'.",
+                            self.name,
+                            app_instance_name,
+                            command_name,
+                        )
                         commands_to_run.append(command_function)
                 else:
                     # Run the command whose name is listed in the 'run_at_startup' setting.
                     command_function = command_dict.get(setting_command_name)
                     if command_function:
-                        self.logger.debug("%s startup running app '%s' command '%s'.",
-                                          self.name, app_instance_name, setting_command_name)
+                        self.logger.debug(
+                            "%s startup running app '%s' command '%s'.",
+                            self.name,
+                            app_instance_name,
+                            setting_command_name,
+                        )
                         commands_to_run.append(command_function)
                     else:
-                        known_commands = ', '.join("'%s'" % name for name in command_dict)
+                        known_commands = ", ".join(
+                            "'%s'" % name for name in command_dict
+                        )
                         self.logger.warning(
                             "%s configuration setting 'run_at_startup' requests app '%s' unknown command '%s'. "
                             "Known commands: %s",
-                            self.name, app_instance_name, setting_command_name, known_commands)
+                            self.name,
+                            app_instance_name,
+                            setting_command_name,
+                            known_commands,
+                        )
 
         # no commands to run. just bail
         if not commands_to_run:
