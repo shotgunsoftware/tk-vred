@@ -23,20 +23,27 @@ from sgtk.util import is_windows, is_linux, is_macos
 
 
 class VREDMenu(object):
+    """
+    Menu generation functionality for VRED.
+    """
+
     ROOT_MENU_TEXT = u"S&hotgun"
     ABOUT_MENU_TEXT = "About Shotgun Pipeline Toolkit"
     JUMP_TO_SG_TEXT = "Jump to Shotgun"
     JUMP_TO_FS_TEXT = "Jump to File System"
 
     def __init__(self, engine):
-        """Initialize attributes."""
-        # engine instance
+        """
+        Initialize attributes.
+        """
         self._engine = engine
 
-        self.logger = self._engine.logger
-
     def create(self):
-        self.logger.info("Creating Shotgun Menu")
+        """
+        Render the entire Shotgun menu.
+        """
+
+        self._engine.logger.debug("Creating Shotgun Menu")
 
         # Destroy root menu if exists
         if self.exists:
@@ -198,6 +205,11 @@ class VREDMenu(object):
 
     @property
     def exists(self):
+        """
+        Check if the menu already exists in VRED
+        :return: True if the menu has already been built, False otherwise
+        """
+
         window = self._engine.get_vred_main_window()
         menu_bar = window.menuBar()
         options = [
@@ -212,7 +224,11 @@ class VREDMenu(object):
         return False
 
     def destroy(self):
-        self.logger.info("Destroying Shotgun Menu")
+        """
+        Remove the entire Shotgun menu.
+        """
+
+        self._engine.logger.debug("Destroying Shotgun Menu")
 
         window = self._engine.get_vred_main_window()
         menu_bar = window.menuBar()
