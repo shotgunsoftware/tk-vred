@@ -183,7 +183,9 @@ class VREDMenu(object):
             if options_number <= 0:
                 continue
 
-            if options_number == 1 and (app_name, caption) not in favourites:
+            if options_number == 1:
+                if (app_name, caption) in favourites:
+                    continue
                 is_submenu = False
                 data = caption, callback
                 label = caption
