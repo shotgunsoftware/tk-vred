@@ -121,3 +121,47 @@ class VREDEngine(sgtk.platform.Engine):
             window = wrapInstance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
 
         return window
+
+    ##########################################################################################
+    # panel support
+
+    def show_panel(self, panel_id, title, bundle, widget_class, *args, **kwargs):
+        """
+        Docks an app widget in a VRED panel.
+
+        :param panel_id: Unique identifier for the panel, as obtained by register_panel().
+        :param title: The title of the panel
+        :param bundle: The app, engine or framework object that is associated with this window
+        :param widget_class: The class of the UI to be constructed. This must derive from QWidget.
+
+        Additional parameters specified will be passed through to the widget_class constructor.
+
+        :returns: the created widget_class instance
+        """
+        from sgtk.platform.qt import QtGui, QtCore
+
+        self.logger.debug("Begin showing panel %s", panel_id)
+
+        # If the widget already exists, do not rebuild it but be sure to display it
+        for widget in QtGui.QApplication.allWidgets():
+            if widget.objectName() == panel_id:
+                widget.show()
+                return widget
+
+        # As VRED doesn't have a method inside it's API to dock widget, we need to create one by hand,
+        # parent it to the main window and display the app widget inside
+        parent = self._get_dialog_parent()
+
+        dock_widget = QtGui.QDockWidget(parent=parent)
+        dock_widget.setObjectName(panel_id)
+
+        widget_instance = widget_class(*args, **kwargs)
+        widget_instance.setParent(dock_widget)
+        self._apply_external_styleshet(bundle, widget_instance)
+
+        dock_widget.setWidget(widget_instance)
+        dock_widget.show()
+
+        parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock_widget)
+
+        return widget_instance
