@@ -127,7 +127,7 @@ class VREDEngine(sgtk.platform.Engine):
 
     def show_panel(self, panel_id, title, bundle, widget_class, *args, **kwargs):
         """
-        Docks an app widget in a maya panel.
+        Docks an app widget in a VRED panel.
 
         :param panel_id: Unique identifier for the panel, as obtained by register_panel().
         :param title: The title of the panel
