@@ -8,9 +8,11 @@
 # By accessing, using, copying or modifying this work you indicate your
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
-
+import logging
 import sgtk
 from tank_vendor import six
+
+import vrController
 
 
 class VREDEngine(sgtk.platform.Engine):
@@ -213,6 +215,30 @@ class VREDEngine(sgtk.platform.Engine):
         # finally, run the commands
         for command in commands_to_run:
             command()
+
+    #####################################################################################
+    # Logging
+
+    def _emit_log_message(self, handler, record):
+        """
+        Called by the engine to log messages in VRED Terminal.
+        All log messages from the toolkit logging namespace will be passed to this method.
+
+        :param handler: Log handler that this message was dispatched from.
+                        Its default format is "[levelname basename] message".
+        :type handler: :class:`~python.logging.LogHandler`
+        :param record: Standard python logging record.
+        :type record: :class:`~python.logging.LogRecord`
+        """
+
+        msg = handler.format(record)
+
+        if record.levelno < logging.WARNING:
+            vrController.vrLogInfo(msg)
+        elif record.levelno < logging.ERROR:
+            vrController.vrLogWarning(msg)
+        else:
+            vrController.vrLogError(msg)
 
     ##########################################################################################
     # panel support
