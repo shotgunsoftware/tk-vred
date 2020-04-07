@@ -80,9 +80,16 @@ class VREDLauncher(SoftwareLauncher):
         # Register plugins
         plugin_dir = os.path.join(self.disk_location, "plugins", "Shotgun")
         vred_plugins_dir = os.path.join(os.path.dirname(exec_path), "Scripts")
-        required_env["VRED_SCRIPT_PLUGINS"] = "{};{}".format(
-            plugin_dir, vred_plugins_dir
-        )
+
+        # be sure to not override the VRED_SCRIPT_PLUGINS environment variable if it's already declared
+        if "VRED_SCRIPT_PLUGINS" in os.environ.keys():
+            required_env["VRED_SCRIPT_PLUGINS"] = "{};{};{}".format(
+                plugin_dir, vred_plugins_dir, os.environ["VRED_SCRIPT_PLUGINS"]
+            )
+        else:
+            required_env["VRED_SCRIPT_PLUGINS"] = "{};{}".format(
+                plugin_dir, vred_plugins_dir
+            )
 
         # SHOTGUN_ENABLE is an extra environment variable required by VRED
         required_env["SHOTGUN_ENABLE"] = "1"

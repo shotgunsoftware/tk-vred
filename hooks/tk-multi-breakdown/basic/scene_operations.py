@@ -105,13 +105,16 @@ class SceneOperation(HookClass):
 
         self._apply_materials(old_node, new_node, materials)
 
-        for i in range(0, old_node.getNChildren()):
-            for j in range(0, new_node.getNChildren()):
-                if old_node.getChild(i).getName() == new_node.getChild(j).getName():
-                    self._apply_transformations(
-                        old_node.getChild(i), new_node.getChild(j), materials
-                    )
-                    break
+        old_node_child = old_node.getChild(0)
+        old_node_child_name = old_node_child.getName()
+
+        for i in range(0, new_node.getNChildren()):
+            new_node_child = new_node.getChild(i)
+            new_node_child_name = new_node_child.getName()
+
+            if old_node_child_name == new_node_child_name:
+                self._apply_transformations(old_node_child, new_node_child, materials)
+                break
 
     def _apply_materials(self, old_node, new_node, materials):
         """
