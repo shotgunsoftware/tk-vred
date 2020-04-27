@@ -202,7 +202,7 @@ class VREDSessionCollector(HookBaseClass):
             else:
                 render_files[f] = {"render_pass": render_pass, "is_sequence": False}
 
-        for f, rd in render_files.iteritems():
+        for f, rd in render_files.items():
 
             if rd["is_sequence"]:
                 item = super(VREDSessionCollector, self)._collect_file(
