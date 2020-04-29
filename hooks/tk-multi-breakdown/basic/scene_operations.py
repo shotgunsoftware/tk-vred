@@ -63,16 +63,23 @@ class SceneOperation(HookClass):
             return
 
         path = item["path"]
-        for n in nodes:
-            new_node = vrFileIO.loadGeometry(path)
-            name, extension = os.path.splitext(os.path.basename(path))
+        name, extension = os.path.splitext(os.path.basename(path))
 
-            if name == new_node.getName():
-                materials_dict = self._obtain_materials()
-                self._apply_transformations(n, new_node, materials_dict)
+        materials_dict = self._obtain_materials()
 
-            # Put the new node as a child of the old's node parent
-            n.getParent().addChild(new_node)
+        # load the geometry for the first node but after that, try to clone this node to avoid importing the file
+        # many time
+        new_node = vrFileIO.loadGeometry(path)
+        if name == new_node.getName():
+            self._apply_transformations(nodes[0], new_node, materials_dict)
+        nodes[0].getParent().addChild(new_node)
+
+        # now, clone the new node as many time as we have remaining node instances
+        for n in nodes[1:]:
+            new_n = new_node.clone()
+            if name == new_n.getName():
+                self._apply_transformations(n, new_n, materials_dict)
+            n.getParent().addChild(new_n)
 
         # delete the nodes once everything has been created to avoid parent/child issue
         vrScenegraph.deleteNodes(nodes, True)
