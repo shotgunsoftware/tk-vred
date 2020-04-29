@@ -62,19 +62,20 @@ class SceneOperation(HookClass):
         if len(nodes) <= 0:
             return
 
-        node = nodes[0]
         path = item["path"]
-        new_node = vrFileIO.loadGeometry(path)
-        name, extension = os.path.splitext(os.path.basename(path))
+        for n in nodes:
+            new_node = vrFileIO.loadGeometry(path)
+            name, extension = os.path.splitext(os.path.basename(path))
 
-        if name == new_node.getName():
-            materials_dict = self._obtain_materials()
-            self._apply_transformations(node, new_node, materials_dict)
+            if name == new_node.getName():
+                materials_dict = self._obtain_materials()
+                self._apply_transformations(n, new_node, materials_dict)
 
-        # Put the new node as a child of the old's node parent
-        node.getParent().addChild(new_node)
+            # Put the new node as a child of the old's node parent
+            n.getParent().addChild(new_node)
 
-        vrScenegraph.deleteNode(node, True)
+        # delete the nodes once everything has been created to avoid parent/child issue
+        vrScenegraph.deleteNodes(nodes, True)
 
     def _obtain_materials(self):
         """
