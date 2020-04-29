@@ -28,7 +28,11 @@ class SceneOperation(HookClass):
         engine = self.parent.engine
         operations = engine.operations
 
-        return operations.get_references()
+        # if many references to the same file exist in the scene, only keep one instance
+        scene_ref = operations.get_references()
+        scene_ref = [dict(r) for r in {tuple(d.items()) for d in scene_ref}]
+
+        return scene_ref
 
     def update(self, items):
         """
