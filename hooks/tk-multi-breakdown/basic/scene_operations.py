@@ -28,7 +28,11 @@ class SceneOperation(HookClass):
         engine = self.parent.engine
         operations = engine.operations
 
-        return operations.get_references()
+        # if many references to the same file exist in the scene, only keep one instance
+        scene_ref = operations.get_references()
+        scene_ref = [dict(r) for r in {tuple(d.items()) for d in scene_ref}]
+
+        return scene_ref
 
     def update(self, items):
         """
@@ -58,19 +62,27 @@ class SceneOperation(HookClass):
         if len(nodes) <= 0:
             return
 
-        node = nodes[0]
         path = item["path"]
-        new_node = vrFileIO.loadGeometry(path)
         name, extension = os.path.splitext(os.path.basename(path))
 
+        materials_dict = self._obtain_materials()
+
+        # load the geometry for the first node but after that, try to clone this node to avoid importing the file
+        # many time
+        new_node = vrFileIO.loadGeometry(path)
         if name == new_node.getName():
-            materials_dict = self._obtain_materials()
-            self._apply_transformations(node, new_node, materials_dict)
+            self._apply_transformations(nodes[0], new_node, materials_dict)
+        nodes[0].getParent().addChild(new_node)
 
-        # Put the new node as a child of the old's node parent
-        node.getParent().addChild(new_node)
+        # now, clone the new node as many time as we have remaining node instances
+        for n in nodes[1:]:
+            new_n = new_node.clone()
+            if name == new_n.getName():
+                self._apply_transformations(n, new_n, materials_dict)
+            n.getParent().addChild(new_n)
 
-        vrScenegraph.deleteNode(node, True)
+        # delete the nodes once everything has been created to avoid parent/child issue
+        vrScenegraph.deleteNodes(nodes, True)
 
     def _obtain_materials(self):
         """
