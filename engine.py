@@ -60,6 +60,20 @@ class VREDEngine(sgtk.platform.Engine):
         # init operations
         self.operations = self._tk_vred.VREDOperations(engine=self)
 
+        # check for version compatibility
+        vred_version = int(vrController.getVredVersionYear())
+        if vred_version > self.get_setting("compatibility_dialog_min_version", 2021):
+            msg = (
+                "The Shotgun Pipeline Toolkit has not yet been fully tested with VRED %d. "
+                "You can continue to use the Toolkit but you may experience bugs or "
+                "instability.  Please report any issues you see to support@shotgunsoftware.com"
+                % vred_version
+            )
+            self.logger.warning(msg)
+            QtGui.QMessageBox.warning(
+                self._get_dialog_parent(), "Warning - Shotgun Pipeline Toolkit!", msg,
+            )
+
     def post_app_init(self):
         """
         Runs after all apps have been initialized.
