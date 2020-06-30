@@ -212,9 +212,7 @@ class VREDOperations(object):
             caption="Save As",
             filename="",
             filter=[
-                "VRED Essentials Project Binary (*.vpe)",
                 "VRED Project Binary (*.vpb)",
-                "VRED Project File (*.vpf)",
             ],
         )
 
