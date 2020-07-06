@@ -209,11 +209,7 @@ class VREDOperations(object):
         project to that path.
         """
         path = vrFileDialog.getSaveFileName(
-            caption="Save As",
-            filename="",
-            filter=[
-                "VRED Project Binary (*.vpb)",
-            ],
+            caption="Save As", filename="", filter=["VRED Project Binary (*.vpb)",],
         )
 
         if path:
