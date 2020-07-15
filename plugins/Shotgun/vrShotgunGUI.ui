@@ -30,7 +30,7 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <layout class="QVBoxLayout" name="_mainVLayout">
+    <layout class="QVBoxLayout" name="main_vlayout">
      <property name="spacing">
       <number>10</number>
      </property>
@@ -47,7 +47,7 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QLabel" name="_titleLabel">
+      <widget class="QLabel" name="title_label">
        <property name="sizePolicy">
         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
          <horstretch>0</horstretch>
@@ -64,7 +64,7 @@ p, li { white-space: pre-wrap; }
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="_description">
+      <widget class="QLabel" name="description">
        <property name="sizePolicy">
         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
          <horstretch>0</horstretch>
@@ -77,7 +77,7 @@ p, li { white-space: pre-wrap; }
       </widget>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="_versionHLayout">
+      <layout class="QHBoxLayout" name="version_hlayout">
        <property name="topMargin">
         <number>5</number>
        </property>
@@ -85,7 +85,7 @@ p, li { white-space: pre-wrap; }
         <number>5</number>
        </property>
        <item>
-        <widget class="QLabel" name="_versionLabel">
+        <widget class="QLabel" name="version_label">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
            <horstretch>0</horstretch>
@@ -108,7 +108,7 @@ p, li { white-space: pre-wrap; }
       </layout>
      </item>
      <item>
-      <widget class="QLabel" name="_helpLabel">
+      <widget class="QLabel" name="help_label">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
          <horstretch>0</horstretch>
@@ -136,7 +136,7 @@ p, li { white-space: pre-wrap; }
       </widget>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="_gifHLayout">
+      <layout class="QHBoxLayout" name="gif_hlayout">
        <property name="topMargin">
         <number>20</number>
        </property>
@@ -144,7 +144,7 @@ p, li { white-space: pre-wrap; }
         <number>20</number>
        </property>
        <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
-        <widget class="QLabel" name="_gifLabel">
+        <widget class="QLabel" name="gif_label">
          <property name="minimumSize">
           <size>
            <width>400</width>
@@ -168,7 +168,7 @@ p, li { white-space: pre-wrap; }
       </layout>
      </item>
      <item>
-      <spacer name="_endVSpacer">
+      <spacer name="end_vspacer">
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>

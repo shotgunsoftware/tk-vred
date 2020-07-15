@@ -16,7 +16,7 @@ vrShotgun_form, vrShotgun_base = uiTools.loadUiType("vrShotgunGUI.ui")
 class vrShotgun(vrShotgun_form, vrShotgun_base):
     context = None
     engine = None
-    infoGif = None
+    info_gif = None
 
     def __init__(self, parent=None):
         super(vrShotgun, self).__init__(parent)
@@ -27,8 +27,8 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         gif_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "vred_shotgun_menu.gif"
         )
-        self.infoGif = QtGui.QMovie(gif_path)
-        self._gifLabel.setMovie(self.infoGif)
+        self.info_gif = QtGui.QMovie(gif_path)
+        self.gif_label.setMovie(self.info_gif)
 
         self.context = sgtk.context.deserialize(os.environ.get("SGTK_CONTEXT"))
         QtCore.QTimer.singleShot(0, self.init)
@@ -39,7 +39,7 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         )
 
         # Set the version text in the plugin dialog once the engine is initialized
-        self._versionLabel.setText("tk-vred {}".format(self.engine.version))
+        self.version_label.setText("tk-vred {}".format(self.engine.version))
 
         file_to_open = os.environ.get("SGTK_FILE_TO_OPEN", None)
         if file_to_open:
@@ -56,7 +56,7 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
 
         :param QShowEvent event: event that is sent when the widget is shown.
         """
-        self.infoGif.start()
+        self.info_gif.start()
 
     def hideEvent(self, event):
         """
@@ -65,7 +65,7 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
 
         :param QHideEvent event: event that is sent when the widget is hidden.
         """
-        self.infoGif.stop()
+        self.info_gif.stop()
 
 
 try:
