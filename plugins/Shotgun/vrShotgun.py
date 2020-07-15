@@ -1,7 +1,6 @@
 import os
 
 from PySide2 import QtCore, QtGui
-from PySide2 import QtWidgets
 
 import vrFileIO
 import vrController
