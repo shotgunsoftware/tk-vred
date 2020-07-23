@@ -16,7 +16,7 @@ vrShotgun_form, vrShotgun_base = uiTools.loadUiType("vrShotgunGUI.ui")
 class vrShotgun(vrShotgun_form, vrShotgun_base):
     context = None
     engine = None
-    info_gif = None
+    gif_aspect_ratio = None
 
     def __init__(self, parent=None):
         super(vrShotgun, self).__init__(parent)
@@ -27,8 +27,11 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         gif_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "vred_shotgun_menu.gif"
         )
-        self.info_gif = QtGui.QMovie(gif_path)
-        self.gif_label.setMovie(self.info_gif)
+        gif_movie = QtGui.QMovie(gif_path)
+        gif_movie.jumpToFrame(0)
+        movie_size = gif_movie.currentImage().size()
+        self.gif_aspect_ratio = movie_size.width() / movie_size.height()
+        self.gif_label.setMovie(gif_movie)
 
         self.context = sgtk.context.deserialize(os.environ.get("SGTK_CONTEXT"))
         QtCore.QTimer.singleShot(0, self.init)
@@ -56,7 +59,9 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
 
         :param QShowEvent event: event that is sent when the widget is shown.
         """
-        self.info_gif.start()
+        gif_movie = self.gif_label.movie()
+        if gif_movie:
+            gif_movie.start()
 
     def hideEvent(self, event):
         """
@@ -65,7 +70,29 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
 
         :param QHideEvent event: event that is sent when the widget is hidden.
         """
-        self.info_gif.stop()
+        gif_movie = self.gif_label.movie()
+        if gif_movie:
+            gif_movie.stop()
+
+    def resizeEvent(self, event):
+        """Reimplement resize event handler to keep gif animation aspect ratio."""
+        rect = self.geometry()
+        gif_movie = self.gif_label.movie()
+        if gif_movie:
+            width = rect.height() * self.gif_aspect_ratio
+            if width <= rect.width():
+                size = QtCore.QSize(width, rect.height())
+            else:
+                height = rect.width() / self.gif_aspect_ratio
+                size = QtCore.QSize(rect.width(), height)
+
+            # Scale the gif animation and then adjust this widget and the most
+            # top-level widget to fit to the new gif scaled size
+            gif_movie.setScaledSize(size)
+            self.adjustSize()
+            self.parentWidget().parentWidget().adjustSize()
+
+        return super(vrShotgun, self).resizeEvent(event)
 
 
 try:

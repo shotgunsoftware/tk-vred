@@ -6,33 +6,42 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>525</width>
-    <height>443</height>
+    <width>520</width>
+    <height>233</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>525</width>
+    <width>520</width>
     <height>0</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
-    <width>525</width>
+    <width>520</width>
     <height>16777215</height>
    </size>
   </property>
   <property name="windowTitle">
    <string>vrShotgun</string>
   </property>
+  <property name="autoFillBackground">
+   <bool>false</bool>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
   <property name="group" stdset="0">
    <string>Scripts</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QVBoxLayout" name="main_vlayout">
      <property name="spacing">
       <number>10</number>
+     </property>
+     <property name="sizeConstraint">
+      <enum>QLayout::SetDefaultConstraint</enum>
      </property>
      <property name="leftMargin">
       <number>5</number>
@@ -46,7 +55,7 @@
      <property name="bottomMargin">
       <number>0</number>
      </property>
-     <item>
+     <item alignment="Qt::AlignTop">
       <widget class="QLabel" name="title_label">
        <property name="sizePolicy">
         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
@@ -63,7 +72,7 @@ p, li { white-space: pre-wrap; }
        </property>
       </widget>
      </item>
-     <item>
+     <item alignment="Qt::AlignTop">
       <widget class="QLabel" name="description">
        <property name="sizePolicy">
         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Maximum">
@@ -76,38 +85,31 @@ p, li { white-space: pre-wrap; }
        </property>
       </widget>
      </item>
-     <item>
-      <layout class="QHBoxLayout" name="version_hlayout">
-       <property name="topMargin">
-        <number>5</number>
+     <item alignment="Qt::AlignTop">
+      <widget class="QLabel" name="version_label">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
        </property>
-       <property name="bottomMargin">
-        <number>5</number>
+       <property name="font">
+        <font>
+         <pointsize>36</pointsize>
+        </font>
        </property>
-       <item>
-        <widget class="QLabel" name="version_label">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="font">
-          <font>
-           <pointsize>36</pointsize>
-          </font>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="textFormat">
-          <enum>Qt::PlainText</enum>
-         </property>
-        </widget>
-       </item>
-      </layout>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::PlainText</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+      </widget>
      </item>
-     <item>
+     <item alignment="Qt::AlignTop">
       <widget class="QLabel" name="help_label">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
@@ -137,25 +139,25 @@ p, li { white-space: pre-wrap; }
      </item>
      <item>
       <layout class="QHBoxLayout" name="gif_hlayout">
+       <property name="leftMargin">
+        <number>40</number>
+       </property>
        <property name="topMargin">
         <number>20</number>
+       </property>
+       <property name="rightMargin">
+        <number>40</number>
        </property>
        <property name="bottomMargin">
         <number>20</number>
        </property>
-       <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+       <item>
         <widget class="QLabel" name="gif_label">
-         <property name="minimumSize">
-          <size>
-           <width>400</width>
-           <height>225</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>400</width>
-           <height>225</height>
-          </size>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
          <property name="text">
           <string/>
@@ -166,19 +168,6 @@ p, li { white-space: pre-wrap; }
         </widget>
        </item>
       </layout>
-     </item>
-     <item>
-      <spacer name="end_vspacer">
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>20</width>
-         <height>10</height>
-        </size>
-       </property>
-      </spacer>
      </item>
     </layout>
    </item>
