@@ -1,3 +1,6 @@
+# For Python2 integer division
+from __future__ import division
+
 import os
 
 from PySide2 import QtCore, QtGui
@@ -24,10 +27,7 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         self.setupUi(self)
 
         # Set up the gif animation, but don't start playing it until the widget is shown
-        gif_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "vred_shotgun_menu.gif"
-        )
-        gif_movie = QtGui.QMovie(gif_path)
+        gif_movie = QtGui.QMovie("vred_shotgun_menu.gif")
         gif_movie.jumpToFrame(0)
         movie_size = gif_movie.currentImage().size()
         self.gif_aspect_ratio = movie_size.width() / movie_size.height()
