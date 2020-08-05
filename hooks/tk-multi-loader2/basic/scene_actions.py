@@ -17,6 +17,7 @@ import sgtk
 from sgtk.platform.qt import QtGui, QtCore
 
 import builtins
+
 builtins.vrCameraService = vrCameraService
 builtins.vrSceneplateService = vrSceneplateService
 from vrKernelServices import vrSceneplateTypes
