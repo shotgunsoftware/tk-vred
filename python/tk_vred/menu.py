@@ -50,7 +50,7 @@ class VREDMenu(object):
             self.destroy()
 
         # Create root menu
-        window = self._engine.get_vred_main_window()
+        window = self._engine._get_dialog_parent()
         menubar = window.menuBar()
         root_menu = QtGui.QMenu()
         root_menu.setTitle(self.ROOT_MENU_TEXT)
@@ -212,7 +212,7 @@ class VREDMenu(object):
         :return: True if the menu has already been built, False otherwise
         """
 
-        window = self._engine.get_vred_main_window()
+        window = self._engine._get_dialog_parent()
         menu_bar = window.menuBar()
         options = [
             option
@@ -232,7 +232,7 @@ class VREDMenu(object):
 
         self._engine.logger.debug("Destroying Shotgun Menu")
 
-        window = self._engine.get_vred_main_window()
+        window = self._engine._get_dialog_parent()
         menu_bar = window.menuBar()
         option = [
             option
