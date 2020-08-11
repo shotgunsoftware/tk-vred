@@ -10,11 +10,6 @@
 
 # expected fields in the configuration file for this engine
 configuration:
-    file_usage_hook:
-        type: hook
-        description: Hook to customize behaviour on file change and file close.
-        default_value: default_file_usage
-
     render_template:
         type: template
         description: "Template to use to determine where to set the VRED render images.

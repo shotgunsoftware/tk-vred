@@ -37,13 +37,6 @@ class VREDOperations(object):
 
     def load_file(self, file_path):
         """Load a new file into VRED. This will reset the workspace."""
-        can_load = self._engine.execute_hook_method(
-            "file_usage_hook", "file_attempt_open", path=file_path
-        )
-
-        if not can_load:
-            return
-
         self.logger.debug("Loading file: {}".format(file_path))
         vrFileIO.load(file_path)
         self.set_render_path(file_path)
@@ -56,7 +49,6 @@ class VREDOperations(object):
     def reset_scene(self):
         """Resets the Scene in VRED."""
         self.logger.debug("Reset Scene")
-        self._engine.current_file_closed()
         vrController.newScene()
 
     def save_current_file(self, file_path):
@@ -69,12 +61,6 @@ class VREDOperations(object):
             msg = "VRED Failed to save file {}".format(file_path)
             self.logger.error(msg)
             raise Exception(msg)
-
-        allowed_to_open = self._engine.execute_hook_method(
-            "file_usage_hook", "file_attempt_open", path=file_path
-        )
-        if not allowed_to_open:
-            raise Exception("Can't save file: a lock for this path already exists")
 
         self.set_render_path(file_path)
 
