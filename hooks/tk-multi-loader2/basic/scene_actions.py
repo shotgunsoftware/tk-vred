@@ -1,4 +1,4 @@
-# Copyright (c) 2015 Shotgun Software Inc.
+# Copyright (c) 2020 Autodesk, Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -6,14 +6,22 @@
 # Source Code License included in this distribution package. See LICENSE.
 # By accessing, using, copying or modifying this work you indicate your
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
-# not expressly granted therein are reserved by Shotgun Software Inc.
+# not expressly granted therein are reserved by Autodesk, Inc.
 
 """
 Hook that loads defines all the available actions, broken down by publish type.
 """
+import os
+
 import sgtk
 from sgtk.platform.qt import QtGui, QtCore
 
+import builtins
+
+builtins.vrCameraService = vrCameraService
+builtins.vrSceneplateService = vrSceneplateService
+from vrKernelServices import vrSceneplateTypes
+from vrKernelServices import vrdSceneplateNode
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -96,6 +104,16 @@ class VredActions(HookBaseClass):
                 }
             )
 
+        if "import_sceneplate" in actions:
+            action_instances.append(
+                {
+                    "name": "import_sceneplate",
+                    "params": None,
+                    "caption": "Import image(s) into scene as a sceneplate",
+                    "description": "This will import the image(s) into the current VRED Scene.",
+                }
+            )
+
         return action_instances
 
     def execute_action(self, name, params, sg_publish_data):
@@ -125,6 +143,10 @@ class VredActions(HookBaseClass):
         if name == "import":
             return operations.do_import(path)
 
+        if name == "import_sceneplate":
+            image_path = self.get_publish_path(sg_publish_data)
+            return self.import_sceneplate(image_path)
+
     def execute_multiple_actions(self, actions):
         """
         Executes the specified action on a list of items.
@@ -150,49 +172,31 @@ class VredActions(HookBaseClass):
 
         :param list actions: Action dictionaries.
         """
-        messages = {}
-
         for single_action in actions:
-            name = single_action.get("name")
-            sg_publish_data = single_action.get("sg_publish_data")
-            params = single_action.get("params")
+            name = single_action["name"]
+            sg_publish_data = single_action["sg_publish_data"]
+            params = single_action["params"]
+            self.execute_action(name, params, sg_publish_data)
 
-            message = self.execute_action(name, params, sg_publish_data)
+    def import_sceneplate(self, image_path):
+        """
+            Executes the import of the image(s) and the creation
+            of the VRED sceneplate
 
-            if not isinstance(messages, dict):
-                continue
-
-            message_type = message.get("message_type")
-            message_code = message.get("message_code")
-            publish_path = message.get("publish_path")
-            is_error = message.get("is_error")
-
-            if message_type not in messages:
-                messages[message_type] = {}
-
-            if message_code not in messages[message_type]:
-                messages[message_type][message_code] = dict(is_error=is_error, paths=[])
-
-            messages[message_type][message_code]["paths"].append(publish_path)
-
-        active_window = QtGui.QApplication.activeWindow()
-        for message_type, message_type_details in messages.items():
-            content = ""
-            for message_code, message_code_details in message_type_details.items():
-                if content:
-                    content += "\n\n"
-
-                is_error = message_code_details.get("is_error")
-                paths = message_code_details.get("paths")
-
-                if is_error:
-                    content += "{}: {}".format(message_code, ", ".format(paths))
-                else:
-                    if len(paths) == 1:
-                        content += "File {} {}".format(paths[0], message_code)
-                    else:
-                        content += "{} files {}".format(len(paths), message_code)
-
-            getattr(QtGui.QMessageBox, message_type)(
-                active_window, message_type.title(), content
-            )
+            :param str image_path: Path to image file from the sg_published_data
+        """
+        # Get the Sceneplate Root object
+        vredSceneplateRoot = vrSceneplateService.getRootNode()
+        # Extract the filename for the name of the Sceneplate
+        nodeName = os.path.basename(image_path)
+        # Load in the image
+        imageObject = vrImageService.loadImage(image_path)
+        # Create the actual Sceneplate node
+        newSceneplateNode = vrSceneplateService.createNode(
+            vredSceneplateRoot, vrSceneplateTypes.NodeType.Frontplate, nodeName
+        )
+        newSceneplate = vrdSceneplateNode(newSceneplateNode)
+        # Set the type to image
+        newSceneplate.setContentType(vrSceneplateTypes.ContentType.Image)
+        # Assign the image to the Sceneplate
+        newSceneplate.setImage(imageObject)
