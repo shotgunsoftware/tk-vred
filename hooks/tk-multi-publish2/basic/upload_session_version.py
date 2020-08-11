@@ -131,7 +131,7 @@ class UploadVersionPlugin(HookBaseClass):
         :returns: True if item is valid, False otherwise.
         """
 
-        framework_lmv = self.load_framework("tk-framework-lmv_v0.1.x")
+        framework_lmv = self.load_framework("tk-framework-lmv_v0.x.x")
         if not framework_lmv:
             self.logger.error("Could not run LMV translation: missing ATF framework")
             return False
@@ -160,16 +160,16 @@ class UploadVersionPlugin(HookBaseClass):
                 output_directory,
             ) = self._translate_file_to_lmv(item)
             self.logger.debug("Uploading LMV file to Shotgun")
-            self.parent.shotgun.upload(
-                entity_type="Version",
-                entity_id=item.properties["sg_version_data"]["id"],
-                path=package_path,
-                field_name="sg_translation_files",
-            )
             self.parent.shotgun.update(
                 entity_type="Version",
                 entity_id=item.properties["sg_version_data"]["id"],
                 data={"sg_translation_type": "LMV"},
+            )
+            self.parent.shotgun.upload(
+                entity_type="Version",
+                entity_id=item.properties["sg_version_data"]["id"],
+                path=package_path,
+                field_name="sg_uploaded_movie",
             )
             # if the Version thumbnail is empty, update it with the newly created thumbnail
             if not item.get_thumbnail_as_path() and thumbnail_path:
@@ -212,7 +212,7 @@ class UploadVersionPlugin(HookBaseClass):
             - The path to the temporary folder where the LMV files have been processed
         """
 
-        framework_lmv = self.load_framework("tk-framework-lmv_v0.1.x")
+        framework_lmv = self.load_framework("tk-framework-lmv_v0.x.x")
         translator = framework_lmv.import_module("translator")
 
         # translate the file to lmv
