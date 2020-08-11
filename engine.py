@@ -55,8 +55,6 @@ class VREDEngine(sgtk.platform.Engine):
         # import python/tk_vred module
         self._tk_vred = self.import_module("tk_vred")
 
-        QtGui.QApplication.instance().aboutToQuit.connect(self.quit)
-
         # init operations
         self.operations = self._tk_vred.VREDOperations(engine=self)
 
@@ -113,20 +111,6 @@ class VREDEngine(sgtk.platform.Engine):
         Specifies that context changes are allowed by the engine.
         """
         return True
-
-    def current_file_closed(self):
-        """
-        Called when the current file is closed.
-        """
-        path = self.operations.get_current_file()
-        if path:
-            self.execute_hook_method("file_usage_hook", "file_closed", path=path)
-
-    def quit(self):
-        try:
-            self.current_file_closed()
-        except Exception as e:
-            self.logger.exception("Error quitting vred engine")
 
     def _get_dialog_parent(self):
         """
