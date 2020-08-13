@@ -30,7 +30,7 @@ class VREDEngine(sgtk.platform.Engine):
         Class Constructor
         """
         self._tk_vred = None
-        self.menu = None
+        self._menu_generator = None
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
 
@@ -91,9 +91,8 @@ class VREDEngine(sgtk.platform.Engine):
 
         self.logger.debug("{}: Post Initializing...".format(self))
 
-        # init menu
-        self.menu = self._tk_vred.VREDMenu(engine=self)
-        self.menu.create()
+        # Init menu
+        self.menu_generator.create_menu(clean_menu=False)
 
         # Run a series of app instance commands at startup.
         self._run_app_instance_commands()
@@ -103,6 +102,10 @@ class VREDEngine(sgtk.platform.Engine):
         Called when the engine should tear down itself and all its apps.
         """
         self.logger.debug("{}: Destroying...".format(self))
+
+        # Clean up the menu and clear the menu generator
+        self.menu_generator.clean_menu()
+        self._menu_generator = None
 
         # Close all Shotgun app dialogs that are still opened since
         # some apps do threads cleanup in their onClose event handler
@@ -121,9 +124,15 @@ class VREDEngine(sgtk.platform.Engine):
         """
         return True
 
+    @property
+    def menu_generator(self):
         """
+        Menu generator to help the engine manage the Shotgun menu in VRED.
+        """
+        if self._menu_generator is None:
+            self._menu_generator = self._tk_vred.VREDMenuGenerator(engine=self)
 
-        """
+        return self._menu_generator
 
     def _get_dialog_parent(self):
         """
