@@ -12,7 +12,9 @@ import os
 import re
 
 import sgtk
-import vrScenegraph
+
+import vrFileIO
+import vrRenderSettings
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -97,10 +99,9 @@ class VREDSessionCollector(HookBaseClass):
         """
 
         publisher = self.parent
-        operations = publisher.engine.operations
 
         # get the path to the current file
-        path = operations.get_current_file()
+        path = vrFileIO.getFileIOFilePath()
 
         # determine the display name for the item
         if path:
@@ -151,10 +152,7 @@ class VREDSessionCollector(HookBaseClass):
        :return:
        """
 
-        publisher = self.parent
-        operations = publisher.engine.operations
-
-        render_path = operations.get_render_path()
+        render_path = vrRenderSettings.getRenderFilename()
         render_folder = os.path.dirname(render_path)
 
         if not os.path.isdir(render_folder):

@@ -11,6 +11,8 @@
 import os
 import sgtk
 
+import vrFileIO
+
 HookBaseClass = sgtk.get_hook_baseclass()
 
 
@@ -116,7 +118,7 @@ class VREDStartVersionControlPlugin(HookBaseClass):
         :returns: dictionary with boolean keys accepted, required and enabled
         """
 
-        path = _session_path()
+        path = vrFileIO.getFileIOFilePath()
 
         if path:
             version_number = self._get_version_number(path, item)
@@ -159,7 +161,7 @@ class VREDStartVersionControlPlugin(HookBaseClass):
         """
 
         publisher = self.parent
-        path = _session_path()
+        path = vrFileIO.getFileIOFilePath()
 
         if not path:
             # the session still requires saving. provide a save button.
@@ -197,20 +199,23 @@ class VREDStartVersionControlPlugin(HookBaseClass):
         """
 
         publisher = self.parent
-        operations = publisher.engine.operations
+        engine = publisher.engine
 
         # get the path in a normalized state. no trailing separator, separators
         # are appropriate for current os, no double separators, etc.
-        path = sgtk.util.ShotgunPath.normalize(_session_path())
+        session_path = vrFileIO.getFileIOFilePath()
+        path = sgtk.util.ShotgunPath.normalize(session_path)
 
         # ensure the session is saved in its current state
-        operations.save_current_file(path)
+        engine.save_current_file(path)
+        engine.set_render_path(path)
 
         # get the path to a versioned copy of the file.
         version_path = publisher.util.get_version_path(path, "v001")
 
         # save to the new version path
-        operations.save_current_file(version_path)
+        engine.save_current_file(version_path)
+        engine.set_render_path(version_path)
         self.logger.info("A version number has been added to the VRED file...")
         self.logger.info("  VRED file path: %s" % (version_path,))
 
@@ -264,17 +269,6 @@ class VREDStartVersionControlPlugin(HookBaseClass):
         return version_number
 
 
-def _session_path():
-    """
-    Return the path to the current session
-    :return:
-    """
-    engine = sgtk.platform.current_engine()
-    operations = engine.operations
-
-    return operations.get_current_file()
-
-
 def _get_save_as_action():
     """
 
@@ -282,10 +276,9 @@ def _get_save_as_action():
     """
 
     engine = sgtk.platform.current_engine()
-    operations = engine.operations
 
     # default save callback
-    callback = operations.open_save_as_dialog
+    callback = engine.open_save_as_dialog
 
     # if workfiles2 is configured, use that for file save
     if "tk-multi-workfiles2" in engine.apps:

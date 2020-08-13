@@ -22,6 +22,8 @@ builtins.vrCameraService = vrCameraService
 builtins.vrSceneplateService = vrSceneplateService
 from vrKernelServices import vrSceneplateTypes
 from vrKernelServices import vrdSceneplateNode
+import vrFileIO
+import vrScenegraph
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -138,14 +140,14 @@ class VredActions(HookBaseClass):
         path = self.get_publish_path(sg_publish_data)
 
         if name == "reference":
-            return operations.create_reference(path)
+            vrFileIO.load([path], vrScenegraph.getRootNode(), False, False)
 
-        if name == "import":
-            return operations.do_import(path)
+        elif name == "import":
+            vrFileIO.loadGeometry(path)
 
-        if name == "import_sceneplate":
+        elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_publish_data)
-            return self.import_sceneplate(image_path)
+            self.import_sceneplate(image_path)
 
     def execute_multiple_actions(self, actions):
         """

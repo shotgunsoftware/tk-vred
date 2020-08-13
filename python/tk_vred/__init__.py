@@ -9,4 +9,3 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from .menu import VREDMenu
-from .operations import VREDOperations

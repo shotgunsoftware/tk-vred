@@ -1,8 +1,10 @@
-import sgtk
-import vrFileIO
-import vrScenegraph
 import os
+import sgtk
+
+import vrFieldAccess
+import vrFileIO
 import vrMaterialPtr
+import vrScenegraph
 
 HookClass = sgtk.get_hook_baseclass()
 
@@ -25,14 +27,32 @@ class SceneOperation(HookClass):
         any templates and try to determine if there is a more recent version
         available. Any such versions are then displayed in the UI as out of date.
         """
-        engine = self.parent.engine
-        operations = engine.operations
 
+        # TODO add logging
         # if many references to the same file exist in the scene, only keep one instance
-        scene_ref = operations.get_references()
-        scene_ref = [dict(r) for r in {tuple(d.items()) for d in scene_ref}]
+        scene_refs = []
 
-        return scene_ref
+        for node in vrScenegraph.getAllNodes():
+            path = None
+
+            if node.hasAttachment("FileInfo"):
+                path = vrFieldAccess.vrFieldAccess(
+                    node.getAttachment("FileInfo")
+                ).getString("filename")
+
+            if path is not None:
+                scene_refs.append(
+                    {
+                        "node": node.getName(),
+                        "type": node.getType(),
+                        "path": path,
+                        "oldpath": path,
+                    }
+                )
+
+        scene_refs = [dict(r) for r in {tuple(d.items()) for d in scene_refs}]
+
+        return scene_refs
 
     def update(self, items):
         """

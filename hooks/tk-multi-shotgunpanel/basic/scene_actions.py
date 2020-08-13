@@ -14,6 +14,8 @@ Hook that loads defines all the available actions, broken down by publish type.
 
 import sgtk
 
+import vrFileIO
+
 HookBaseClass = sgtk.get_hook_baseclass()
 
 
@@ -99,12 +101,9 @@ class VREDActions(HookBaseClass):
             "Parameters: %s. Shotgun Data: %s" % (name, params, sg_data)
         )
 
-        engine = self.parent.engine
-        operations = engine.operations
-
         if name == "import":
             path = self.get_publish_path(sg_data)
-            operations.do_import(path)
+            vrFileIO.loadGeometry(path)
 
         else:
             try:

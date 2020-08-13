@@ -11,6 +11,8 @@
 import os
 import sgtk
 
+import vrFileIO
+
 HookBaseClass = sgtk.get_hook_baseclass()
 
 
@@ -167,7 +169,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         if settings.get("Publish Template").value:
             item.context_change_allowed = False
 
-        path = _session_path()
+        path = vrFileIO.getFileIOFilePath()
 
         if not path:
             # the session has not been saved before (no path determined).
@@ -194,9 +196,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         :returns: True if item is valid, False otherwise.
         """
 
-        publisher = self.parent
-        operations = publisher.engine.operations
-        path = _session_path()
+        path = vrFileIO.getFileIOFilePath()
 
         # ---- ensure the session has been saved
 
@@ -261,9 +261,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
                         "label": "Save to v%s" % (version,),
                         "tooltip": "Save to the next available version number, "
                         "v%s" % (version,),
-                        "callback": lambda: operations.save_current_file(
-                            next_version_path
-                        ),
+                        "callback": lambda: self.save_file(next_version_path),
                     }
                 },
             )
@@ -273,7 +271,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
 
         # populate the publish template on the item if found
         publish_template_setting = settings.get("Publish Template")
-        publish_template = publisher.engine.get_template_by_name(
+        publish_template = self.parent.engine.get_template_by_name(
             publish_template_setting.value
         )
         if publish_template:
@@ -298,14 +296,13 @@ class VREDSessionPublishPlugin(HookBaseClass):
             instances.
         :param item: Item to process
         """
-        operations = self.parent.engine.operations
-
         # get the path in a normalized state. no trailing separator, separators
         # are appropriate for current os, no double separators, etc.
-        path = sgtk.util.ShotgunPath.normalize(_session_path())
+        session_path = vrFileIO.getFileIOFilePath()
+        path = sgtk.util.ShotgunPath.normalize(session_path)
 
         # ensure the session is saved
-        operations.save_current_file(path)
+        self.save_file(path)
 
         # update the item with the saved session path
         item.properties["path"] = path
@@ -323,27 +320,22 @@ class VREDSessionPublishPlugin(HookBaseClass):
             instances.
         :param item: Item to process
         """
-
-        operations = self.parent.engine.operations
-
         # do the base class finalization
         super(VREDSessionPublishPlugin, self).finalize(settings, item)
 
         # bump the session file to the next version
-        self._save_to_next_version(
-            item.properties["path"], item, operations.save_current_file
-        )
+        self._save_to_next_version(item.properties["path"], item, self.save_file)
 
+    def save_file(self, path):
+        """
+        A callback for saving a file.
 
-def _session_path():
-    """
-    Return the path to the current session
-    :return:
-    """
-    engine = sgtk.platform.current_engine()
-    operations = engine.operations
+        :param path: the file path to save.
+        """
 
-    return operations.get_current_file()
+        engine = self.parent.engine
+        engine.save_current_file(path)
+        engine.set_render_path(path)
 
 
 def _get_save_as_action():
@@ -352,10 +344,9 @@ def _get_save_as_action():
     """
 
     engine = sgtk.platform.current_engine()
-    operations = engine.operations
 
     # default save callback
-    callback = operations.open_save_as_dialog
+    callback = engine.open_save_as_dialog
 
     # if workfiles2 is configured, use that for file save
     if "tk-multi-workfiles2" in engine.apps:

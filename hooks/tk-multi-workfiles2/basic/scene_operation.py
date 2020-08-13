@@ -1,5 +1,9 @@
 import sgtk
 
+import vrController
+import vrFileIO
+import vrScenegraph
+
 HookClass = sgtk.get_hook_baseclass()
 
 
@@ -16,11 +20,19 @@ class SceneOperation(HookClass):
     ):
 
         engine = self.parent.engine
-        operations = engine.operations
         logger = engine.logger
 
+        logger.debug(
+            "Scene Operation: op: {}{}".format(
+                operation,
+                ", file path: {}".format(file_path)
+                if file_path
+                else "",  # Ternary requires >= Python 2.5
+            )
+        )
+
         if operation == "current_path":
-            current_path = operations.get_current_file()
+            current_path = vrFileIO.getFileIOFilePath()
 
             if current_path is None:
                 return ""  # it's a new file
@@ -28,25 +40,23 @@ class SceneOperation(HookClass):
                 return current_path
         else:
             if operation == "open":
-                logger.debug("Scene Operation, Open file: " + file_path)
-                operations.reset_scene()
-                operations.load_file(file_path)
+                vrFileIO.load([file_path], vrScenegraph.getRootNode(), True, False)
+                engine.set_render_path(file_path)
 
             elif operation == "save":
                 if file_path is None:
-                    file_path = operations.get_current_file()
+                    file_path = vrFileIO.getFileIOFilePath()
 
-                logger.debug("Scene Operation, Save file: " + file_path)
-                operations.save_current_file(file_path)
+                engine.save_current_file(file_path)
+                engine.set_render_path(file_path)
 
             elif operation == "save_as":
-                logger.debug("Scene Operation, Save_as file: " + file_path)
-                operations.save_current_file(file_path)
+                engine.save_current_file(file_path)
+                engine.set_render_path(file_path)
 
             elif operation == "reset":
-                logger.debug("Scene Operation, Reset Scene")
-                operations.reset_scene()
+                vrController.newScene()
 
-            engine.menu.create()
+            engine.menu_generator.create_menu()
 
             return True
