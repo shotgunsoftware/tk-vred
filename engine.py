@@ -182,19 +182,20 @@ class VREDEngine(sgtk.platform.Engine):
 
             if command_dict is None:
                 self.logger.warning(
-                    "{engine_name} configuration setting 'run_at_startup' requests app '{app_name}' that is not installed.",
-                    engine_name=self.name,
-                    app_name=app_instance_name,
+                    "{engine_name} configuration setting 'run_at_startup' requests app '{app_name}' that is not installed.".format(
+                        engine_name=self.name, app_name=app_instance_name
+                    )
                 )
             else:
                 if not setting_command_name:
                     # Run all commands of the given app instance.
                     for (command_name, command_function) in command_dict.items():
                         self.logger.debug(
-                            "{engine_name} startup running app '{app_name}' command '{cmd_name}'.",
-                            engine_name=self.name,
-                            app_name=app_instance_name,
-                            cmd_name=command_name,
+                            "{engine_name} startup running app '{app_name}' command '{cmd_name}'.".format(
+                                engine_name=self.name,
+                                app_name=app_instance_name,
+                                cmd_name=command_name,
+                            )
                         )
                         commands_to_run.append(command_function)
                 else:
@@ -202,10 +203,11 @@ class VREDEngine(sgtk.platform.Engine):
                     command_function = command_dict.get(setting_command_name)
                     if command_function:
                         self.logger.debug(
-                            "{engine_name} startup running app '{app_name}' command '{cmd_name}'.",
-                            engine_name=self.name,
-                            app_name=app_instance_name,
-                            cmd_name=setting_command_name,
+                            "{engine_name} startup running app '{app_name}' command '{cmd_name}'.".format(
+                                engine_name=self.name,
+                                app_name=app_instance_name,
+                                cmd_name=setting_command_name,
+                            )
                         )
                         commands_to_run.append(command_function)
                     else:
@@ -214,11 +216,12 @@ class VREDEngine(sgtk.platform.Engine):
                         )
                         self.logger.warning(
                             "{engine_name} configuration setting 'run_at_startup' requests app '{app_name}' unknown command '{cmd_name}'. "
-                            "Known commands: {known_cmds}",
-                            engine_name=self.name,
-                            app_name=app_instance_name,
-                            cmd_name=setting_command_name,
-                            known_cmds=known_commands,
+                            "Known commands: {known_cmds}".format(
+                                engine_name=self.name,
+                                app_name=app_instance_name,
+                                cmd_name=setting_command_name,
+                                known_cmds=known_commands,
+                            )
                         )
 
         # no commands to run. just bail
