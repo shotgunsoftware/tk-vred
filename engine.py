@@ -123,16 +123,6 @@ class VREDEngine(sgtk.platform.Engine):
         """
         return True
 
-    @property
-    def menu_generator(self):
-        """
-        Menu generator to help the engine manage the Shotgun menu in VRED.
-        """
-        if self._menu_generator is None:
-            self._menu_generator = self._tk_vred.VREDMenuGenerator(engine=self)
-
-        return self._menu_generator
-
     def _get_dialog_parent(self):
         """
         Get the QWidget parent for all dialogs created through show_dialog & show_modal.
