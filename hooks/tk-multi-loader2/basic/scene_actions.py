@@ -137,7 +137,12 @@ class VredActions(HookBaseClass):
         path = self.get_publish_path(sg_publish_data)
 
         if name == "reference":
-            vrFileIO.load([path], vrScenegraph.getRootNode(), False, False)
+            vrFileIO.load(
+                [path],
+                vrScenegraph.getRootNode(),
+                newFile=False,
+                showImportOptions=False,
+            )
 
         elif name == "import":
             vrFileIO.loadGeometry(path)

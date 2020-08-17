@@ -42,11 +42,10 @@ class VREDEngine(sgtk.platform.Engine):
         :param new_context: The current context.
         """
 
-        # TODO: Validate that this prints out OK using format()
         self.logger.debug("{}: Post context change...".format(self))
 
-        if self.context_change_allowed:
-            self.menu_generator.create_menu()
+        # Rebuild the menu on context change.
+        self.menu_generator.create_menu()
 
     def pre_app_init(self):
         """

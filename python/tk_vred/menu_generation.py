@@ -38,38 +38,41 @@ class VREDMenuGenerator(object):
 
         :param clean_menu: Set to True will clean up the menu exist before creating.
         """
+
+        self._engine.logger.debug("{}: Creating menu".format(self))
+
         # First, ensure that the Shotgun menu inside VRED is empty.
         # This is to ensure we can recover fromcontext switches where
         # the engine failed to clean up after itself properly.
         if clean_menu:
             self.clean_menu()
 
-        # Create menu item AppCommand objects to represent each engine command, and sort by command name
+        # Create the Shotgun root menu object.
+        self._root_menu = VREDMenu(
+            self.ROOT_MENU_TEXT, self._engine._get_dialog_parent().menuBar()
+        )
+
+        # Create the context submenu and add it to the top of the root menu.
+        context_menu = self._create_context_menu()
+        self._root_menu.add_submenu(context_menu)
+
+        # Create menu item AppCommand objects to represent each engine command, and sort by command name.
         menu_items = [
             AppCommand(cmd_name, cmd_details)
             for cmd_name, cmd_details in self._engine.commands.items()
         ]
         menu_items.sort(key=lambda item: item.name)
 
-        # Create the Shotgun root menu object
-        self._root_menu = VREDMenu(
-            self.ROOT_MENU_TEXT, self._engine._get_dialog_parent().menuBar()
-        )
-
-        # Create the context submenu and add it to the top of the root menu
-        context_menu = self._create_context_menu()
-        self._root_menu.add_submenu(context_menu)
-
-        # Iterate through the menu items and add any favourites found. Favourites will appear next under
-        # the context menu, in the root menu
+        # Iterate through the menu items, mark items as favourites and add them to the root menu.
+        # Favourites will appear next under the context menu, in the root menu.
         self._add_favourites_to_menu(menu_items, self._root_menu)
 
         # Iterate through the menu items again, this time adding any context menu commands to the context
-        # submenu and create a dictionary mapping of apps to their app commands
+        # submenu, while creating a dictionary mapping of apps to their app commands.
         commands_by_app = {}
         add_separator = True
         for cmd in menu_items:
-            if cmd.app_type == "context_menu":
+            if cmd.is_context_menu_command():
                 cmd.add_command_to_menu(
                     self._root_menu, context_menu, add_separator=add_separator
                 )
@@ -78,7 +81,7 @@ class VREDMenuGenerator(object):
             else:
                 commands_by_app.setdefault(cmd.app_name, []).append(cmd)
 
-        # Finally, add the remaining commands to the root menu, grouped by the app they belong to
+        # Finally, add the remaining commands to the root menu, grouped by the app they belong to.
         self._add_apps_to_menu(commands_by_app, self._root_menu)
 
         # Show the Shotgun menu by add it to the end of list of VRED menu bar actions.
@@ -90,6 +93,8 @@ class VREDMenuGenerator(object):
         """
 
         if self._root_menu is not None:
+            self._engine.logger.debug("{}: Clean up menu".format(self))
+
             self._root_menu.clean()
             self._root_menu = None
 
@@ -97,7 +102,8 @@ class VREDMenuGenerator(object):
         """
         Create a context menu which displays the current context.
 
-        :returns: A Qt QMenu instance representing the context menu.
+        :returns: A Qt menu instance representing the context menu.
+        :rtype: QtGui.QMenu
         """
 
         ctx = self._engine.context
@@ -114,14 +120,18 @@ class VREDMenuGenerator(object):
 
     def _add_favourites_to_menu(self, menu_items, menu, add_separator=True):
         """
-        Get all menu favourites from the engine settings and add it to the given menu.
+        Mark any menu item as a favourite, if defined in the engine settings, and
+        add it to the menu.
 
         :param menu_items: List of menu item AppCommand objects.
         :param menu: The VREDMenu object to add the menu item AppCommand favourites to.
         :param add_separator: Set to True will add a separator before the first favourite command is added.
         """
 
-        for favourite in self._engine.get_setting("menu_favourites"):
+        favourites = self._engine.get_setting("menu_favourites")
+        favourites.sort(key=lambda f: f["name"])
+
+        for favourite in favourites:
             app_instance_name = favourite["app_instance"]
             menu_name = favourite["name"]
 
@@ -132,30 +142,44 @@ class VREDMenuGenerator(object):
                     if cmd.app_instance_name == app_instance_name
                     and cmd.name == menu_name
                 )
+
+                # Mark this command as a favourite and add it to the menu.
+                favourite_cmd.favourite = True
                 favourite_cmd.add_command_to_menu(
                     menu, None, add_separator=add_separator
                 )
-                favourite_cmd.favourite = True
+
                 add_separator = False
+
             except StopIteration:
-                # Favourite not found, skip
+                # Favourite not found in the menu items, skip.
                 pass
 
-    def _add_apps_to_menu(self, commands_by_app, menu, add_separator=True):
+    def _add_apps_to_menu(
+        self, commands_by_app, menu, exclude_favourites=True, add_separator=True
+    ):
         """
         Add all apps to the main menu, process them one by one.
 
-        :param commands_by_app: List of all the apps to add to the menu
+        :param commands_by_app: A dictionary of app name mapping to a list of AppCommands.
         :param menu: The VREDMenu object to add the menu item AppCommands to.
+        :param exclude_favourites: True will omit any single app actions that are favourite commands.
         :param add_separator: Set to True will add a separator before the first app command is added.
         """
 
         for app_name in sorted(commands_by_app.keys()):
             submenu = None
 
-            if len(commands_by_app[app_name]) > 1:
+            if not commands_by_app[app_name]:
+                continue
+
+            elif len(commands_by_app[app_name]) > 1:
                 # Create a submenu for all of the app's menu entries and add it to the menu
                 submenu = create_qt_menu(app_name)
+
+            elif exclude_favourites and commands_by_app[app_name][0].favourite:
+                # Omit single app menu items if they are a favourite (they will have been added already)
+                continue
 
             # Get the list of menu commands for this app and make sure it is in alphabetical order
             cmds = commands_by_app[app_name]
@@ -302,7 +326,7 @@ class AppCommand(object):
     Wraps around a single command that you get from engine.commands
     """
 
-    def __init__(self, name, command_dict):
+    def __init__(self, name, command_dict, is_favourite=False):
         """
         Class constructor
 
@@ -311,15 +335,15 @@ class AppCommand(object):
         """
 
         self.name = name
-        self.favourite = False
+        self.favourite = is_favourite
         self.properties = command_dict["properties"]
         self.callback = command_dict["callback"]
 
     @property
     def app_instance_name(self):
         """
-        Returns the name of the app intance, as defined in the environment.
-        Returns None if not found.
+        The name of the app intance this command belongs to, as defined in the
+        environment. Value will be None if not defined by the environment.
         """
 
         if "app" not in self.properties:
@@ -337,7 +361,7 @@ class AppCommand(object):
     @property
     def app_type(self):
         """
-        Returns the command type.
+        The type of the app that this command belongs to.
         """
 
         return self.properties.get("type", "default")
@@ -345,12 +369,22 @@ class AppCommand(object):
     @property
     def app_name(self):
         """
-        Returns the name of the app that this command belongs to.
+        The name of the app that this command belongs to.
         """
 
         if "app" in self.properties:
             return self.properties["app"].display_name
         return "Other Items"
+
+    def is_context_menu_command(self):
+        """
+        Convenience method to check if a command is a Context Menu specific item.
+
+        :returns: True if this is a Context Menu command.
+        :rtype: bool
+        """
+
+        return self.app_type == "context_menu"
 
     def add_command_to_menu(self, menu, submenu, add_separator=False):
         """
@@ -371,7 +405,8 @@ def create_qt_menu(name):
     Helper function to create a Qt menu with the given name.
 
     :param name: The menu name.
-    :return: A QMenu object
+    :returns: The menu created.
+    :rtype: QtGui.QMenu
     """
 
     menu = QtGui.QMenu()

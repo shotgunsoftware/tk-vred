@@ -48,7 +48,12 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
 
         file_to_open = os.environ.get("SGTK_FILE_TO_OPEN", None)
         if file_to_open:
-            vrFileIO.load([file_to_open], vrScenegraph.getRootNode(), True, False)
+            vrFileIO.load(
+                [file_to_open],
+                vrScenegraph.getRootNode(),
+                newFile=True,
+                showImportOptions=False,
+            )
 
     def __del__(self):
         self.destroyMenu()
