@@ -28,7 +28,6 @@ class SceneOperation(HookClass):
         available. Any such versions are then displayed in the UI as out of date.
         """
 
-        # TODO add logging
         # if many references to the same file exist in the scene, only keep one instance
         scene_refs = []
 
