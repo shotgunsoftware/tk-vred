@@ -17,7 +17,6 @@ import vrController
 import vrFileDialog
 import vrFileIO
 import vrRenderSettings
-import vrScenegraph
 
 
 class VREDEngine(sgtk.platform.Engine):
@@ -122,6 +121,16 @@ class VREDEngine(sgtk.platform.Engine):
         Specifies that context changes are allowed by the engine.
         """
         return True
+
+    @property
+    def menu_generator(self):
+        """
+        Menu generator to help the engine manage the Shotgun menu in VRED.
+        """
+        if self._menu_generator is None:
+            self._menu_generator = self._tk_vred.VREDMenuGenerator(engine=self)
+
+        return self._menu_generator
 
     def _get_dialog_parent(self):
         """

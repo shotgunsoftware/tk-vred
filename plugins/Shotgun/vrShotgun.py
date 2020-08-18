@@ -8,7 +8,6 @@ import uiTools
 
 import sgtk
 
-import vrController
 import vrFileIO
 import vrScenegraph
 
