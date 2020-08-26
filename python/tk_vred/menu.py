@@ -80,7 +80,9 @@ class VREDMenu(object):
                 root_menu.addAction(caption, callback)
 
         actions = menubar.actions()
-        menubar.insertMenu(actions[-1], root_menu)
+        # VRED Presenter SHOT-3542
+        if actions:
+            menubar.insertMenu(actions[-1], root_menu)
 
     def _create_context_submenu(self, options):
         submenu = QtGui.QMenu()
