@@ -279,6 +279,14 @@ def _get_installation_paths_from_windows_registry(logger):
                         {"path": full_path, "version": version, "_name": name}
                     )
                     logger.debug("Found VREDLocation value for key %s" % key_name)
+                    # Add Presenter from Pro directory here
+                    if name == "VRED Pro":
+                        full_path = base_path_used + "\\VREDPresenter.exe"
+                        name = "VRED Presenter"
+                        install_paths.append(
+                            {"path": full_path, "version": version, "_name": name}
+                        )
+                        logger.debug("Added VREDPresenter.exe from VRED Pro directory")
                 except WindowsError:
                     logger.debug(
                         "Value VREDLocation not found for key %s, skipping key"
