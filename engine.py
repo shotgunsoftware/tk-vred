@@ -311,9 +311,9 @@ class VREDEngine(sgtk.platform.Engine):
         )
 
         if path:
-            self.save_current_file(path)
+            self.save_current_file(path, False)
 
-    def save_current_file(self, file_path):
+    def save_current_file(self, file_path, set_render_path=True):
         """
         Save the current project as a file.
 
@@ -328,6 +328,9 @@ class VREDEngine(sgtk.platform.Engine):
             msg = "VRED Failed to save file {}".format(file_path)
             self.logger.error(msg)
             raise Exception(msg)
+
+        if set_render_path:
+            self.set_render_path(file_path)
 
     def set_render_path(self, file_path=None):
         """

@@ -67,18 +67,16 @@ class SceneOperation(HookClass):
                 newFile=True,
                 showImportOptions=False,
             )
-            engine.set_render_path(file_path)
+            self.parent.engine.set_render_path(file_path)
 
         elif operation == "save":
             if file_path is None:
                 file_path = vrFileIO.getFileIOFilePath()
 
-            engine.save_current_file(file_path)
-            engine.set_render_path(file_path)
+            self.parent.engine.save_current_file(file_path)
 
         elif operation == "save_as":
-            engine.save_current_file(file_path)
-            engine.set_render_path(file_path)
+            self.parent.engine.save_current_file(file_path)
 
         elif operation == "reset":
             vrController.newScene()

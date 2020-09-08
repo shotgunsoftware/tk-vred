@@ -208,14 +208,12 @@ class VREDStartVersionControlPlugin(HookBaseClass):
 
         # ensure the session is saved in its current state
         engine.save_current_file(path)
-        engine.set_render_path(path)
 
         # get the path to a versioned copy of the file.
         version_path = publisher.util.get_version_path(path, "v001")
 
         # save to the new version path
         engine.save_current_file(version_path)
-        engine.set_render_path(version_path)
         self.logger.info("A version number has been added to the VRED file...")
         self.logger.info("  VRED file path: %s" % (version_path,))
 

@@ -333,9 +333,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         :param path: the file path to save.
         """
 
-        engine = self.parent.engine
-        engine.save_current_file(path)
-        engine.set_render_path(path)
+        self.parent.engine.save_current_file(path)
 
 
 def _get_save_as_action():
