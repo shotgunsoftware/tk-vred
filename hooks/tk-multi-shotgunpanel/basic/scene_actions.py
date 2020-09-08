@@ -59,8 +59,9 @@ class VREDActions(HookBaseClass):
         """
 
         self.logger.debug(
-            "Generate actions called for UI element %s. "
-            "Actions: %s. Publish Data: %s" % (ui_area, actions, sg_data)
+            "Generate actions called for UI element {ui}"
+            "Actions: {actions}"
+            "Publish Data: {data}".format(ui=ui_area, actions=actions, data=sg_data)
         )
 
         action_instances = []
@@ -97,8 +98,9 @@ class VREDActions(HookBaseClass):
         """
 
         self.logger.debug(
-            "Execute action called for action %s. "
-            "Parameters: %s. Shotgun Data: %s" % (name, params, sg_data)
+            "Execute action called for action {name}"
+            "Parameters: {params}"
+            "Shotgun Data: {data}".format(name=name, params=params, data=sg_data)
         )
 
         if name == "import":

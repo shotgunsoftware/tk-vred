@@ -46,8 +46,8 @@ class SceneOperation(HookClass):
         """
 
         self.logger.debug(
-            "Scene Operation: op: {}{}".format(
-                operation, ", file path: {}".format(file_path) if file_path else "",
+            "{self} executing operation '{op}' on file '{path}'".format(
+                self=self, op=operation, path=file_path
             )
         )
 
