@@ -78,6 +78,10 @@ class VREDMenuGenerator(object):
                 )
                 add_separator = False
 
+                self._engine.logger.debug(
+                    "Added context menu item '{name}'.".format(name=cmd.name)
+                )
+
             else:
                 commands_by_app.setdefault(cmd.app_name, []).append(cmd)
 
@@ -151,9 +155,18 @@ class VREDMenuGenerator(object):
 
                 add_separator = False
 
+                self._engine.logger.debug(
+                    "Added menu favourite for app '{app}' with name '{name}'.".format(
+                        app=app_instance_name, name=menu_name
+                    )
+                )
+
             except StopIteration:
-                # Favourite not found in the menu items, skip.
-                pass
+                self._engine.logger.debug(
+                    "Skipping - menu favourite not found for app '{app}' with name '{name}'.".format(
+                        app=app_instance_name, name=menu_name
+                    )
+                )
 
     def _add_apps_to_menu(
         self, commands_by_app, menu, exclude_favourites=True, add_separator=True
@@ -188,6 +201,12 @@ class VREDMenuGenerator(object):
             for cmd in cmds:
                 cmd.add_command_to_menu(menu, submenu, add_separator)
 
+                self._engine.logger.debug(
+                    "Added menu item for app '{app}' with name '{name}'.".format(
+                        app=app_name, name=cmd.name
+                    )
+                )
+
             # Set add separator flag to False after the first item has been added
             add_separator = False
 
@@ -196,6 +215,8 @@ class VREDMenuGenerator(object):
         Jump to shotgun, launch web browser
         """
         url = self._engine.context.shotgun_url
+
+        self._engine.logger.debug("Open URL: {}".format(url))
         QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
 
     def _jump_to_fs(self):
@@ -219,7 +240,9 @@ class VREDMenuGenerator(object):
 
             exit_code = os.system(cmd)
             if exit_code != 0:
-                self._engine.logger.error("Failed to launch command:  '{}'!", cmd)
+                self._engine.logger.error(
+                    "Failed to launch command:  '{}'!".format(cmd)
+                )
 
 
 class VREDMenu(object):
