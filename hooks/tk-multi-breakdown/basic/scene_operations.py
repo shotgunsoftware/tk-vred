@@ -41,12 +41,7 @@ class SceneOperation(HookClass):
 
             if path is not None:
                 scene_refs.append(
-                    {
-                        "node": node.getName(),
-                        "type": node.getType(),
-                        "path": path,
-                        "oldpath": path,
-                    }
+                    {"node": node.getName(), "type": node.getType(), "path": path}
                 )
 
         scene_refs = [dict(r) for r in {tuple(d.items()) for d in scene_refs}]

@@ -45,9 +45,7 @@ class SceneOperation(HookClass):
                                 all others     - True
         """
 
-        engine = self.parent.engine
-
-        engine.logger.debug(
+        self.logger.debug(
             "Scene Operation: op: {}{}".format(
                 operation,
                 ", file path: {}".format(file_path)
