@@ -320,7 +320,11 @@ class VREDEngine(sgtk.platform.Engine):
         :param file_path: the name of the project file.
         """
 
-        self.logger.debug("Save File:  {}".format(file_path))
+        self.logger.debug(
+            "{engine_name} calling VRED save for file '{path}'".format(
+                engine_name=self.name, path=file_path
+            )
+        )
 
         vrFileIO.save(file_path)
 
@@ -339,28 +343,37 @@ class VREDEngine(sgtk.platform.Engine):
         :param file_path: the name of the file.
         """
 
-        self.logger.debug("Set render path for file:  {}".format(file_path))
-
-        render_template = self.get_template_by_name(self.get_setting("render_template"))
+        render_template_settings = self.get_setting("render_template")
+        render_template = self.get_template_by_name(render_template_settings)
         if not render_template:
-            self.logger.debug("Couldn't get render template from engine settings")
+            self.logger.debug(
+                "{engine_name} failed to set render path: template not found from 'render_template' engine settings: {settings}".format(
+                    engine_name=self.name, settings=render_template_settings
+                )
+            )
             return
 
         if file_path is None:
             file_path = vrFileIO.getFileIOFilePath()
             if file_path is None:
-                self.logger.debug("Couldn't get current scene path")
+                self.logger.debug(
+                    "{engine_name} failed to set render path: current scene path not found".format(
+                        engine_name=self.name
+                    )
+                )
                 return
 
         work_template = self.sgtk.template_from_path(file_path)
         if not work_template:
             self.logger.debug(
-                "Couldn't find a template which match the current scene path"
+                "{engine_name} failed to set render path: template matching scene path '{path}' not found".format(
+                    engine_name=self.name, path=file_path
+                )
             )
             return
-        template_fields = work_template.get_fields(file_path)
 
-        # update the template fields with the context ones to be sure to have all the required fields
+        # Update the template fields with the context ones to be sure to have all the required fields.
+        template_fields = work_template.get_fields(file_path)
         context_fields = self.context.as_template_fields(render_template)
         for k in context_fields:
             if k not in template_fields.keys():
@@ -369,17 +382,23 @@ class VREDEngine(sgtk.platform.Engine):
         missing_keys = render_template.missing_keys(template_fields, skip_defaults=True)
         if missing_keys:
             self.logger.debug(
-                "Couldn't resolve render path from template: missing keys {}".format(
-                    missing_keys
+                "{engine_name} failed to set render path: render template missing keys {keys}".format(
+                    engine_name=self.name, keys=missing_keys
                 )
             )
             return
 
         render_path = render_template.apply_fields(template_fields)
 
-        # be sure the render folder is created
+        # Be sure the render folder is created.
         render_folder = os.path.dirname(render_path)
         if not os.path.isdir(render_folder):
             os.makedirs(render_folder)
+
+        self.logger.debug(
+            "{engine_name} calling VRED to set render path '{path}'".format(
+                engine_name=self.name, path=render_path
+            )
+        )
 
         vrRenderSettings.setRenderFilename(render_path)
