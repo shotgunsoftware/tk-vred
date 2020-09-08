@@ -117,13 +117,6 @@ class VREDEngine(sgtk.platform.Engine):
         Get the QWidget parent for all dialogs created through
         show_dialog & show_modal.
         """
-        return self.get_vred_main_window()
-
-    @staticmethod
-    def get_vred_main_window():
-        """
-        Get the VRED main window using the object created by the plugin.
-        """
         from sgtk.platform.qt import QtGui
         from shiboken2 import wrapInstance
         import vrVredUi
