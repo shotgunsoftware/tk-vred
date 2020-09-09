@@ -12,7 +12,9 @@ import os
 import re
 
 import sgtk
-import vrScenegraph
+
+import vrFileIO
+import vrRenderSettings
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -72,19 +74,11 @@ class VREDSessionCollector(HookBaseClass):
         :param dict settings: Configured settings for this collector
         :param parent_item: Root item instance
         """
-
-        publisher = self.parent
-        operations = publisher.engine.operations
-
-        # get the path to the current file
-        path = operations.get_current_file()
-
         # create an item representing the current VRED session
         item = self.collect_current_vred_session(settings, parent_item)
 
         # look at the render folder to find rendered images on disk
         self.collect_rendered_images(item)
-        self.collect_geometry_nodes(item)
 
     def collect_current_vred_session(self, settings, parent_item):
         """
@@ -97,10 +91,9 @@ class VREDSessionCollector(HookBaseClass):
         """
 
         publisher = self.parent
-        operations = publisher.engine.operations
 
         # get the path to the current file
-        path = operations.get_current_file()
+        path = vrFileIO.getFileIOFilePath()
 
         # determine the display name for the item
         if path:
@@ -151,10 +144,7 @@ class VREDSessionCollector(HookBaseClass):
        :return:
        """
 
-        publisher = self.parent
-        operations = publisher.engine.operations
-
-        render_path = operations.get_render_path()
+        render_path = vrRenderSettings.getRenderFilename()
         render_folder = os.path.dirname(render_path)
 
         if not os.path.isdir(render_folder):
@@ -225,30 +215,3 @@ class VREDSessionCollector(HookBaseClass):
 
             if rd["render_pass"]:
                 item.name = "%s (Render Pass: %s)" % (item.name, rd["render_pass"])
-
-    def collect_geometry_nodes(self, parent_item):
-        """
-        Creates items for session geometry to be exported.
-
-        :param parent_item: Parent Item instance
-        """
-
-        publisher = self.parent
-        operations = publisher.engine.operations
-
-        # get the icon path to display for this item
-        icon_path = os.path.join(self.disk_location, os.pardir, "icons", "geometry.png")
-
-        # get all the geometry nodes
-        geometry_nodes = operations.get_geometry_nodes()
-
-        for geometry_node in geometry_nodes:
-
-            node_fields = geometry_node.fields()
-
-            item = parent_item.create_item(
-                "vred.session.geometry", "VRED Geometry Node", geometry_node.getName()
-            )
-            item.set_icon_from_path(icon_path)
-            item.properties["extra_template_fields"] = {"node_name": item.name}
-            item.properties["node_id"] = node_fields.getID()
