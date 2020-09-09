@@ -284,7 +284,7 @@ class VREDEngine(sgtk.platform.Engine):
         # parent it to the main window and display the app widget inside
         parent = self._get_dialog_parent()
 
-        dock_widget = QtGui.QDockWidget(parent=parent)
+        dock_widget = QtGui.QDockWidget(title, parent=parent)
         dock_widget.setObjectName(panel_id)
 
         widget_instance = widget_class(*args, **kwargs)
