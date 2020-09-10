@@ -72,8 +72,11 @@ class VredActions(HookBaseClass):
         """
 
         self.logger.debug(
-            "Generate actions called for UI element %s. "
-            "Actions: %s. Publish Data: %s" % (ui_area, actions, sg_publish_data)
+            "Generate actions called for UI element {ui}"
+            "Actions: {actions}"
+            "Publish Data: {data}".format(
+                ui=ui_area, actions=actions, data=sg_publish_data
+            )
         )
 
         action_instances = []
@@ -130,8 +133,11 @@ class VredActions(HookBaseClass):
         """
 
         self.logger.debug(
-            "Execute action called for action %s. "
-            "Parameters: %s. Publish Data: %s" % (name, params, sg_publish_data)
+            "Execute action called for action {name}"
+            "Parameters: {params}"
+            "Publish Data: {data}".format(
+                name=name, params=params, data=sg_publish_data
+            )
         )
 
         path = self.get_publish_path(sg_publish_data)
@@ -189,6 +195,11 @@ class VredActions(HookBaseClass):
 
             :param str image_path: Path to image file from the sg_published_data
         """
+
+        self.logger.debug(
+            "Import sceneplate for image file '{path}'".format(path=image_path)
+        )
+
         # Get the Sceneplate Root object
         vredSceneplateRoot = vrSceneplateService.getRootNode()
         # Extract the filename for the name of the Sceneplate

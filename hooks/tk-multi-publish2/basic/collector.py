@@ -194,6 +194,8 @@ class VREDSessionCollector(HookBaseClass):
 
         for f, rd in render_files.items():
 
+            self.logger.info("Processing render sequence path: {}".format(f))
+
             if rd["is_sequence"]:
                 item = super(VREDSessionCollector, self)._collect_file(
                     parent_item, rd["render_paths"][0], frame_sequence=True
