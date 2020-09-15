@@ -101,6 +101,13 @@ class VREDLauncher(SoftwareLauncher):
         :return: A list of :class:`SoftwareVersion` objects.
         """
         self.logger.debug("Scanning for VRED executables...")
+        if is_macos():
+            # No Mac version
+            return []
+        if is_linux():
+            # TODO: Add linux support
+            self.logger.debug("Linux support coming soon.")
+            return []
 
         supported_sw_versions = []
 
@@ -157,6 +164,7 @@ class VREDLauncher(SoftwareLauncher):
             )
 
         for install_paths in install_paths_dicts:
+            self.logger.debug("install_paths is %s" % install_paths)
             executable_version = self._map_version_year(install_paths["version"])
             executable_path = install_paths["path"]
             launcher_name = install_paths["_name"]
@@ -194,24 +202,6 @@ class VREDLauncher(SoftwareLauncher):
 
 
 def _get_installation_paths_from_windows_registry(logger):
-    """
-    Query Windows registry for VRED installations.
-    :returns: List of dictionaries of paths and versions
-    where VRED is installed.
-    """
-    # Local scope here
-    from tank_vendor.shotgun_api3.lib import six
-
-    winreg = six.moves.winreg
-
-    logger.debug(
-        "Querying Windows registry for keys "
-        "HKEY_LOCAL_MACHINE\\SOFTWARE\\Autodesk\\VRED "
-        "Pro | Design | Presenter"
-    )
-
-    install_paths = []
-
     """
     Query Windows registry for VRED installations.
     :returns: List of dictionaries of paths and versions
@@ -273,7 +263,7 @@ def _get_installation_paths_from_windows_registry(logger):
                     else:
                         base_path_used = base_path[0]
                     full_path = base_path_used + base_key_name[2]
-                    version = _get_windows_version(full_path)
+                    version = _get_windows_version(full_path, logger)
                     name = base_key_name[3]
                     install_paths.append(
                         {"path": full_path, "version": version, "_name": name}
@@ -299,22 +289,27 @@ def _get_installation_paths_from_windows_registry(logger):
     return install_paths
 
 
-def _get_windows_version(full_path):
+def _get_windows_version(full_path, logger):
     """
-    Use `wmic` to determine the installed version of SketchBook
+    Use `wmic` to determine the installed version of VRED
     """
-    version_command = subprocess.check_output(
-        [
-            "wmic",
-            "datafile",
-            "where",
-            "name=" + '"' + str(full_path).replace("\\", "\\\\") + '"',
-            "get",
-            "Version",
-            "/value",
-        ]
-    )
-    version_list = re.findall(r"[\d.]", str(version_command))
-    version = "".join(map(str, version_list))
+    try:
+        version_command = subprocess.check_output(
+            [
+                "wmic",
+                "datafile",
+                "where",
+                "name=" + '"' + str(full_path).replace("\\", "\\\\") + '"',
+                "get",
+                "Version",
+                "/value",
+            ]
+        )
+        version_list = re.findall(r"[\d.]", str(version_command))
+        version = "".join(map(str, version_list))
+
+    except Exception:
+        logger.debug("Could not determine version using `wmic`.")
+        version = "0.0.0.0"
 
     return version
