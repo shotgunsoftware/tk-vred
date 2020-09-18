@@ -164,7 +164,6 @@ class VREDLauncher(SoftwareLauncher):
             )
 
         for install_paths in install_paths_dicts:
-            self.logger.debug("install_paths is %s" % install_paths)
             executable_version = self._map_version_year(install_paths["version"])
             executable_path = install_paths["path"]
             launcher_name = install_paths["_name"]
@@ -185,13 +184,13 @@ class VREDLauncher(SoftwareLauncher):
         :param sw_version:
         :return: boolean, message
         """
-        if re.search("Presenter", sw_version.product):
-            minimum_supported = self.minimum_supported_presenter_version
+        if re.match("Presenter", sw_version.product):
+            compare_version = self.minimum_supported_presenter_version
         else:
-            minimum_supported = self.minimum_supported_version
+            compare_version = self.minimum_supported_version
         try:
-            if int(sw_version.version.replace(".", "")) >= int(
-                str(minimum_supported).replace(".", "")
+            if int(compare_version.replace(".", "")) >= int(
+                str(self.minimum_supported_version).replace(".", "")
             ):
                 return True, ""
             else:
