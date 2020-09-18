@@ -184,13 +184,13 @@ class VREDLauncher(SoftwareLauncher):
         :param sw_version:
         :return: boolean, message
         """
-        if re.match("Presenter", sw_version.product):
-            compare_version = self.minimum_supported_presenter_version
+        if re.search("Presenter", sw_version.product):
+            minimum_supported = self.minimum_supported_presenter_version
         else:
-            compare_version = self.minimum_supported_version
+            minimum_supported = self.minimum_supported_version
         try:
-            if int(compare_version.replace(".", "")) >= int(
-                str(self.minimum_supported_version).replace(".", "")
+            if int(sw_version.version.replace(".", "")) >= int(
+                str(minimum_supported).replace(".", "")
             ):
                 return True, ""
             else:
