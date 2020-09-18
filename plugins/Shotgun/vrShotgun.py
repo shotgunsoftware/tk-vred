@@ -4,12 +4,13 @@ from __future__ import division
 import os
 
 from PySide2 import QtCore, QtGui
-
-import vrFileIO
-import vrController
 import uiTools
 
 import sgtk
+
+import vrFileIO
+import vrScenegraph
+
 
 sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
@@ -46,8 +47,12 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
 
         file_to_open = os.environ.get("SGTK_FILE_TO_OPEN", None)
         if file_to_open:
-            vrController.newScene()
-            vrFileIO.load(file_to_open)
+            vrFileIO.load(
+                [file_to_open],
+                vrScenegraph.getRootNode(),
+                newFile=True,
+                showImportOptions=False,
+            )
 
     def __del__(self):
         self.destroyMenu()

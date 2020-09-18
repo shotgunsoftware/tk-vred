@@ -107,9 +107,6 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
         :param item: Item to process
         :returns: True if item is valid, False otherwise.
         """
-
-        publisher = self.parent
-
         # populate the work template on the item if found
         work_template = self.sgtk.template_from_path(item.properties.path)
         if work_template:
@@ -120,7 +117,7 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
             publish_template_setting = settings.get("Publish Image Template")
         else:
             publish_template_setting = settings.get("Publish Sequence Template")
-        publish_template = publisher.engine.get_template_by_name(
+        publish_template = self.parent.engine.get_template_by_name(
             publish_template_setting.value
         )
 

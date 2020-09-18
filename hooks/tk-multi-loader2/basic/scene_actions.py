@@ -22,6 +22,8 @@ builtins.vrCameraService = vrCameraService
 builtins.vrSceneplateService = vrSceneplateService
 from vrKernelServices import vrSceneplateTypes
 from vrKernelServices import vrdSceneplateNode
+import vrFileIO
+import vrScenegraph
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -68,10 +70,13 @@ class VredActions(HookBaseClass):
         :param ui_area: String denoting the UI Area (see above).
         :returns List of dictionaries, each with keys name, params, caption and description
         """
-        app = self.parent
-        app.log_debug(
-            "Generate actions called for UI element %s. "
-            "Actions: %s. Publish Data: %s" % (ui_area, actions, sg_publish_data)
+
+        self.logger.debug(
+            "Generate actions called for UI element {ui}"
+            "Actions: {actions}"
+            "Publish Data: {data}".format(
+                ui=ui_area, actions=actions, data=sg_publish_data
+            )
         )
 
         action_instances = []
@@ -126,26 +131,31 @@ class VredActions(HookBaseClass):
         :param sg_publish_data: Shotgun data dictionary with all the standard publish fields.
         :returns: No return value expected.
         """
-        app = self.parent
-        engine = app.engine
-        operations = engine.operations
 
-        app.log_debug(
-            "Execute action called for action %s. "
-            "Parameters: %s. Publish Data: %s" % (name, params, sg_publish_data)
+        self.logger.debug(
+            "Execute action called for action {name}"
+            "Parameters: {params}"
+            "Publish Data: {data}".format(
+                name=name, params=params, data=sg_publish_data
+            )
         )
 
         path = self.get_publish_path(sg_publish_data)
 
         if name == "reference":
-            return operations.create_reference(path)
+            vrFileIO.load(
+                [path],
+                vrScenegraph.getRootNode(),
+                newFile=False,
+                showImportOptions=False,
+            )
 
-        if name == "import":
-            return operations.do_import(path)
+        elif name == "import":
+            vrFileIO.loadGeometry(path)
 
-        if name == "import_sceneplate":
+        elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_publish_data)
-            return self.import_sceneplate(image_path)
+            self.import_sceneplate(image_path)
 
     def execute_multiple_actions(self, actions):
         """
@@ -185,6 +195,11 @@ class VredActions(HookBaseClass):
 
             :param str image_path: Path to image file from the sg_published_data
         """
+
+        self.logger.debug(
+            "Import sceneplate for image file '{path}'".format(path=image_path)
+        )
+
         # Get the Sceneplate Root object
         vredSceneplateRoot = vrSceneplateService.getRootNode()
         # Extract the filename for the name of the Sceneplate

@@ -9,19 +9,27 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 import logging
+import os
 import sgtk
 from tank_vendor import six
 
 import vrController
+import vrFileDialog
+import vrFileIO
+import vrRenderSettings
 
 
 class VREDEngine(sgtk.platform.Engine):
-    """A VRED engine for Shotgun Toolkit."""
+    """
+    A VRED engine for Shotgun Toolkit.
+    """
 
     def __init__(self, tk, context, engine_instance_name, env):
+        """
+        Class Constructor
+        """
         self._tk_vred = None
-        self.menu = None
-        self.operations = None
+        self._menu_generator = None
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
 
@@ -32,16 +40,19 @@ class VREDEngine(sgtk.platform.Engine):
         :param old_context: The previous context.
         :param new_context: The current context.
         """
-        self.logger.debug("%s: Post context change...", self)
-        if self.context_change_allowed:
-            self.menu.create()
+
+        self.logger.debug("{}: Post context change...".format(self))
+
+        # Rebuild the menu on context change.
+        self.menu_generator.create_menu()
 
     def pre_app_init(self):
         """
         Sets up the engine into an operational state. This method called before
         any apps are loaded.
         """
-        self.logger.debug("%s: Initializing..." % (self,))
+
+        self.logger.debug("{}: Initializing...".format(self))
 
         # unicode characters returned by the shotgun api need to be converted
         # to display correctly in all of the app windows
@@ -55,17 +66,16 @@ class VREDEngine(sgtk.platform.Engine):
         # import python/tk_vred module
         self._tk_vred = self.import_module("tk_vred")
 
-        # init operations
-        self.operations = self._tk_vred.VREDOperations(engine=self)
-
         # check for version compatibility
         vred_version = int(vrController.getVredVersionYear())
+        self.logger.debug("Running VRED version {}".format(vred_version))
         if vred_version > self.get_setting("compatibility_dialog_min_version", 2021):
             msg = (
-                "The Shotgun Pipeline Toolkit has not yet been fully tested with VRED %d. "
+                "The Shotgun Pipeline Toolkit has not yet been fully tested with VRED {version}. "
                 "You can continue to use the Toolkit but you may experience bugs or "
-                "instability.  Please report any issues you see to support@shotgunsoftware.com"
-                % vred_version
+                "instability.  Please report any issues you see to support@shotgunsoftware.com".format(
+                    version=vred_version
+                )
             )
             self.logger.warning(msg)
             QtGui.QMessageBox.warning(
@@ -77,14 +87,10 @@ class VREDEngine(sgtk.platform.Engine):
         Runs after all apps have been initialized.
         """
 
-        self.logger.debug("%s: Post Initializing...", self)
+        self.logger.debug("{}: Post Initializing...".format(self))
 
-        # init menu
-        self.menu = self._tk_vred.VREDMenu(engine=self)
-        self.menu.create()
-
-        # init operations
-        self.operations = self._tk_vred.VREDOperations(engine=self)
+        # Init menu
+        self.menu_generator.create_menu(clean_menu=False)
 
         # Run a series of app instance commands at startup.
         self._run_app_instance_commands()
@@ -93,7 +99,11 @@ class VREDEngine(sgtk.platform.Engine):
         """
         Called when the engine should tear down itself and all its apps.
         """
-        self.logger.debug("%s: Destroying...", self)
+        self.logger.debug("{}: Destroying...".format(self))
+
+        # Clean up the menu and clear the menu generator
+        self.menu_generator.clean_menu()
+        self._menu_generator = None
 
         # Close all Shotgun app dialogs that are still opened since
         # some apps do threads cleanup in their onClose event handler
@@ -112,18 +122,21 @@ class VREDEngine(sgtk.platform.Engine):
         """
         return True
 
+    @property
+    def menu_generator(self):
+        """
+        Menu generator to help the engine manage the Shotgun menu in VRED.
+        """
+        if self._menu_generator is None:
+            self._menu_generator = self._tk_vred.VREDMenuGenerator(engine=self)
+
+        return self._menu_generator
+
     def _get_dialog_parent(self):
         """
-        Get the QWidget parent for all dialogs created through
-        show_dialog & show_modal.
+        Get the QWidget parent for all dialogs created through show_dialog & show_modal.
         """
-        return self.get_vred_main_window()
 
-    @staticmethod
-    def get_vred_main_window():
-        """
-        Get the VRED main window using the object created by the plugin.
-        """
         from sgtk.platform.qt import QtGui
         from shiboken2 import wrapInstance
         import vrVredUi
@@ -167,19 +180,20 @@ class VREDEngine(sgtk.platform.Engine):
 
             if command_dict is None:
                 self.logger.warning(
-                    "%s configuration setting 'run_at_startup' requests app '%s' that is not installed.",
-                    self.name,
-                    app_instance_name,
+                    "{engine_name} configuration setting 'run_at_startup' requests app '{app_name}' that is not installed.".format(
+                        engine_name=self.name, app_name=app_instance_name
+                    )
                 )
             else:
                 if not setting_command_name:
                     # Run all commands of the given app instance.
                     for (command_name, command_function) in command_dict.items():
                         self.logger.debug(
-                            "%s startup running app '%s' command '%s'.",
-                            self.name,
-                            app_instance_name,
-                            command_name,
+                            "{engine_name} startup running app '{app_name}' command '{cmd_name}'.".format(
+                                engine_name=self.name,
+                                app_name=app_instance_name,
+                                cmd_name=command_name,
+                            )
                         )
                         commands_to_run.append(command_function)
                 else:
@@ -187,23 +201,25 @@ class VREDEngine(sgtk.platform.Engine):
                     command_function = command_dict.get(setting_command_name)
                     if command_function:
                         self.logger.debug(
-                            "%s startup running app '%s' command '%s'.",
-                            self.name,
-                            app_instance_name,
-                            setting_command_name,
+                            "{engine_name} startup running app '{app_name}' command '{cmd_name}'.".format(
+                                engine_name=self.name,
+                                app_name=app_instance_name,
+                                cmd_name=setting_command_name,
+                            )
                         )
                         commands_to_run.append(command_function)
                     else:
                         known_commands = ", ".join(
-                            "'%s'" % name for name in command_dict
+                            "'{}'".format(name) for name in command_dict
                         )
                         self.logger.warning(
-                            "%s configuration setting 'run_at_startup' requests app '%s' unknown command '%s'. "
-                            "Known commands: %s",
-                            self.name,
-                            app_instance_name,
-                            setting_command_name,
-                            known_commands,
+                            "{engine_name} configuration setting 'run_at_startup' requests app '{app_name}' unknown command '{cmd_name}'. "
+                            "Known commands: {known_cmds}".format(
+                                engine_name=self.name,
+                                app_name=app_instance_name,
+                                cmd_name=setting_command_name,
+                                known_cmds=known_commands,
+                            )
                         )
 
         # no commands to run. just bail
@@ -256,7 +272,7 @@ class VREDEngine(sgtk.platform.Engine):
         """
         from sgtk.platform.qt import QtGui, QtCore
 
-        self.logger.debug("Begin showing panel %s", panel_id)
+        self.logger.debug("Begin showing panel {}".format(panel_id))
 
         # If the widget already exists, do not rebuild it but be sure to display it
         for widget in QtGui.QApplication.allWidgets():
@@ -268,7 +284,7 @@ class VREDEngine(sgtk.platform.Engine):
         # parent it to the main window and display the app widget inside
         parent = self._get_dialog_parent()
 
-        dock_widget = QtGui.QDockWidget(parent=parent)
+        dock_widget = QtGui.QDockWidget(title, parent=parent)
         dock_widget.setObjectName(panel_id)
 
         widget_instance = widget_class(*args, **kwargs)
@@ -281,3 +297,108 @@ class VREDEngine(sgtk.platform.Engine):
         parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock_widget)
 
         return widget_instance
+
+    #####################################################################################
+    # VRED File IO
+
+    def open_save_as_dialog(self):
+        """
+        Opens a file dialog and lets the user choose a filename and then save the supplied
+        project to that path.
+        """
+        path = vrFileDialog.getSaveFileName(
+            caption="Save As", filename="", filter=["VRED Project Binary (*.vpb)"],
+        )
+
+        if path:
+            self.save_current_file(path, False)
+
+    def save_current_file(self, file_path, set_render_path=True):
+        """
+        Save the current project as a file.
+
+        :param file_path: the name of the project file.
+        """
+
+        self.logger.debug(
+            "{engine_name} calling VRED save for file '{path}'".format(
+                engine_name=self.name, path=file_path
+            )
+        )
+
+        vrFileIO.save(file_path)
+
+        if not os.path.exists(six.ensure_str(str(file_path))):
+            msg = "VRED Failed to save file {}".format(file_path)
+            self.logger.error(msg)
+            raise Exception(msg)
+
+        if set_render_path:
+            self.set_render_path(file_path)
+
+    def set_render_path(self, file_path=None):
+        """
+        Prepare render path when the file is selected or saved.
+
+        :param file_path: the name of the file.
+        """
+
+        render_template_settings = self.get_setting("render_template")
+        render_template = self.get_template_by_name(render_template_settings)
+        if not render_template:
+            self.logger.debug(
+                "{engine_name} failed to set render path: template not found from 'render_template' engine settings: {settings}".format(
+                    engine_name=self.name, settings=render_template_settings
+                )
+            )
+            return
+
+        if file_path is None:
+            file_path = vrFileIO.getFileIOFilePath()
+            if file_path is None:
+                self.logger.debug(
+                    "{engine_name} failed to set render path: current scene path not found".format(
+                        engine_name=self.name
+                    )
+                )
+                return
+
+        work_template = self.sgtk.template_from_path(file_path)
+        if not work_template:
+            self.logger.debug(
+                "{engine_name} failed to set render path: template matching scene path '{path}' not found".format(
+                    engine_name=self.name, path=file_path
+                )
+            )
+            return
+
+        # Update the template fields with the context ones to be sure to have all the required fields.
+        template_fields = work_template.get_fields(file_path)
+        context_fields = self.context.as_template_fields(render_template)
+        for k in context_fields:
+            if k not in template_fields.keys():
+                template_fields[k] = context_fields[k]
+
+        missing_keys = render_template.missing_keys(template_fields, skip_defaults=True)
+        if missing_keys:
+            self.logger.debug(
+                "{engine_name} failed to set render path: render template missing keys {keys}".format(
+                    engine_name=self.name, keys=missing_keys
+                )
+            )
+            return
+
+        render_path = render_template.apply_fields(template_fields)
+
+        # Be sure the render folder is created.
+        render_folder = os.path.dirname(render_path)
+        if not os.path.isdir(render_folder):
+            os.makedirs(render_folder)
+
+        self.logger.debug(
+            "{engine_name} calling VRED to set render path '{path}'".format(
+                engine_name=self.name, path=render_path
+            )
+        )
+
+        vrRenderSettings.setRenderFilename(render_path)
