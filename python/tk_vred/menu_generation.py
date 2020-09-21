@@ -27,7 +27,7 @@ class VREDMenuGenerator(object):
         Class constructor
 
         :param engine: The engine currently running.
-        :type engine: :class:`tank.platofrm.Engine`
+        :type engine: :class:`tank.platform.Engine`
         """
         self._engine = engine
         self._root_menu = None
@@ -42,7 +42,7 @@ class VREDMenuGenerator(object):
         self._engine.logger.debug("{}: Creating menu".format(self))
 
         # First, ensure that the Shotgun menu inside VRED is empty.
-        # This is to ensure we can recover fromcontext switches where
+        # This is to ensure we can recover from context switches where
         # the engine failed to clean up after itself properly.
         if clean_menu:
             self.clean_menu()
@@ -281,7 +281,7 @@ class VREDMenu(object):
         """
         Show this VRED menu by inserting it into the VRED menu bar.
 
-        :param index: The index used to insert this menu into the menu bar acations. By default, the
+        :param index: The index used to insert this menu into the menu bar location. By default, the
         menu will be added to the end of the actions list.
         """
 
@@ -291,7 +291,8 @@ class VREDMenu(object):
         if index < 0 or index >= len(actions):
             index = -1
 
-        self._menu_bar.insertMenu(actions[index], self._menu)
+        if actions:
+            self._menu_bar.insertMenu(actions[index], self._menu)
 
     def add_submenu(self, submenu, add_separator=False):
         """
