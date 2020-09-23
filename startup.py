@@ -96,7 +96,7 @@ class VREDLauncher(SoftwareLauncher):
 
     def scan_software(self):
         """
-        Scan the filesystem for vred executables.
+        Scan the filesystem for VRED executables.
 
         :return: A list of :class:`SoftwareVersion` objects.
         """
@@ -108,6 +108,31 @@ class VREDLauncher(SoftwareLauncher):
             # TODO: Add linux support
             self.logger.debug("Linux support coming soon.")
             return []
+
+        supported_sw_versions = []
+
+        for sw_version in self._find_software():
+            supported, reason = self._is_supported(sw_version)
+
+            if re.search("Presenter", sw_version.product):
+                supported = False
+
+            if supported:
+                supported_sw_versions.append(sw_version)
+            else:
+                self.logger.debug(
+                    "SoftwareVersion %s is not supported: %s" % (sw_version, reason)
+                )
+
+        return supported_sw_versions
+
+    def scan_for_presenter(self):
+        """
+        Scan the filesystem for VRED Presenter executables.
+
+        :return: A list of :class:`SoftwareVersion` objects.
+        """
+        self.logger.debug("Scanning for VRED Presenter...")
 
         supported_sw_versions = []
 
