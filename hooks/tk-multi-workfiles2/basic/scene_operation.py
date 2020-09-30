@@ -7,7 +7,11 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
+import os
+import re
+
 import sgtk
+from sgtk.platform.qt import QtGui
 
 import vrController
 import vrFileIO
@@ -83,6 +87,27 @@ class SceneOperation(HookClass):
             self.parent.engine.save_current_file(file_path)
 
         elif operation == "reset":
+            # If there are unsaved changes, do not let the user reset the
+            # scene until they have save their changes, or has explicitly
+            # said they do not want to save their changes.
+            while self.parent.engine.has_unsaved_changes():
+                res = QtGui.QMessageBox.question(
+                    None,
+                    "Save your scene?",
+                    "Your scene has unsaved changes. Save before proceeding?",
+                    QtGui.QMessageBox.Yes
+                    | QtGui.QMessageBox.No
+                    | QtGui.QMessageBox.Cancel,
+                )
+
+                if res == QtGui.QMessageBox.Cancel:
+                    return False
+
+                if res == QtGui.QMessageBox.No:
+                    break
+
+                self.parent.engine.open_save_as_dialog()
+
             vrController.newScene()
 
         return True

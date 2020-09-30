@@ -9,6 +9,8 @@
 
 import logging
 import os
+import re
+
 import sgtk
 from tank_vendor import six
 
@@ -300,17 +302,35 @@ class VREDEngine(sgtk.platform.Engine):
     #####################################################################################
     # VRED File IO
 
+    def has_unsaved_changes(self):
+        """
+        Return True if the current scene has unsaved changes, otherwise False.
+        The VRED API does not currently have an endpoint to check for unsaved changes,
+        so to determine whether or not there are changes, check if the VRED window title
+        contains a '*' character (this indicates that there are changes in the scene).
+        """
+
+        window_title_string = self._get_dialog_parent().windowTitle()
+        return re.findall("\*", window_title_string)
+
     def open_save_as_dialog(self):
         """
-        Opens a file dialog and lets the user choose a filename and then save the supplied
-        project to that path.
+        Open the tk-multi-workfiles2 app's file save dialog.
         """
-        path = vrFileDialog.getSaveFileName(
-            caption="Save As", filename="", filter=["VRED Project Binary (*.vpb)"],
-        )
 
-        if path:
-            self.save_current_file(path, False)
+        open_dialog_func = None
+        kwargs = {}
+        workfiles = self.apps.get("tk-multi-workfiles2", None)
+
+        if workfiles:
+            if hasattr(workfiles, "show_file_save_dlg"):
+                open_dialog_func = workfiles.show_file_save_dlg
+                kwargs["use_modal_dialog"] = True
+
+        if open_dialog_func:
+            open_dialog_func(**kwargs)
+        else:
+            self.logger.error("Failed to open Shotgun file save dialog")
 
     def save_current_file(self, file_path, set_render_path=True):
         """
@@ -318,6 +338,14 @@ class VREDEngine(sgtk.platform.Engine):
 
         :param file_path: the name of the project file.
         """
+
+        if not file_path:
+            self.logger.debug(
+                "{engine_name} no file path given for save -- aborting".format(
+                    engine_name=self.name
+                )
+            )
+            return
 
         self.logger.debug(
             "{engine_name} calling VRED save for file '{path}'".format(
