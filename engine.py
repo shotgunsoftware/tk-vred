@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2015 Shotgun Software Inc.
+# Copyright (c) 2020 Autodesk Inc.
 # CONFIDENTIAL AND PROPRIETARY
 #
 # This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
 # By accessing, using, copying or modifying this work you indicate your
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
-# not expressly granted therein are reserved by Shotgun Software Inc.
+# not expressly granted therein are reserved by Autodesk Inc.
+
 import logging
 import os
 import sgtk

@@ -1,3 +1,12 @@
+# Copyright (c) 2020 Autodesk, Inc.
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Autodesk, Inc.
+
 import sgtk
 
 import vrController
@@ -9,7 +18,7 @@ HookClass = sgtk.get_hook_baseclass()
 
 class SceneOperation(HookClass):
     """
-    Hook called to perform an operation with the current file.
+    VRED scene operations for tk-multi-workfiles2
     """
 
     def execute(
@@ -42,7 +51,7 @@ class SceneOperation(HookClass):
 
         :returns:               Depends on operation:
                                 'current_path' - Return the current scene file path as a String
-                                all others     - True
+                                all others     - True for success, else False
         """
 
         self.logger.debug(
