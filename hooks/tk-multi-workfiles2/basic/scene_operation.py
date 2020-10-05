@@ -11,7 +11,7 @@ import os
 import re
 
 import sgtk
-from sgtk.platform.qt import QtGui
+from sgtk.platform.qt import QtCore, QtGui
 
 import vrController
 import vrFileIO
@@ -64,6 +64,8 @@ class SceneOperation(HookClass):
             )
         )
 
+        success = True
+
         if operation == "current_path":
             current_path = vrFileIO.getFileIOFilePath()
             return "" if current_path is None else current_path
@@ -87,10 +89,16 @@ class SceneOperation(HookClass):
             self.parent.engine.save_current_file(file_path)
 
         elif operation == "reset":
-            # If there are unsaved changes, do not let the user reset the
-            # scene until they have save their changes, or has explicitly
-            # said they do not want to save their changes.
+            # Do not let the user reset the scene until they have saved their changes,
+            # or explicitly said they do not want to save their changes. Override the
+            # cursor before opening any new dialogs, and restore once finished (the
+            # cursor is most likely to be "waiting" since we're in the reset operation).
+            restore_cursor = False
             while self.parent.engine.has_unsaved_changes():
+                if not restore_cursor:
+                    restore_cursor = True
+                    QtGui.QApplication.setOverrideCursor(QtCore.Qt.ArrowCursor)
+
                 res = QtGui.QMessageBox.question(
                     None,
                     "Save your scene?",
@@ -101,13 +109,19 @@ class SceneOperation(HookClass):
                 )
 
                 if res == QtGui.QMessageBox.Cancel:
-                    return False
+                    success = False
+                    break
 
                 if res == QtGui.QMessageBox.No:
                     break
 
+                # The user has indicated they want to save changes before proceeding
                 self.parent.engine.open_save_as_dialog()
 
-            vrController.newScene()
+            if restore_cursor:
+                QtGui.QApplication.restoreOverrideCursor()
 
-        return True
+            if success:
+                vrController.newScene()
+
+        return success
