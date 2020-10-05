@@ -79,7 +79,9 @@ class VREDEngine(sgtk.platform.Engine):
             )
             self.logger.warning(msg)
             QtGui.QMessageBox.warning(
-                self._get_dialog_parent(), "Warning - Shotgun Pipeline Toolkit!", msg,
+                self._get_dialog_parent(),
+                "Warning - Shotgun Pipeline Toolkit!",
+                msg,
             )
 
     def post_app_init(self):
@@ -307,7 +309,9 @@ class VREDEngine(sgtk.platform.Engine):
         project to that path.
         """
         path = vrFileDialog.getSaveFileName(
-            caption="Save As", filename="", filter=["VRED Project Binary (*.vpb)"],
+            caption="Save As",
+            filename="",
+            filter=["VRED Project Binary (*.vpb)"],
         )
 
         if path:

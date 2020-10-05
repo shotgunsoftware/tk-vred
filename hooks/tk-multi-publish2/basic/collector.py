@@ -137,12 +137,12 @@ class VREDSessionCollector(HookBaseClass):
 
     def collect_rendered_images(self, parent_item):
         """
-       Creates items for any image sequence or single image that
-       can be found in the render folder.
+        Creates items for any image sequence or single image that
+        can be found in the render folder.
 
-       :param parent_item: Parent Item instance
-       :return:
-       """
+        :param parent_item: Parent Item instance
+        :return:
+        """
 
         render_path = vrRenderSettings.getRenderFilename()
         render_folder = os.path.dirname(render_path)

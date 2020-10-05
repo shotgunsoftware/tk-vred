@@ -197,7 +197,10 @@ class VREDLauncher(SoftwareLauncher):
             # Create The actual SoftwareVersions
             sw_versions.append(
                 SoftwareVersion(
-                    executable_version, launcher_name, executable_path, icon_file,
+                    executable_version,
+                    launcher_name,
+                    executable_path,
+                    icon_file,
                 )
             )
 
@@ -245,7 +248,12 @@ def _get_installation_paths_from_windows_registry(logger):
 
     # VRED install keys
     base_key_names = [
-        ["SOFTWARE\\Autodesk\\VREDPro", "VREDLocation", "\\VREDPro.exe", "VRED Pro",],
+        [
+            "SOFTWARE\\Autodesk\\VREDPro",
+            "VREDLocation",
+            "\\VREDPro.exe",
+            "VRED Pro",
+        ],
         [
             "SOFTWARE\\Autodesk\\VREDDesign",
             "VREDLocation",
