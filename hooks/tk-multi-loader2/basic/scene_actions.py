@@ -190,10 +190,10 @@ class VredActions(HookBaseClass):
 
     def import_sceneplate(self, image_path):
         """
-            Executes the import of the image(s) and the creation
-            of the VRED sceneplate
+        Executes the import of the image(s) and the creation
+        of the VRED sceneplate
 
-            :param str image_path: Path to image file from the sg_published_data
+        :param str image_path: Path to image file from the sg_published_data
         """
 
         self.logger.debug(
