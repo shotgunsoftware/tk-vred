@@ -14,6 +14,9 @@ import re
 import sgtk
 from tank_vendor import six
 
+import builtins
+
+builtins.vrFileIOService = vrFileIOService
 import vrController
 import vrFileDialog
 import vrFileIO
@@ -313,11 +316,12 @@ class VREDEngine(sgtk.platform.Engine):
         """
 
         window_title_string = self._get_dialog_parent().windowTitle()
-        return re.findall("\*", window_title_string)
+        return re.findall(r"\*", window_title_string)
 
     def open_save_as_dialog(self):
         """
-        Open the tk-multi-workfiles2 app's file save dialog.
+        Open the tk-multi-workfiles2 app's file save dialog. Fallback to using VRED save
+        dialog UI if workfiles is not available.
         """
 
         open_dialog_func = None
@@ -331,8 +335,17 @@ class VREDEngine(sgtk.platform.Engine):
 
         if open_dialog_func:
             open_dialog_func(**kwargs)
+
         else:
-            self.logger.error("Failed to open Shotgun file save dialog")
+            # Fallback to using VRED's save dialog. Pass flag to not confirm overwrite, the
+            # save dialog will already ask this.
+            path = vrFileDialog.getSaveFileName(
+                caption="Save As",
+                filename=vrFileIOService.getFileName(),
+                filter=["VRED Project Binary (*.vpb)"],
+                confirmOverwrite=False,
+            )
+            self.save_current_file(path, False)
 
     def save_current_file(self, file_path, set_render_path=True):
         """

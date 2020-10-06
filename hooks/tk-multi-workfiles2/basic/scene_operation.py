@@ -7,9 +7,6 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
-import os
-import re
-
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
