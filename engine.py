@@ -1,18 +1,22 @@
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2015 Shotgun Software Inc.
+# Copyright (c) 2020 Autodesk Inc.
 # CONFIDENTIAL AND PROPRIETARY
 #
 # This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
 # By accessing, using, copying or modifying this work you indicate your
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
-# not expressly granted therein are reserved by Shotgun Software Inc.
+# not expressly granted therein are reserved by Autodesk Inc.
+
 import logging
 import os
+import re
+
 import sgtk
 from tank_vendor import six
 
+import builtins
+
+builtins.vrFileIOService = vrFileIOService
 import vrController
 import vrFileDialog
 import vrFileIO
@@ -303,18 +307,44 @@ class VREDEngine(sgtk.platform.Engine):
     #####################################################################################
     # VRED File IO
 
+    def has_unsaved_changes(self):
+        """
+        Return True if the current scene has unsaved changes, otherwise False.
+        The VRED API does not currently have an endpoint to check for unsaved changes,
+        so to determine whether or not there are changes, check if the VRED window title
+        contains a '*' character (this indicates that there are changes in the scene).
+        """
+
+        window_title_string = self._get_dialog_parent().windowTitle()
+        return re.findall(r"\*", window_title_string)
+
     def open_save_as_dialog(self):
         """
-        Opens a file dialog and lets the user choose a filename and then save the supplied
-        project to that path.
+        Open the tk-multi-workfiles2 app's file save dialog. Fallback to using VRED save
+        dialog UI if workfiles is not available.
         """
-        path = vrFileDialog.getSaveFileName(
-            caption="Save As",
-            filename="",
-            filter=["VRED Project Binary (*.vpb)"],
-        )
 
-        if path:
+        open_dialog_func = None
+        kwargs = {}
+        workfiles = self.apps.get("tk-multi-workfiles2", None)
+
+        if workfiles:
+            if hasattr(workfiles, "show_file_save_dlg"):
+                open_dialog_func = workfiles.show_file_save_dlg
+                kwargs["use_modal_dialog"] = True
+
+        if open_dialog_func:
+            open_dialog_func(**kwargs)
+
+        else:
+            # Fallback to using VRED's save dialog. Pass flag to not confirm overwrite, the
+            # save dialog will already ask this.
+            path = vrFileDialog.getSaveFileName(
+                caption="Save As",
+                filename=vrFileIOService.getFileName(),
+                filter=["VRED Project Binary (*.vpb)"],
+                confirmOverwrite=False,
+            )
             self.save_current_file(path, False)
 
     def save_current_file(self, file_path, set_render_path=True):
@@ -323,6 +353,14 @@ class VREDEngine(sgtk.platform.Engine):
 
         :param file_path: the name of the project file.
         """
+
+        if not file_path:
+            self.logger.debug(
+                "{engine_name} no file path given for save -- aborting".format(
+                    engine_name=self.name
+                )
+            )
+            return
 
         self.logger.debug(
             "{engine_name} calling VRED save for file '{path}'".format(
