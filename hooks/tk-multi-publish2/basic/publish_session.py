@@ -342,15 +342,7 @@ def _get_save_as_action():
     """
 
     engine = sgtk.platform.current_engine()
-
-    # default save callback
     callback = engine.open_save_as_dialog
-
-    # if workfiles2 is configured, use that for file save
-    if "tk-multi-workfiles2" in engine.apps:
-        app = engine.apps["tk-multi-workfiles2"]
-        if hasattr(app, "show_file_save_dlg"):
-            callback = app.show_file_save_dlg
 
     return {
         "action_button": {
