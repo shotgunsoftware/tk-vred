@@ -172,7 +172,7 @@ class VREDLauncher(SoftwareLauncher):
         try:
             year = int(version[:2]) + 2008
             return "{0}{1}".format(year, version[2:4])
-        except Exception as e:
+        except Exception:
             return version
 
     def _find_software(self):
@@ -324,6 +324,7 @@ def _get_windows_version(full_path, logger):
     """
     Use `wmic` to determine the installed version of VRED
     """
+    version = "0.0.0.0"
     try:
         version_command = subprocess.check_output(
             [
@@ -336,11 +337,24 @@ def _get_windows_version(full_path, logger):
                 "/value",
             ]
         )
+
+    except subprocess.CalledProcessError:
+        command_string = (
+            "wmic" + " "
+            "datafile" + " "
+            "where" + " "
+            "name=" + '"' + str(full_path).replace("\\", "\\\\") + '"' + " "
+            "get" + " "
+            "Version" + " "
+            "/value"
+        )
+        version_command = subprocess.check_output(command_string)
+
+    finally:
+        logger.debug("Could not determine version using `wmic`.")
+
+    if version_command:
         version_list = re.findall(r"[\d.]", str(version_command))
         version = "".join(map(str, version_list))
-
-    except Exception:
-        logger.debug("Could not determine version using `wmic`.")
-        version = "0.0.0.0"
 
     return version
