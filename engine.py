@@ -16,10 +16,16 @@ from tank_vendor import six
 
 try:
     import builtins
-except ImportError:
-    import __builtin__ as builtins
 
-builtins.vrFileIOService = vrFileIOService
+    builtins.vrFileIOService = vrFileIOService
+except ImportError:
+    import __builtin__
+
+    try:
+        __builtin__.vrFileIOService = vrFileIOService
+    except NameError:
+        vrFileIOService = False
+
 import vrController
 import vrFileDialog
 import vrFileIO
@@ -342,9 +348,13 @@ class VREDEngine(sgtk.platform.Engine):
         else:
             # Fallback to using VRED's save dialog. Pass flag to not confirm overwrite, the
             # save dialog will already ask this.
+            if vrFileIOService:
+                filename = vrFileIOService.getFileName()
+            else:
+                filename = vrFileIO.getFileIOFilePath()
             path = vrFileDialog.getSaveFileName(
                 caption="Save As",
-                filename=vrFileIOService.getFileName(),
+                filename=filename,
                 filter=["VRED Project Binary (*.vpb)"],
                 confirmOverwrite=False,
             )

@@ -14,15 +14,7 @@ Hook that loads defines all the available actions, broken down by publish type.
 import os
 
 import sgtk
-from sgtk.platform.qt import QtGui, QtCore
 
-try:
-    import builtins
-except ImportError:
-    import __builtin__ as builtins
-
-builtins.vrCameraService = vrCameraService
-builtins.vrSceneplateService = vrSceneplateService
 from vrKernelServices import vrSceneplateTypes
 from vrKernelServices import vrdSceneplateNode
 import vrFileIO
