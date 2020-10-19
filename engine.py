@@ -14,7 +14,10 @@ import re
 import sgtk
 from tank_vendor import six
 
-import builtins
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
 
 builtins.vrFileIOService = vrFileIOService
 import vrController

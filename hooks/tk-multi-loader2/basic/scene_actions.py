@@ -16,7 +16,10 @@ import os
 import sgtk
 from sgtk.platform.qt import QtGui, QtCore
 
-import builtins
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
 
 builtins.vrCameraService = vrCameraService
 builtins.vrSceneplateService = vrSceneplateService
