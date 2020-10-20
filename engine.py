@@ -295,23 +295,28 @@ class VREDEngine(sgtk.platform.Engine):
                 widget.show()
                 return widget
 
-        # As VRED doesn't have a method inside it's API to dock widget, we need to create one by hand,
-        # parent it to the main window and display the app widget inside
-        parent = self._get_dialog_parent()
+        if not self.has_ui:
+            self.log_error(
+                "Sorry, this environment does not support UI display! Cannot show "
+                "the requested window '{}'.".format(title)
+            )
+            return None
 
-        dock_widget = QtGui.QDockWidget(title, parent=parent)
+        # Create a dialog with the panel widget so that the TankQDialog class will take care of
+        # cleaning up the widget.
+        dialog, widget = self._create_dialog_with_widget(
+            title, bundle, widget_class, *args, **kwargs
+        )
+
+        # VRED does not have a Python PI method to dock a widget, so we need to create a dock widget
+        # and dock it to the VRED main window.
+        dock_widget = QtGui.QDockWidget(title)
         dock_widget.setObjectName(panel_id)
-
-        widget_instance = widget_class(*args, **kwargs)
-        widget_instance.setParent(dock_widget)
-        self._apply_external_styleshet(bundle, widget_instance)
-
-        dock_widget.setWidget(widget_instance)
-        dock_widget.show()
-
+        dock_widget.setWidget(dialog)
+        parent = self._get_dialog_parent()
         parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock_widget)
 
-        return widget_instance
+        return dock_widget
 
     #####################################################################################
     # VRED File IO

@@ -16,6 +16,9 @@ sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
 vrShotgun_form, vrShotgun_base = uiTools.loadUiType("vrShotgunGUI.ui")
 
+# The vrShotgun plugin module instance
+shotgun = None
+
 
 class vrShotgun(vrShotgun_form, vrShotgun_base):
     context = None
@@ -98,6 +101,15 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
             self.parentWidget().parentWidget().adjustSize()
 
         return super(vrShotgun, self).resizeEvent(event)
+
+
+def onDestroyVREDScriptPlugin():
+    """
+    onDestroyVREDScriptPlugin() is called before this plugin is destroyed. In this
+    plugin we want to destroy the VRED engine, which will handle any necessary clean up.
+    """
+    if shotgun and shotgun.engine:
+        shotgun.engine.destroy_engine()
 
 
 try:
