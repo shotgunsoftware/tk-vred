@@ -260,7 +260,10 @@ class VREDEngine(sgtk.platform.Engine):
         :type record: :class:`~python.logging.LogRecord`
         """
 
-        msg = handler.format(record)
+        # For Python2, make sure the msg passed to VRED C++ API is indeed a Python
+        # string (and not unicode, which may be the case if any string concatenation
+        # was performed on the msg).
+        msg = str(handler.format(record))
 
         if record.levelno < logging.WARNING:
             vrController.vrLogInfo(msg)
