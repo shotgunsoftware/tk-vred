@@ -316,7 +316,7 @@ class VREDEngine(sgtk.platform.Engine):
         parent = self._get_dialog_parent()
         parent.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock_widget)
 
-        return dock_widget
+        return widget
 
     #####################################################################################
     # VRED File IO
