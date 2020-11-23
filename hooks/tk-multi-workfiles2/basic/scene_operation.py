@@ -86,38 +86,9 @@ class SceneOperation(HookClass):
             self.parent.engine.save_current_file(file_path)
 
         elif operation == "reset":
-            # Do not let the user reset the scene until they have saved their changes,
-            # or explicitly said they do not want to save their changes. Override the
-            # cursor before opening any new dialogs, and restore once finished (the
-            # cursor is most likely to be "waiting" since we're in the reset operation).
-            restore_cursor = False
-            while self.parent.engine.has_unsaved_changes():
-                if not restore_cursor:
-                    restore_cursor = True
-                    QtGui.QApplication.setOverrideCursor(QtCore.Qt.ArrowCursor)
-
-                res = QtGui.QMessageBox.question(
-                    None,
-                    "Save your scene?",
-                    "Your scene has unsaved changes. Save before proceeding?",
-                    QtGui.QMessageBox.Yes
-                    | QtGui.QMessageBox.No
-                    | QtGui.QMessageBox.Cancel,
-                )
-
-                if res == QtGui.QMessageBox.Cancel:
-                    success = False
-                    break
-
-                if res == QtGui.QMessageBox.No:
-                    break
-
-                # The user has indicated they want to save changes before proceeding
-                self.parent.engine.open_save_as_dialog()
-
-            if restore_cursor:
-                QtGui.QApplication.restoreOverrideCursor()
-
+            success = self.parent.engine.save_or_discard_changes(
+                override_cursor=QtCore.Qt.ArrowCursor
+            )
             if success:
                 vrController.newScene()
 

@@ -12,7 +12,6 @@
 Hook that loads defines all the available actions, broken down by publish type.
 """
 
-import os
 import re
 
 import sgtk
