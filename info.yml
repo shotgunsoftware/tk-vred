@@ -45,7 +45,7 @@ configuration:
     accepted_published_file_types:
         type: list
         values: { type: str }
-        default_value: [ VRED Scene ]
+        default_value: [ VRED Scene, Alias File, Catpart File, Jt File, Igs File ]
         description: "A list of PublishedFileTypes that are allowed for review with VRED."
 
 
