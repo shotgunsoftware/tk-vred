@@ -48,7 +48,7 @@ class VREDShotgunFields(HookBaseClass):
 
         return super(VREDShotgunFields, self).get_main_view_definition(entity_type)
 
-    def get_entity_tabs_definition(self, entity_type):
+    def get_entity_tabs_definition(self, entity_type, shotgun_globals):
         """
         Define which tabs are shown in the Shotgun Panel for an item of
         a given entity type.
@@ -60,12 +60,15 @@ class VREDShotgunFields(HookBaseClass):
         :returns: Dictionary
         """
 
-        values = super(VREDShotgunFields, self).get_entity_tabs_definition(entity_type)
+        values = super(VREDShotgunFields, self).get_entity_tabs_definition(
+            entity_type, shotgun_globals
+        )
 
         # Custom handling for non-default entity types
         if entity_type == "Playlist":
             values["publishes"]["enabled"] = False
             values["tasks"]["enabled"] = False
+            values["versions"]["tooltip"] = "Double-click to load Version for review"
 
         return values
 
