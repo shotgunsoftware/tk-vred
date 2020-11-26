@@ -337,7 +337,7 @@ class VREDEngine(sgtk.platform.Engine):
         :param widget: The QWidget to show in the dock widget.
         :param dock_area: The dock widget area (e.g. QtCore.Qt.RightDockWidgetArea).
         """
-        from sgtk.platform.qt import QtGui
+        from sgtk.platform.qt import QtCore, QtGui
 
         dock_widget = self._dock_widgets.get(panel_id, None)
         if dock_widget is None:
@@ -351,6 +351,7 @@ class VREDEngine(sgtk.platform.Engine):
         # and dock it to the VRED main window.
         parent = self._get_dialog_parent()
         parent.addDockWidget(dock_area, dock_widget)
+        parent.resizeDocks([dock_widget], [0], QtCore.Qt.Vertical)
 
         dock_widget.show()
 
