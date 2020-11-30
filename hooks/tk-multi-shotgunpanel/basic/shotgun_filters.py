@@ -43,7 +43,9 @@ class VREDShotgunFilters(HookBaseClass):
             link_filters = []
 
             if entity_type == "Version":
-                link_filters.append(["playlists", "in", [sg_location.entity_dict]])
+                link_filters.append(
+                    ["playlists", "in", [sg_location.entity_dict]],
+                )
 
             elif entity_type == "Note":
                 link_filters.append(["note_links", "in", [sg_location.entity_dict]])
