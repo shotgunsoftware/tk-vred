@@ -87,8 +87,8 @@ class VREDEngine(sgtk.platform.Engine):
             msg = (
                 "The Shotgun Pipeline Toolkit has not yet been fully tested with VRED {version}. "
                 "You can continue to use the Toolkit but you may experience bugs or "
-                "instability.  Please report any issues you see to support@shotgunsoftware.com".format(
-                    version=vred_version
+                "instability.  Please report any issues you see to {support_url}".format(
+                    version=vred_version, support_url=sgtk.support_url
                 )
             )
             self.logger.warning(msg)
