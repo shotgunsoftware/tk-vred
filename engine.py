@@ -7,6 +7,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk Inc.
 
+import json
 import logging
 import os
 import re
@@ -18,24 +19,39 @@ try:
     import builtins
 
     builtins.vrFileIOService = vrFileIOService
+    builtins.vrReferenceService = vrReferenceService
+    builtins.vrNodeService = vrNodeService
+    builtins.vrSceneplateService = vrSceneplateService
 except ImportError:
     import __builtin__
 
     try:
         __builtin__.vrFileIOService = vrFileIOService
+        __builtin__.vrReferenceService = vrReferenceService
+        __builtin__.vrNodeService = vrNodeService
+        __builtin__.vrSceneplateService = vrSceneplateService
     except NameError:
         vrFileIOService = False
+        vrReferenceService = False
+        vrNodeService = False
+        vrSceneplateService = False
 
 import vrController
 import vrFileDialog
 import vrFileIO
 import vrRenderSettings
+import vrKernelServices
+from vrKernelServices import vrSceneplateTypes
 
 
 class VREDEngine(sgtk.platform.Engine):
     """
     A VRED engine for Shotgun Toolkit.
     """
+
+    # (Unique) name of the custom node containing SG
+    # metadata information for variable roots
+    SG_METADATA_NODE_NAME = "SG Metadata Information"
 
     def __init__(self, tk, context, engine_instance_name, env):
         """
@@ -44,8 +60,16 @@ class VREDEngine(sgtk.platform.Engine):
         self._tk_vred = None
         self._menu_generator = None
         self._dock_widgets = {}
+        self._local_storage_roots = {}
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
+
+        # Get local storage root lookup
+        self._local_storage_roots = self._get_local_storage_roots()
+
+        # Set up VRED API callbackas
+        vrFileIOService.loadedGeometry.connect(self.loaded_geometry_cb)
+        vrFileIOService.fileLoadingFinished.connect(self.fileLoadingFinished_cb)
 
     def post_context_change(self, old_context, new_context):
         """
@@ -87,8 +111,8 @@ class VREDEngine(sgtk.platform.Engine):
             msg = (
                 "The Shotgun Pipeline Toolkit has not yet been fully tested with VRED {version}. "
                 "You can continue to use the Toolkit but you may experience bugs or "
-                "instability.  Please report any issues you see to {support_url}".format(
-                    version=vred_version, support_url=sgtk.support_url
+                "instability.  Please report any issues you see to support@shotgunsoftware.com".format(
+                    version=vred_version
                 )
             )
             self.logger.warning(msg)
@@ -498,3 +522,135 @@ class VREDEngine(sgtk.platform.Engine):
         )
 
         vrRenderSettings.setRenderFilename(render_path)
+
+    #####################################################################################
+    # VRED Python API Callbacks
+
+    def loaded_geometry_cb(self, filename, node_id):
+        """
+        This method is called when the VRED API emits signal "loadedGeometry".
+
+        After geometry has been loaded, ensure that the scene root node has a
+        custom SG metadata information child node containing the required info
+        for variable roots. Go through the node references and resolve all
+        smart and source reference paths.
+        """
+
+        # Get the SG metadata node, or create it if it does not exist yet.
+        root = vrSceneplateService.getRootNode()
+        metadata_node = self._get_shotgun_metadata(root)
+        if not metadata_node:
+            metadata_dict = self._get_sg_metadata_from_filename(filename)
+            metadata_node = self._add_shotgun_metadata(root, metadata_dict)
+
+        # VRED nodes do not have a metadata property, so for now the data
+        # is stored in the node name itself as a json string.
+        name = metadata_node.getName()
+        metadata = json.loads(name)
+
+        # Get the file storage root path that should be the root of the current
+        # reference path, and the local file storage root path, which will be
+        # used to substitute the current root path if it does not match the local root
+        current_path_root = metadata["local_storage_root"]
+        path_env_var = metadata["local_storage_env_var"][1:]
+        local_path_root = os.environ[path_env_var]
+
+        if current_path_root != local_path_root:
+            # The file reference paths have a different root than our local root path.
+            # Swap the current root path to the user's local path for all references.
+            node = vrNodeService.getNodeFromId(node_id)
+            refs = vrReferenceService.getReferences(node)
+            for ref in refs:
+                if ref.hasSmartReference():
+                    local_path = ref.getSmartPath().replace(
+                        current_path_root, local_path_root
+                    )
+                    ref.setSmartPath(local_path)
+
+                if ref.hasSourceReference():
+                    local_path = ref.getSourcePath().replace(
+                        current_path_root, local_path_root
+                    )
+                    ref.setSourcePath(local_path)
+
+            # Update the metadata after all reference nodes have been updated
+            metadata["local_storage_root"] = local_path_root
+            metadata_node.setName(json.dumps(metadata))
+
+    #####################################################################################
+    # SG local storage variable roots handling
+
+    def _get_shotgun_metadata(self, root_node):
+        """
+        Return the SG metadata node from the given root node.
+        """
+
+        for child in root_node.getChildren():
+            if child.getName() == self.SG_METADATA_NODE_NAME:
+                sg_children = child.getChildren()
+                if sg_children and len(sg_children) >= 1:
+                    # There should only be one child of the SG metadata node
+                    return sg_children[0]
+
+        return None
+
+    def _add_shotgun_metadata(self, root_node, metadata):
+        """
+        Create and add the custom SG metadata node to given root node. The SG metadata
+        node contains a single child node, containing the metadata in the node name itself
+        as a json string.
+        """
+
+        # Use the vrSceneplateTypes.All type for the shotgun metadata nodes since there is not really a great
+        # type availble that matches our needs..
+        sg_node = vrSceneplateService.createNode(
+            root_node, vrSceneplateTypes.All, self.SG_METADATA_NODE_NAME
+        )
+        metadata_name = json.dumps(metadata)
+        return vrSceneplateService.createNode(
+            sg_node, vrSceneplateTypes.All, metadata_name
+        )
+
+    def _get_sg_metadata_from_filename(self, filename):
+        """
+        Return a dictionary containing SG metdata for the given filename.
+        """
+
+        metadata = {}
+
+        for root_path, path_env in self._local_storage_roots.items():
+            if filename.startswith(root_path):
+                metadata["local_storage_root"] = root_path
+                metadata["local_storage_env_var"] = path_env
+
+                # Use the first local storage root found
+                break
+
+        return metadata
+
+    def _get_local_storage_roots(self):
+        """
+        Return a lookup map for local storage roots to their respective path environment variable.
+        """
+
+        roots = []
+
+        for storage_root in sgtk.util.shotgun.publish_util.get_cached_local_storages(
+            self.sgtk
+        ):
+            local_storage_path = sgtk.util.ShotgunPath.from_shotgun_dict(
+                storage_root
+            ).current_os
+            if not local_storage_path:
+                continue
+
+            # Expand any environment variables that the path might contain
+            local_storage_path_expanded = sgtk.util.ShotgunPath.expand(
+                local_storage_path
+            )
+            if local_storage_path != local_storage_path_expanded:
+                # The expanded root is not the same as the original so it has environment variables in it.
+                # We need to store this in the map.
+                roots.append([local_storage_path, local_storage_path_expanded])
+
+        return {root[1]: root[0] for root in roots}
