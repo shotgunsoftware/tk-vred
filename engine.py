@@ -69,7 +69,6 @@ class VREDEngine(sgtk.platform.Engine):
 
         # Set up VRED API callbackas
         vrFileIOService.loadedGeometry.connect(self.loaded_geometry_cb)
-        vrFileIOService.fileLoadingFinished.connect(self.fileLoadingFinished_cb)
 
     def post_context_change(self, old_context, new_context):
         """
@@ -91,6 +90,15 @@ class VREDEngine(sgtk.platform.Engine):
         """
 
         self.logger.debug("{}: Initializing...".format(self))
+
+        import sys
+
+        # sys.path.append("C:\\Users\\ouesadmin\\OneDrive - Autodesk\\oues\\python_libs")
+        sys.path.append("Z:\\shotgun\\python_libs")
+        import ptvsd
+
+        ptvsd.enable_attach(address=("192.168.56.104", 2222))
+        ptvsd.wait_for_attach()
 
         # unicode characters returned by the shotgun api need to be converted
         # to display correctly in all of the app windows
