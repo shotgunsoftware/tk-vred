@@ -13,12 +13,18 @@ Hook that loads defines all the available actions, broken down by publish type.
 """
 import os
 
+try:
+    import builtins
+except ImportError:
+    import __builtins__ as builtins
+
 import sgtk
 
 from vrKernelServices import vrSceneplateTypes
 from vrKernelServices import vrdSceneplateNode
 import vrFileIO
-import vrScenegraph
+
+builtins.vrReferenceService = vrReferenceService
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -84,13 +90,13 @@ class VredActions(HookBaseClass):
             # base class doesn't have the method, so ignore and continue
             pass
 
-        if "reference" in actions:
+        if "smart_reference" in actions:
             action_instances.append(
                 {
-                    "name": "reference",
+                    "name": "smart_reference",
                     "params": None,
-                    "caption": "Create Reference",
-                    "description": "This will add the item to the universe as a standard reference.",
+                    "caption": "Create Smart Reference",
+                    "description": "This will import the item to the universe as a smart reference.",
                 }
             )
 
@@ -137,13 +143,8 @@ class VredActions(HookBaseClass):
 
         path = self.get_publish_path(sg_publish_data)
 
-        if name == "reference":
-            vrFileIO.load(
-                [path],
-                vrScenegraph.getRootNode(),
-                newFile=False,
-                showImportOptions=False,
-            )
+        if name == "smart_reference":
+            self.create_smart_reference(path)
 
         elif name == "import":
             vrFileIO.loadGeometry(path)
@@ -210,3 +211,21 @@ class VredActions(HookBaseClass):
         newSceneplate.setContentType(vrSceneplateTypes.ContentType.Image)
         # Assign the image to the Sceneplate
         newSceneplate.setImage(imageObject)
+
+    def create_smart_reference(self, path):
+        """
+        Create a smart reference for the given path
+
+        :param path: Path to the file to import as smart reference
+        """
+
+        self.logger.debug("Creating smart reference for path {}".format(path))
+
+        # extract the node name from the reference path
+        ref_name = os.path.splitext(os.path.basename(path))[0]
+
+        # create the smart ref, load it and finally change the node name to reflect the ref path
+        ref_node = vrReferenceService.createSmart()
+        ref_node.setSmartPath(path)
+        ref_node.load()
+        ref_node.setName(ref_name)
