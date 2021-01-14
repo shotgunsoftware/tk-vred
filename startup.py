@@ -188,21 +188,21 @@ class VREDLauncher(SoftwareLauncher):
                 self.logger
             )
 
-        for install_paths in install_paths_dicts:
-            executable_version = self._map_version_year(install_paths["version"])
-            executable_path = install_paths["path"]
-            launcher_name = install_paths["_name"]
-            icon_file = self._icon_from_executable(launcher_name)
+            for install_paths in install_paths_dicts:
+                executable_version = self._map_version_year(install_paths["version"])
+                executable_path = install_paths["path"]
+                launcher_name = install_paths["_name"]
+                icon_file = self._icon_from_executable(launcher_name)
 
-            # Create The actual SoftwareVersions
-            sw_versions.append(
-                SoftwareVersion(
-                    executable_version,
-                    launcher_name,
-                    executable_path,
-                    icon_file,
+                # Create The actual SoftwareVersions
+                sw_versions.append(
+                    SoftwareVersion(
+                        executable_version,
+                        launcher_name,
+                        executable_path,
+                        icon_file,
+                    )
                 )
-            )
 
         return sw_versions
 
