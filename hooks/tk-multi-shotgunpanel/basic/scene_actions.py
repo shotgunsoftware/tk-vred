@@ -12,6 +12,7 @@
 Hook that loads defines all the available actions, broken down by publish type.
 """
 import os
+import sys
 
 try:
     import builtins
@@ -102,6 +103,36 @@ class VREDActions(HookBaseClass):
                 }
             )
 
+        if "load_python" in actions:
+            action_instances.append(
+                {
+                    "name": "load_python",
+                    "params": None,
+                    "caption": "Load Python Module",
+                    "description": "This will allow the Python module to be imported using the VRED Python interpreter.",
+                }
+            )
+
+        if "import_python" in actions:
+            action_instances.append(
+                {
+                    "name": "import_python",
+                    "params": None,
+                    "caption": "Import into Scene by Executing Python",
+                    "description": "This will load and execute the Python file without resetting the current scene.",
+                }
+            )
+
+        if "execute_python" in actions:
+            action_instances.append(
+                {
+                    "name": "execute_python",
+                    "params": None,
+                    "caption": "Create New Scene and Execute Python",
+                    "description": "This will reset the current scene, then load and execute the Python file.",
+                }
+            )
+
         return action_instances
 
     def execute_action(self, name, params, sg_data):
@@ -128,6 +159,46 @@ class VREDActions(HookBaseClass):
         elif name == "smart_reference":
             path = self.get_publish_path(sg_data)
             self.create_smart_reference(path)
+
+        elif name == "load_python":
+            path = self.get_publish_path(sg_data)
+            module_dir = os.path.dirname(path)
+            # Add the python module (if it does not already exist) to the system path to allow
+            # importing it using the VRED Python interpreter.
+            if module_dir not in sys.path:
+                sys.path.append(module_dir)
+
+        elif name == "import_python":
+            path = self.get_publish_path(sg_data)
+            (success, err_msg) = self.parent.engine.execute_python_script(
+                path, reset_scene=False
+            )
+            if success:
+                self.logger.info(
+                    "Successfully executed Python script {script} for import.".format(
+                        script=path
+                    )
+                )
+            else:
+                if not err_msg:
+                    err_msg = "Failed to load Python file {script}.".format(script=path)
+                self.logger.error(err_msg)
+
+        elif name == "execute_python":
+            path = self.get_publish_path(sg_data)
+            (success, err_msg) = self.parent.engine.execute_python_script(
+                path, reset_scene=True
+            )
+            if success:
+                self.logger.info(
+                    "Successfully reset scene and executed Python file {script}.".format(
+                        script=path
+                    )
+                )
+            else:
+                if not err_msg:
+                    err_msg = "Failed to load Python file {script}.".format(script=path)
+                self.logger.error(err_msg)
 
         else:
             try:

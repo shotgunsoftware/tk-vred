@@ -30,6 +30,7 @@ import vrController
 import vrFileDialog
 import vrFileIO
 import vrRenderSettings
+import vrScenegraph
 
 
 class VREDEngine(sgtk.platform.Engine):
@@ -498,3 +499,123 @@ class VREDEngine(sgtk.platform.Engine):
         )
 
         vrRenderSettings.setRenderFilename(render_path)
+
+    def can_reset_scene(self, message=None):
+        """
+        Call this method before resetting the VRED scene to ensure that no changes
+        are lost.
+
+        Override the cursor before opening any new dialogs, and restore once finished
+        (the cursor may be "waiting" if a reset operation has been initiated).
+
+        :param message: a string that is displayed in the QMessageBox that is opened
+                        to ask the user to save their changes.
+        :return: True if the user addressed their changes (saved changes or chose to
+                 discard them) else False
+        """
+        from sgtk.platform.qt import QtCore, QtGui
+
+        ok = True
+        restore_cursor = False
+        if message is None:
+            message = "Your scene has unsaved changes. Save before proceeding?"
+
+        while self.has_unsaved_changes():
+            if not restore_cursor:
+                restore_cursor = True
+                QtGui.QApplication.setOverrideCursor(QtCore.Qt.ArrowCursor)
+
+            result = QtGui.QMessageBox.question(
+                None,
+                "Save your scene?",
+                message,
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No | QtGui.QMessageBox.Cancel,
+            )
+
+            if result == QtGui.QMessageBox.Cancel:
+                ok = False
+                break
+
+            if result == QtGui.QMessageBox.No:
+                break
+
+            # The user has indicated they want to save changes before proceeding
+            self.open_save_as_dialog()
+
+        if restore_cursor:
+            QtGui.QApplication.restoreOverrideCursor()
+
+        return ok
+
+    def execute_python_script(
+        self, script_path, reset_scene=True, show_import_options=False
+    ):
+        """"""
+
+        success = False
+        err_msg = None
+        save_msg = None
+
+        if not os.path.exists(script_path):
+            raise self._tk_vred.FileNotFound(
+                "Python script '{script}' does not exist.".format(script=script_path)
+            )
+
+        if not reset_scene:
+            # Check if the Python script includes any calls to reset the current scene.
+            # This check only detects if the 'newScene()' VRED API call is present in the code,
+            # it does not determine if it is actually executed.
+            with open(script_path, "r") as fh:
+                python_code = fh.readlines()
+
+            line_num = 0
+            in_multi_line_comment = False
+            multi_line_comment_symbol = '"""'
+            single_line_comment_symbol = "#"
+            reset_scene_call = "newScene()"
+            while not reset_scene and line_num < len(python_code):
+                line = python_code[line_num].strip()
+                line_num += 1
+
+                # Skip lines that are part of a multi-line comment.
+                if in_multi_line_comment:
+                    if line.endswith(multi_line_comment_symbol):
+                        in_multi_line_comment = False
+                    continue
+
+                # Skip lines that begin a multi-line comment and set a flag to indicate that
+                # we're in the middle of a multi-line comment.
+                if line.startswith(multi_line_comment_symbol):
+                    if not line[3:].endswith(multi_line_comment_symbol):
+                        in_multi_line_comment = True
+                    continue
+
+                # Skip commented lines.
+                if line.startswith(single_line_comment_symbol):
+                    continue
+
+                # Check for the VRED API call to reset the scene.
+                if line.startswith(reset_scene_call):
+                    reset_scene = True
+
+            if reset_scene:
+                # Message to pass to 'can_reset_scene'
+                save_msg = "Python script may cause the scene to reset. Save changes before proceeding?"
+
+        if not reset_scene or self.can_reset_scene(message=save_msg):
+            # OK to load and execute the Python script.
+            success = vrFileIO.load(
+                [script_path],
+                vrScenegraph.getSelectedNode(),
+                newFile=reset_scene,
+                showImportOptions=show_import_options,
+            )
+            if not success:
+                err_msg = "VRED failed to load Python script {script} to execute. See VRED Terminal more detail.".format(
+                    script=script_path
+                )
+
+        else:
+            err_msg = "Cannot reset scene to execute Python script."
+
+        return (success, err_msg)

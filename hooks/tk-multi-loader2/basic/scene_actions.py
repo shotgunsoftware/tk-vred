@@ -7,11 +7,8 @@
 # By accessing, using, copying or modifying this work you indicate your
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
-
-"""
-Hook that loads defines all the available actions, broken down by publish type.
-"""
 import os
+import sys
 
 try:
     import builtins
@@ -30,6 +27,9 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class VredActions(HookBaseClass):
+    """
+    Hook that loads defines all the available actions, broken down by publish type.
+    """
 
     ##############################################################################################################
     # public interface - to be overridden by deriving classes
@@ -120,6 +120,36 @@ class VredActions(HookBaseClass):
                 }
             )
 
+        if "load_python" in actions:
+            action_instances.append(
+                {
+                    "name": "load_python",
+                    "params": None,
+                    "caption": "Load Python Module",
+                    "description": "This will allow the Python module to be imported using the VRED Python interpreter.",
+                }
+            )
+
+        if "import_python" in actions:
+            action_instances.append(
+                {
+                    "name": "import_python",
+                    "params": None,
+                    "caption": "Import into Scene by Executing Python",
+                    "description": "This will load and execute the Python file without resetting the current scene.",
+                }
+            )
+
+        if "execute_python" in actions:
+            action_instances.append(
+                {
+                    "name": "execute_python",
+                    "params": None,
+                    "caption": "Create New Scene and Execute Python",
+                    "description": "This will reset the current scene, then load and execute the Python file.",
+                }
+            )
+
         return action_instances
 
     def execute_action(self, name, params, sg_publish_data):
@@ -141,17 +171,62 @@ class VredActions(HookBaseClass):
             )
         )
 
-        path = self.get_publish_path(sg_publish_data)
-
         if name == "smart_reference":
+            path = self.get_publish_path(sg_publish_data)
             self.create_smart_reference(path)
 
         elif name == "import":
+            path = self.get_publish_path(sg_publish_data)
             vrFileIO.loadGeometry(path)
 
         elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_publish_data)
             self.import_sceneplate(image_path)
+
+        elif name == "load_python":
+            path = self.get_publish_path(sg_publish_data)
+            module_dir = os.path.dirname(path)
+            # Add the python module (if it does not already exist) to the system path to allow
+            # importing it using the VRED Python interpreter.
+            if module_dir not in sys.path:
+                sys.path.append(module_dir)
+
+        elif name == "import_python":
+            path = self.get_publish_path(sg_publish_data)
+            (success, err_msg) = self.parent.engine.execute_python_script(
+                path, reset_scene=False
+            )
+            if success:
+                self.logger.info(
+                    "Successfully executed Python script {script} for import.".format(
+                        script=path
+                    )
+                )
+            else:
+                if not err_msg:
+                    err_msg = "Failed to load Python file {script}.".format(script=path)
+                self.logger.error(err_msg)
+
+        elif name == "execute_python":
+            path = self.get_publish_path(sg_publish_data)
+            (success, err_msg) = self.parent.engine.execute_python_script(
+                path, reset_scene=True
+            )
+            if success:
+                self.logger.info(
+                    "Successfully executed Python file {script}.".format(script=path)
+                )
+            else:
+                if not err_msg:
+                    err_msg = "Failed to load Python file {script}.".format(script=path)
+                self.logger.error(err_msg)
+
+        else:
+            try:
+                HookBaseClass.execute_action(self, name, params, sg_publish_data)
+            except AttributeError:
+                # base class doesn't have the method, so ignore and continue
+                pass
 
     def execute_multiple_actions(self, actions):
         """
