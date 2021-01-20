@@ -550,7 +550,18 @@ class VREDEngine(sgtk.platform.Engine):
     def execute_python_script(
         self, script_path, reset_scene=True, show_import_options=False
     ):
-        """"""
+        """
+        Execute the given Python script by calling the VRED API load method. If reset_scene
+        is False, double-check the script for any calls to reset the scene within the code.
+        If the scene may be reset by executing the script, ensure that no changes are lost.
+
+        :param script_path: The local file path the Python script to execute.
+        :param reset_scene: Whether or not to reset the current scene before execution.
+        :param show_import_options: Boolean parameter passed to the VRED API call to load
+                                    the Python file.
+        :return: A tuple with items (1) boolean value indicating success and (2) error
+                 message (string), if any, else None.
+        """
 
         success = False
         err_msg = None
