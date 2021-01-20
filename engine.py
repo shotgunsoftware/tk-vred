@@ -345,6 +345,7 @@ class VREDEngine(sgtk.platform.Engine):
         dock_widget = self._dock_widgets.get(panel_id, None)
         if dock_widget is None:
             dock_widget = QtGui.QDockWidget()
+            dock_widget.setMinimumWidth(400)
             self._dock_widgets[panel_id] = dock_widget
 
         dock_widget.setWindowTitle(title)
