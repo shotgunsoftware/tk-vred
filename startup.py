@@ -104,10 +104,6 @@ class VREDLauncher(SoftwareLauncher):
         if is_macos():
             # No Mac version
             return []
-        if is_linux():
-            # TODO: Add linux support
-            self.logger.debug("Linux support coming soon.")
-            return []
 
         supported_sw_versions = []
 
@@ -187,6 +183,13 @@ class VREDLauncher(SoftwareLauncher):
             install_paths_dicts = _get_installation_paths_from_windows_registry(
                 self.logger
             )
+        if is_linux():
+            install_paths_dicts = [{
+                "version": "13.3",
+                "_name": "VREDPro",
+                "path": "/var/opt/Autodesk/VREDCluster-13.3/bin/VREDCore"
+            }]
+            self.logger.debug("Linux support dev")
 
         for install_paths in install_paths_dicts:
             executable_version = self._map_version_year(install_paths["version"])

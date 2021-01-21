@@ -2,6 +2,9 @@
 from __future__ import division
 
 import os
+import sys
+
+sys.path.append("/local/users/t_aitcradmin/.shotgun/automotive-discovery/p124c133.basic.desktop/cfg/install/core/python")
 
 from PySide2 import QtCore, QtGui
 import uiTools
@@ -14,7 +17,7 @@ import vrScenegraph
 
 sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
-vrShotgun_form, vrShotgun_base = uiTools.loadUiType("vrShotgunGUI.ui")
+vrShotgun_form, vrShotgun_base = uiTools.loadUiType("/local/users/t_aitcradmin/PycharmProjects/tk-vred/plugins/Shotgun/vrShotgunGUI.ui")
 
 # The vrShotgun plugin module instance
 shotgun = None
@@ -114,6 +117,6 @@ def onDestroyVREDScriptPlugin():
 
 try:
     if os.getenv("SHOTGUN_ENABLE") == "1":
-        shotgun = vrShotgun(VREDPluginWidget)
+        shotgun = vrShotgun(VREDMainWindow)
 except Exception as e:
     logger.exception(e)

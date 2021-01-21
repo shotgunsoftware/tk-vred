@@ -13,6 +13,7 @@ import re
 
 import sgtk
 from tank_vendor import six
+from sgtk.util import is_windows, is_linux
 
 try:
     import builtins
@@ -71,11 +72,13 @@ class VREDEngine(sgtk.platform.Engine):
         # unicode characters returned by the shotgun api need to be converted
         # to display correctly in all of the app windows
         # tell QT to interpret C strings as utf-8
-        from sgtk.platform.qt import QtCore, QtGui
+        # from sgtk.platform.qt import QtCore, QtGui
+        from PySide2 import QtCore, QtGui
 
-        utf8 = QtCore.QTextCodec.codecForName("utf-8")
-        QtCore.QTextCodec.setCodecForCStrings(utf8)
-        self.logger.debug("set utf-8 codec for widget text")
+        if is_windows():
+            utf8 = QtCore.QTextCodec.codecForName("utf-8")
+            QtCore.QTextCodec.setCodecForCStrings(utf8)
+            self.logger.debug("set utf-8 codec for widget text")
 
         # import python/tk_vred module
         self._tk_vred = self.import_module("tk_vred")
