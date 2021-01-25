@@ -58,6 +58,9 @@ class BreakdownSceneOperation(HookClass):
             if r.hasSourceReference():
                 node_type = "source_reference"
                 path = r.getSourcePath()
+            elif r.hasSmartReference():
+                node_type = "smart_reference"
+                path = r.getSmartPath()
             else:
                 node_type = "reference"
                 path = None
@@ -96,6 +99,9 @@ class BreakdownSceneOperation(HookClass):
                 ref_node.setSourcePath(path)
                 ref_node.loadSourceReference()
                 ref_node.setName(new_node_name)
+            elif node_type == "smart_reference":
+                ref_node.setSmartPath(path)
+                vrReferenceService.reimportSmartReferences([ref_node])
 
 
 def get_reference_by_name(ref_name):
