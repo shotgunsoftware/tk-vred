@@ -17,7 +17,7 @@ import vrScenegraph
 
 sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
-vrShotgun_form, vrShotgun_base = uiTools.loadUiType("/local/users/t_aitcradmin/PycharmProjects/tk-vred/plugins/Shotgun/vrShotgunGUI.ui")
+vrShotgun_form, vrShotgun_base = uiTools.loadUiType("vrShotgunGUI.ui")
 
 # The vrShotgun plugin module instance
 shotgun = None

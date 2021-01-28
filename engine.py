@@ -109,7 +109,10 @@ class VREDEngine(sgtk.platform.Engine):
         self.logger.debug("{}: Post Initializing...".format(self))
 
         # Init menu
-        self.menu_generator.create_menu(clean_menu=False)
+        if is_windows():
+            self.menu_generator.create_menu(clean_menu=False)
+        elif is_linux():
+            self.logger.debug("No menu_generator.create_menu on linux")
 
         # Run a series of app instance commands at startup.
         self._run_app_instance_commands()
@@ -138,6 +141,16 @@ class VREDEngine(sgtk.platform.Engine):
 
         for dialog in dialogs_still_opened:
             dialog.close()
+
+    @property
+    def has_ui(self):
+        """
+        See if we are running on Windows or linux and set appropriately
+        """
+        if is_windows():
+            return True
+        elif is_linux():
+            return False
 
     @property
     def context_change_allowed(self):

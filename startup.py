@@ -54,7 +54,7 @@ class VREDLauncher(SoftwareLauncher):
         required_env = {}
 
         # Command line arguments
-        args += " -insecure_python"
+        # args += " -insecure_python"
 
         if os.getenv("DISABLE_VRED_OPENGL", "0") == "1":
             args += " -no_opengl"
@@ -91,6 +91,10 @@ class VREDLauncher(SoftwareLauncher):
 
         # Add VRED executable path as an environment variable to be used by the translators
         required_env["TK_VRED_EXECPATH"] = exec_path
+
+        # Add PYTHONPATH muting here for linux SHOT-3682
+        if is_linux():
+            required_env["PYTHONPATH"] = ""
 
         return LaunchInformation(exec_path, args, required_env)
 
@@ -184,12 +188,7 @@ class VREDLauncher(SoftwareLauncher):
                 self.logger
             )
         if is_linux():
-            install_paths_dicts = [{
-                "version": "13.3",
-                "_name": "VREDPro",
-                "path": "/var/opt/Autodesk/VREDCluster-13.3/bin/VREDCore"
-            }]
-            self.logger.debug("Linux support dev")
+            self.logger.debug("Using the Shotgun Software Entity to define linux_path")
 
         for install_paths in install_paths_dicts:
             executable_version = self._map_version_year(install_paths["version"])
