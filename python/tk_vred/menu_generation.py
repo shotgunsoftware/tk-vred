@@ -291,7 +291,7 @@ class VREDMenu(object):
         if index < 0 or index >= len(actions):
             index = -1
 
-        if actions:
+        if actions is not None:
             self._menu_bar.insertMenu(actions[index], self._menu)
 
     def add_submenu(self, submenu, add_separator=False):
