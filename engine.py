@@ -335,7 +335,6 @@ class VREDEngine(sgtk.platform.Engine):
         :param widget: The QWidget to show in the dock widget.
         :param dock_area: The dock widget area (e.g. QtCore.Qt.RightDockWidgetArea).
         """
-        from sgtk.platform.qt import QtCore
 
         dock_widget = self._dock_widgets.get(panel_id, None)
 
