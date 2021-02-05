@@ -217,9 +217,9 @@ class VREDActions(HookBaseClass):
         # Extract the filename for the name of the Sceneplate
         nodeName = os.path.basename(image_path)
         # Load in the image
-        imageObject = vrImageService.loadImage(image_path)
+        imageObject = vrImageService.loadImage(image_path)  # noqa
         # Create the actual Sceneplate node
-        newSceneplateNode = vrSceneplateService.createNode(
+        newSceneplateNode = vrSceneplateService.createNode(  # noqa
             vredSceneplateRoot, vrSceneplateTypes.NodeType.Frontplate, nodeName
         )
         newSceneplate = vrdSceneplateNode(newSceneplateNode)
