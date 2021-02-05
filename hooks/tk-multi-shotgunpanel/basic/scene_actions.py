@@ -20,6 +20,8 @@ except ImportError:
 
 import sgtk
 
+from vrKernelServices import vrSceneplateTypes
+from vrKernelServices import vrdSceneplateNode
 import vrFileIO
 
 builtins.vrReferenceService = vrReferenceService
@@ -102,6 +104,16 @@ class VREDActions(HookBaseClass):
                 }
             )
 
+        if "import_sceneplate" in actions:
+            action_instances.append(
+                {
+                    "name": "import_sceneplate",
+                    "params": None,
+                    "caption": "Import image(s) into scene as a sceneplate",
+                    "description": "This will import the image(s) into the current VRED Scene.",
+                }
+            )
+
         return action_instances
 
     def execute_action(self, name, params, sg_data):
@@ -128,6 +140,10 @@ class VREDActions(HookBaseClass):
         elif name == "smart_reference":
             path = self.get_publish_path(sg_data)
             self.create_smart_reference(path)
+
+        elif name == "import_sceneplate":
+            image_path = self.get_publish_path(sg_data)
+            self.import_sceneplate(image_path)
 
         else:
             try:
@@ -183,3 +199,31 @@ class VREDActions(HookBaseClass):
         ref_node.setSmartPath(path)
         ref_node.load()
         ref_node.setName(ref_name)
+
+    def import_sceneplate(self, image_path):
+        """
+        Executes the import of the image(s) and the creation
+        of the VRED sceneplate
+
+        :param str image_path: Path to image file from the sg_published_data
+        """
+
+        self.logger.debug(
+            "Import sceneplate for image file '{path}'".format(path=image_path)
+        )
+
+        # Get the Sceneplate Root object
+        vredSceneplateRoot = vrSceneplateService.getRootNode()  # noqa
+        # Extract the filename for the name of the Sceneplate
+        nodeName = os.path.basename(image_path)
+        # Load in the image
+        imageObject = vrImageService.loadImage(image_path)  # noqa
+        # Create the actual Sceneplate node
+        newSceneplateNode = vrSceneplateService.createNode(  # noqa
+            vredSceneplateRoot, vrSceneplateTypes.NodeType.Frontplate, nodeName
+        )
+        newSceneplate = vrdSceneplateNode(newSceneplateNode)
+        # Set the type to image
+        newSceneplate.setContentType(vrSceneplateTypes.ContentType.Image)
+        # Assign the image to the Sceneplate
+        newSceneplate.setImage(imageObject)
