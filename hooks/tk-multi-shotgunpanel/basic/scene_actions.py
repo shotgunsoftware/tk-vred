@@ -213,7 +213,7 @@ class VREDActions(HookBaseClass):
         )
 
         # Get the Sceneplate Root object
-        vredSceneplateRoot = vrSceneplateService.getRootNode()
+        vredSceneplateRoot = vrSceneplateService.getRootNode()  # noqa
         # Extract the filename for the name of the Sceneplate
         nodeName = os.path.basename(image_path)
         # Load in the image
