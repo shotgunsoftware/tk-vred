@@ -9,3 +9,4 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from .menu_generation import VREDMenuGenerator
+from .dock_widget import DockWidget
