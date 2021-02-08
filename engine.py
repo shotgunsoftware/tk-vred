@@ -294,16 +294,14 @@ class VREDEngine(sgtk.platform.Engine):
 
         :returns: the created widget_class instance
         """
-        from sgtk.platform.qt import QtGui, QtCore
+        from sgtk.platform.qt import QtGui
 
         self.logger.debug("Begin showing panel {}".format(panel_id))
 
         # If the widget already exists, do not rebuild it but be sure to display it
         for widget in QtGui.QApplication.allWidgets():
             if widget.objectName() == panel_id:
-                self.add_dock_widget(
-                    panel_id, title, widget, QtCore.Qt.RightDockWidgetArea
-                )
+                self.show_dock_widget(panel_id, title, widget)
                 return widget
 
         if not self.has_ui:
@@ -320,7 +318,7 @@ class VREDEngine(sgtk.platform.Engine):
             title, bundle, widget_class, *args, **kwargs
         )
 
-        self.add_dock_widget(panel_id, title, widget, QtCore.Qt.RightDockWidgetArea)
+        self.show_dock_widget(panel_id, title, widget)
 
         # Return the widget created by the method, _create_dialog_with_widget, since this will
         # have the widget_class type expected by the caller. This widget represents the panel
@@ -328,7 +326,7 @@ class VREDEngine(sgtk.platform.Engine):
         widget.setObjectName(panel_id)
         return widget
 
-    def add_dock_widget(self, panel_id, title, widget, dock_area):
+    def show_dock_widget(self, panel_id, title, widget, dock_area=None):
         """
         Create a dock widget managed by the VRED engine, if one has not yet been created. Set the
         widget to show in the dock widget and add it to the VRED dock area.
@@ -337,20 +335,23 @@ class VREDEngine(sgtk.platform.Engine):
         :param widget: The QWidget to show in the dock widget.
         :param dock_area: The dock widget area (e.g. QtCore.Qt.RightDockWidgetArea).
         """
-        from sgtk.platform.qt import QtGui
 
         dock_widget = self._dock_widgets.get(panel_id, None)
+
         if dock_widget is None:
-            dock_widget = QtGui.QDockWidget()
+            dock_widget = self._tk_vred.DockWidget(
+                title,
+                self._get_dialog_parent(),
+                panel_id,
+                widget,
+                self.menu_generator.root_menu
+                is not None,  # closable if there is a menu to reopen it
+                dock_area,
+            )
             self._dock_widgets[panel_id] = dock_widget
 
-        dock_widget.setWindowTitle(title)
-        dock_widget.setWidget(widget)
-
-        # VRED does not have a Python API method to dock a widget, so we need to create a dock widget
-        # and dock it to the VRED main window.
-        parent = self._get_dialog_parent()
-        parent.addDockWidget(dock_area, dock_widget)
+        else:
+            dock_widget.reinitialize(title, widget)
 
         dock_widget.show()
 

@@ -32,12 +32,46 @@ class VREDMenuGenerator(object):
         self._engine = engine
         self._root_menu = None
 
+    @property
+    def root_menu(self):
+        """
+        Get the :class:`VREDMenu` object that is the root menu for this generator.
+        """
+
+        return self._root_menu
+
+    def get_menubar(self):
+        """
+        Convenience method to return the :class:`sgtk.platform.qt.QtGui.QMainWindow`
+        :class:`sgtk.platform.qt.QtGui.QMenuBar` object that generated menus will
+        be added to.
+        """
+
+        return self._engine._get_dialog_parent().menuBar()
+
+    def is_menubar_active(self):
+        """
+        Returns True if the main window menubar exists, is visible and enabled (in other
+        words, return True if the menu bar can be used to add menus to).
+        """
+
+        menubar = self.get_menubar()
+        return menubar and menubar.isVisible() and menubar.isEnabled()
+
     def create_menu(self, clean_menu=True):
         """
         Create the menu and add it to the VRED menu bar.
 
         :param clean_menu: Set to True will clean up the menu exist before creating.
         """
+
+        if not self.is_menubar_active():
+            self._engine.logger.info(
+                "{}: Aborting menu creation. VRED does not have a menu bar available to add a menu to.".format(
+                    self
+                )
+            )
+            return
 
         self._engine.logger.debug("{}: Creating menu".format(self))
 
@@ -48,9 +82,7 @@ class VREDMenuGenerator(object):
             self.clean_menu()
 
         # Create the Shotgun root menu object.
-        self._root_menu = VREDMenu(
-            self.ROOT_MENU_TEXT, self._engine._get_dialog_parent().menuBar()
-        )
+        self._root_menu = VREDMenu(self.ROOT_MENU_TEXT, self.get_menubar())
 
         # Create the context submenu and add it to the top of the root menu.
         context_menu = self._create_context_menu()
@@ -291,7 +323,7 @@ class VREDMenu(object):
         if index < 0 or index >= len(actions):
             index = -1
 
-        if actions:
+        if actions is not None:
             self._menu_bar.insertMenu(actions[index], self._menu)
 
     def add_submenu(self, submenu, add_separator=False):
