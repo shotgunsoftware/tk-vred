@@ -298,11 +298,16 @@ class VREDEngine(sgtk.platform.Engine):
 
         self.logger.debug("Begin showing panel {}".format(panel_id))
 
-        # If the widget already exists, do not rebuild it but be sure to display it
+        # If the widget already exists, do not reuse it since it is not guaranteed
+        # to be in a valid state (e.g. on reload/restart the ShotgunPanel widget
+        # will be partially cleaned up and will error if attempted to be reused).
+        # Mark the widget for deletion so that the Id does not clash with the
+        # newly created widget with the same Id.
         for widget in QtGui.QApplication.allWidgets():
             if widget.objectName() == panel_id:
-                self.show_dock_widget(panel_id, title, widget)
-                return widget
+                widget.deleteLater()
+                widget = None
+                break
 
         if not self.has_ui:
             self.log_error(
@@ -348,6 +353,7 @@ class VREDEngine(sgtk.platform.Engine):
                 is not None,  # closable if there is a menu to reopen it
                 dock_area,
             )
+            dock_widget.setMinimumWidth(400)
             self._dock_widgets[panel_id] = dock_widget
 
         else:
