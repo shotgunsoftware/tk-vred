@@ -10,3 +10,4 @@
 
 from .menu_generation import VREDMenuGenerator
 from .exceptions import FileNotFound
+from .dock_widget import DockWidget
