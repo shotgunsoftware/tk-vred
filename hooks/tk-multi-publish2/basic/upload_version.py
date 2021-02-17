@@ -8,6 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import os
+
 import sgtk
 
 HookBaseClass = sgtk.get_hook_baseclass()
@@ -69,3 +71,24 @@ class VREDUploadVersionPlugin(HookBaseClass):
             return {"accepted": False}
 
         return super(VREDUploadVersionPlugin, self).accept(settings, item)
+
+    def publish(self, settings, item):
+        """
+        Executes the publish logic for the given item and settings.
+        :param settings: Dictionary of Settings. The keys are strings, matching
+            the keys returned in the settings property. The values are `Setting`
+            instances.
+        :param item: Item to process
+        """
+
+        publisher = self.parent
+        path = item.properties["path"]
+
+        # be sure to strip the extension from the publish name
+        path_components = publisher.util.get_file_path_components(path)
+        filename = path_components["filename"]
+        (publish_name, extension) = os.path.splitext(filename)
+        item.properties["publish_name"] = publish_name
+
+        # create the Version in Shotgun
+        super(VREDUploadVersionPlugin, self).publish(settings, item)
