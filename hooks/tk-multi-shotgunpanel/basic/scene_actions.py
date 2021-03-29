@@ -130,7 +130,7 @@ class VREDActions(HookBaseClass):
         self.logger.debug(
             "Execute action called for action {name}"
             "Parameters: {params}"
-            "Shotgun Data: {data}".format(name=name, params=params, data=sg_data)
+            "SG Data: {data}".format(name=name, params=params, data=sg_data)
         )
 
         if name == "import":

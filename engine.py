@@ -90,7 +90,7 @@ class VREDEngine(sgtk.platform.Engine):
         self.logger.debug("Running VRED version {}".format(vred_version))
         if vred_version > self.get_setting("compatibility_dialog_min_version", 2021):
             msg = (
-                "The Shotgun Pipeline Toolkit has not yet been fully tested with VRED {version}. "
+                "The SG Pipeline Toolkit has not yet been fully tested with VRED {version}. "
                 "You can continue to use the Toolkit but you may experience bugs or "
                 "instability.  Please report any issues you see to {support_url}".format(
                     version=vred_version, support_url=sgtk.support_url
@@ -99,7 +99,7 @@ class VREDEngine(sgtk.platform.Engine):
             self.logger.warning(msg)
             QtGui.QMessageBox.warning(
                 self._get_dialog_parent(),
-                "Warning - Shotgun Pipeline Toolkit!",
+                "Warning - SG Pipeline Toolkit!",
                 msg,
             )
 
