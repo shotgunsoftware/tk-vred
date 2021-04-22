@@ -22,7 +22,6 @@ shotgun = None
 
 class vrShotgun(vrShotgun_form, vrShotgun_base):
     context = None
-    engine = None
     gif_aspect_ratio = None
 
     def __init__(self, parent=None):
@@ -41,12 +40,10 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         QtCore.QTimer.singleShot(0, self.init)
 
     def init(self):
-        self.engine = sgtk.platform.start_engine(
-            "tk-vred", self.context.sgtk, self.context
-        )
+        engine = sgtk.platform.start_engine("tk-vred", self.context.sgtk, self.context)
 
         # Set the version text in the plugin dialog once the engine is initialized
-        self.version_label.setText("tk-vred {}".format(self.engine.version))
+        self.version_label.setText("tk-vred {}".format(engine.version))
 
         file_to_open = os.environ.get("SGTK_FILE_TO_OPEN", None)
         if file_to_open:
@@ -108,8 +105,9 @@ def onDestroyVREDScriptPlugin():
     onDestroyVREDScriptPlugin() is called before this plugin is destroyed. In this
     plugin we want to destroy the VRED engine, which will handle any necessary clean up.
     """
-    if shotgun and shotgun.engine:
-        shotgun.engine.destroy_engine()
+    current_engine = sgtk.platform.current_engine()
+    if current_engine:
+        current_engine.destroy()
 
 
 try:

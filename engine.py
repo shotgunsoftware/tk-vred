@@ -77,6 +77,11 @@ class VREDEngine(sgtk.platform.Engine):
         QtCore.QTextCodec.setCodecForCStrings(utf8)
         self.logger.debug("set utf-8 codec for widget text")
 
+        # Temporarily monkey patch QToolButton and QMenu to resolve a Qt 5.15.0 bug (seems that it will fixed in 5.15.1)
+        # where QToolButton menu will open only on primary screen.
+        self._monkey_patch_qtoolbutton()
+        self._monkey_patch_qmenu()
+
         # import python/tk_vred module
         self._tk_vred = self.import_module("tk_vred")
 
@@ -85,16 +90,16 @@ class VREDEngine(sgtk.platform.Engine):
         self.logger.debug("Running VRED version {}".format(vred_version))
         if vred_version > self.get_setting("compatibility_dialog_min_version", 2021):
             msg = (
-                "The Shotgun Pipeline Toolkit has not yet been fully tested with VRED {version}. "
+                "The SG Pipeline Toolkit has not yet been fully tested with VRED {version}. "
                 "You can continue to use the Toolkit but you may experience bugs or "
-                "instability.  Please report any issues you see to support@shotgunsoftware.com".format(
-                    version=vred_version
+                "instability.  Please report any issues you see to {support_url}".format(
+                    version=vred_version, support_url=sgtk.support_url
                 )
             )
             self.logger.warning(msg)
             QtGui.QMessageBox.warning(
                 self._get_dialog_parent(),
-                "Warning - Shotgun Pipeline Toolkit!",
+                "Warning - SG Pipeline Toolkit!",
                 msg,
             )
 
@@ -251,6 +256,190 @@ class VREDEngine(sgtk.platform.Engine):
         for command in commands_to_run:
             command()
 
+    def _monkey_patch_qtoolbutton(self):
+        """
+        Temporary method to monkey patch the QToolButton to fix opening a QToolButton
+        menu on the correct screen (Qt 5.15.0 bug QTBUG-84462).
+        """
+
+        from sgtk.platform.qt import QtGui
+
+        class QToolButtonPatch(QtGui.QToolButton):
+            """
+            A QToolButton object with the exception of modifying the setMenu and
+            addAction methods.
+            """
+
+            # Define QToolButtonPatch class field for menu that will be created to
+            # hold any actions added to the QToolButtonPatch, without a menu object.
+            _patch_menu = None
+
+            def setMenu(self, menu):
+                """
+                Override the setMenu method to link the QToolButton to the menu. The menu
+                will need to know which QToolButton it is being opened from on the showEvent
+                inorder to repositiong itself correctly to the button.
+                :param menu: A QMenu object to set for this button.
+                """
+                menu.patch_toolbutton = self
+                super(QToolButtonPatch, self).setMenu(menu)
+
+            def addAction(self, action):
+                """
+                Override the addAction method to create a QMenu object here, that will hold
+                any button menu actions. Normally, the QMenu object would be created on show,
+                in the C++ source QToolButton::popupTimerDone(), but since we've monkey patched
+                the QMenu object, we need to create it on the Python side to make sure we use our
+                QMenuPatch object instead of QMenu.
+                :param action: The QAction object to add to our QToolButton menu.
+                """
+
+                if self.menu() is None:
+                    self._patch_menu = QtGui.QMenu()
+                    self.setMenu(self._patch_menu)
+
+                self.menu().addAction(action)
+
+        # All QToolButtons will now be a QToolButtonPatch.
+        QtGui.QToolButton = QToolButtonPatch
+
+    def _monkey_patch_qmenu(self):
+        """
+        Temporary method to monkey patch the QMenu to fix opening a QToolButton menu on
+        the correct screen (Qt 5.15.0 bug QTBUG-84462).
+        """
+
+        from sgtk.platform.qt import QtCore, QtGui
+
+        class QMenuPatch(QtGui.QMenu):
+            """
+            A QMenu object with the exception of modifying the showEvent method.
+            """
+
+            def showEvent(self, event):
+                """
+                Override the showEvent method in order to reposition the menu correctly.
+                """
+
+                # Only apply menu position patch for menus that are shown from QToolButtons.
+                fix_menu_pos = hasattr(self, "patch_toolbutton") and isinstance(
+                    self.patch_toolbutton, QtGui.QToolButton
+                )
+
+                if fix_menu_pos:
+                    # Get the orientation for the menu.
+                    horizontal = True
+                    if isinstance(self.patch_toolbutton.parentWidget(), QtGui.QToolBar):
+                        if (
+                            self.patch_toolbutton.parentWidget().orientation()
+                            == QtCore.Qt.Vertical
+                        ):
+                            horizontal = False
+
+                    # Get the correct position for the menu.
+                    initial_pos = self.position_menu(
+                        horizontal, self.sizeHint(), self.patch_toolbutton
+                    )
+
+                    # Save the geometry of the menu, we will need to re-set the geometry after
+                    # the menu is shown to make sure the menu size is correct.
+                    rect = QtCore.QRect(initial_pos, self.size())
+
+                    # Move the menu to the correct position before the show event.
+                    self.move(initial_pos)
+
+                super(QMenuPatch, self).showEvent(event)
+
+                if fix_menu_pos:
+                    # Help correct the size of the menu.
+                    self.setGeometry(rect)
+
+            def position_menu(self, horizontal, size_hint, toolbutton):
+                """
+                This method is copied from the C++ source qtoolbutton.cpp in Qt 5.15.1 fix version.
+                :param horizontal: The orientation of the QToolBar that the menu is shown for. This
+                should be True if the menu is not in a QToolBar.
+                :param size_hint: The QSize size hint for this menu.
+                :param toolbutton: The QToolButtonPatch object that this menu is shown for. Used to
+                positiong the menu correctly.
+                """
+
+                point = QtCore.QPoint()
+
+                rect = toolbutton.rect()
+                desktop = QtGui.QApplication.desktop()
+                screen = desktop.availableGeometry(
+                    toolbutton.mapToGlobal(rect.center())
+                )
+
+                if horizontal:
+                    if toolbutton.isRightToLeft():
+                        if (
+                            toolbutton.mapToGlobal(QtCore.QPoint(0, rect.bottom())).y()
+                            + size_hint.height()
+                            <= screen.bottom()
+                        ):
+                            point = toolbutton.mapToGlobal(rect.bottomRight())
+
+                        else:
+                            point = toolbutton.mapToGlobal(
+                                rect.topRight() - QtCore.QPoint(0, size_hint.height())
+                            )
+
+                        point.setX(point.x() - size_hint.width())
+
+                    else:
+                        if (
+                            toolbutton.mapToGlobal(QtCore.QPoint(0, rect.bottom())).y()
+                            + size_hint.height()
+                            <= screen.bottom()
+                        ):
+                            point = toolbutton.mapToGlobal(rect.bottomLeft())
+
+                        else:
+                            point = toolbutton.mapToGlobal(
+                                rect.topLeft() - QtCore.QPoint(0, size_hint.height())
+                            )
+
+                else:
+                    if toolbutton.isRightToLeft():
+
+                        if (
+                            toolbutton.mapToGlobal(QtCore.QPoint(rect.left(), 0)).x()
+                            - size_hint.width()
+                            <= screen.x()
+                        ):
+                            point = toolbutton.mapToGlobal(rect.topRight())
+
+                        else:
+                            point = toolbutton.mapToGlobal(rect.topLeft())
+                            point.setX(point.x() - size_hint.width())
+
+                    else:
+                        if (
+                            toolbutton.mapToGlobal(QtCore.QPoint(rect.right(), 0)).x()
+                            + size_hint.width()
+                            <= screen.right()
+                        ):
+                            point = toolbutton.mapToGlobal(rect.topRight())
+
+                        else:
+                            point = toolbutton.mapToGlobal(
+                                rect.topLeft() - QtCore.QPoint(size_hint.width(), 0)
+                            )
+
+                point.setX(
+                    max(
+                        screen.left(),
+                        min(point.x(), screen.right() - size_hint.width()),
+                    )
+                )
+                point.setY(point.y() + 1)
+                return point
+
+        # All QMenus will now be a QMenuPatch
+        QtGui.QMenu = QMenuPatch
+
     #####################################################################################
     # Logging
 
@@ -294,17 +483,20 @@ class VREDEngine(sgtk.platform.Engine):
 
         :returns: the created widget_class instance
         """
-        from sgtk.platform.qt import QtGui, QtCore
+        from sgtk.platform.qt import QtGui
 
         self.logger.debug("Begin showing panel {}".format(panel_id))
 
-        # If the widget already exists, do not rebuild it but be sure to display it
+        # If the widget already exists, do not reuse it since it is not guaranteed
+        # to be in a valid state (e.g. on reload/restart the ShotgunPanel widget
+        # will be partially cleaned up and will error if attempted to be reused).
+        # Mark the widget for deletion so that the Id does not clash with the
+        # newly created widget with the same Id.
         for widget in QtGui.QApplication.allWidgets():
             if widget.objectName() == panel_id:
-                self.add_dock_widget(
-                    panel_id, title, widget, QtCore.Qt.RightDockWidgetArea
-                )
-                return widget
+                widget.deleteLater()
+                widget = None
+                break
 
         if not self.has_ui:
             self.log_error(
@@ -320,7 +512,7 @@ class VREDEngine(sgtk.platform.Engine):
             title, bundle, widget_class, *args, **kwargs
         )
 
-        self.add_dock_widget(panel_id, title, widget, QtCore.Qt.RightDockWidgetArea)
+        self.show_dock_widget(panel_id, title, widget)
 
         # Return the widget created by the method, _create_dialog_with_widget, since this will
         # have the widget_class type expected by the caller. This widget represents the panel
@@ -328,7 +520,7 @@ class VREDEngine(sgtk.platform.Engine):
         widget.setObjectName(panel_id)
         return widget
 
-    def add_dock_widget(self, panel_id, title, widget, dock_area):
+    def show_dock_widget(self, panel_id, title, widget, dock_area=None):
         """
         Create a dock widget managed by the VRED engine, if one has not yet been created. Set the
         widget to show in the dock widget and add it to the VRED dock area.
@@ -337,21 +529,24 @@ class VREDEngine(sgtk.platform.Engine):
         :param widget: The QWidget to show in the dock widget.
         :param dock_area: The dock widget area (e.g. QtCore.Qt.RightDockWidgetArea).
         """
-        from sgtk.platform.qt import QtCore, QtGui
 
         dock_widget = self._dock_widgets.get(panel_id, None)
+
         if dock_widget is None:
-            dock_widget = QtGui.QDockWidget()
+            dock_widget = self._tk_vred.DockWidget(
+                title,
+                self._get_dialog_parent(),
+                panel_id,
+                widget,
+                self.menu_generator.root_menu
+                is not None,  # closable if there is a menu to reopen it
+                dock_area,
+            )
+            dock_widget.setMinimumWidth(400)
             self._dock_widgets[panel_id] = dock_widget
 
-        dock_widget.setWindowTitle(title)
-        dock_widget.setWidget(widget)
-
-        # VRED does not have a Python API method to dock a widget, so we need to create a dock widget
-        # and dock it to the VRED main window.
-        parent = self._get_dialog_parent()
-        parent.addDockWidget(dock_area, dock_widget)
-        parent.resizeDocks([dock_widget], [0], QtCore.Qt.Vertical)
+        else:
+            dock_widget.reinitialize(title, widget)
 
         dock_widget.show()
 

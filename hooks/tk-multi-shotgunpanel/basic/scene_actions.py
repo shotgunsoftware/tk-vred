@@ -11,6 +11,12 @@
 """
 Hook that loads defines all the available actions, broken down by publish type.
 """
+import os
+
+try:
+    import builtins
+except ImportError:
+    import __builtins__ as builtins
 
 import re
 
@@ -19,8 +25,12 @@ from sgtk import util
 from sgtk.platform.qt import QtCore, QtGui
 from tank_vendor.six.moves import urllib
 
+from vrKernelServices import vrSceneplateTypes
+from vrKernelServices import vrdSceneplateNode
 import vrFileIO
 import vrScenegraph
+
+builtins.vrReferenceService = vrReferenceService
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -90,6 +100,16 @@ class VREDActions(HookBaseClass):
                 }
             )
 
+        if "import_sceneplate" in actions:
+            action_instances.append(
+                {
+                    "name": "import_sceneplate",
+                    "params": None,
+                    "caption": "Import image(s) into scene as a sceneplate",
+                    "description": "This will import the image(s) into the current VRED Scene.",
+                }
+            )
+
         if "load_for_review" in actions:
             action_instances.append(
                 {
@@ -97,6 +117,16 @@ class VREDActions(HookBaseClass):
                     "params": None,
                     "caption": "Load for Review",
                     "description": "This will reset and load the item into the current universe.",
+                }
+            )
+
+        if "smart_reference" in actions:
+            action_instances.append(
+                {
+                    "name": "smart_reference",
+                    "params": None,
+                    "caption": "Create Smart Reference",
+                    "description": "This will import the item to the universe as a smart reference.",
                 }
             )
 
@@ -117,7 +147,7 @@ class VREDActions(HookBaseClass):
         self.logger.debug(
             "Execute action called for action {name}"
             "Parameters: {params}"
-            "Shotgun Data: {data}".format(name=name, params=params, data=sg_data)
+            "SG Data: {data}".format(name=name, params=params, data=sg_data)
         )
 
         result = None
@@ -126,8 +156,16 @@ class VREDActions(HookBaseClass):
             path = self.get_publish_path(sg_data)
             vrFileIO.loadGeometry(path)
 
+        elif name == "import_sceneplate":
+            image_path = self.get_publish_path(sg_data)
+            self.import_sceneplate(image_path)
+
         elif name == "load_for_review":
             result = self._load_for_review(sg_data)
+
+        elif name == "smart_reference":
+            path = self.get_publish_path(sg_data)
+            self.create_smart_reference(path)
 
         else:
             try:
@@ -184,6 +222,51 @@ class VREDActions(HookBaseClass):
         """
 
         return self._load_for_review(sg_data, confirm_action=True)
+
+    def create_smart_reference(self, path):
+        """
+        Create a smart reference for the given path
+        :param path: Path to the file to import as smart reference
+        """
+
+        self.logger.debug("Creating smart reference for path {}".format(path))
+
+        # extract the node name from the reference path
+        ref_name = os.path.splitext(os.path.basename(path))[0]
+
+        # create the smart ref, load it and finally change the node name to reflect the ref path
+        ref_node = vrReferenceService.createSmart()
+        ref_node.setSmartPath(path)
+        ref_node.load()
+        ref_node.setName(ref_name)
+
+    def import_sceneplate(self, image_path):
+        """
+        Executes the import of the image(s) and the creation
+        of the VRED sceneplate
+
+        :param str image_path: Path to image file from the sg_published_data
+        """
+
+        self.logger.debug(
+            "Import sceneplate for image file '{path}'".format(path=image_path)
+        )
+
+        # Get the Sceneplate Root object
+        vredSceneplateRoot = vrSceneplateService.getRootNode()  # noqa
+        # Extract the filename for the name of the Sceneplate
+        nodeName = os.path.basename(image_path)
+        # Load in the image
+        imageObject = vrImageService.loadImage(image_path)  # noqa
+        # Create the actual Sceneplate node
+        newSceneplateNode = vrSceneplateService.createNode(  # noqa
+            vredSceneplateRoot, vrSceneplateTypes.NodeType.Frontplate, nodeName
+        )
+        newSceneplate = vrdSceneplateNode(newSceneplateNode)
+        # Set the type to image
+        newSceneplate.setContentType(vrSceneplateTypes.ContentType.Image)
+        # Assign the image to the Sceneplate
+        newSceneplate.setImage(imageObject)
 
     def _load_for_review(self, sg_data, confirm_action=False):
         """
