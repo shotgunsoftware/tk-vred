@@ -177,7 +177,10 @@ class VREDActions(HookBaseClass):
 
         :param sg_data: Dictionary containing data for the entity that
                         was double-clicked.
-        :return: A tuple ('entity_type', 'entity_id')
+        :type sg_data: dict
+        :return: True to indicate to the caller to continue on with the
+                 double-click event, else False to abort it.
+        :rtype: bool
         """
 
         return self._load_for_review(sg_data, confirm_action=True)
@@ -186,6 +189,14 @@ class VREDActions(HookBaseClass):
         """
         Find an associated published file from the entity defined by the `sg_data`,
         and load it into VRED.
+
+        :param sg_data: The Shotgun data for the entity to load for review.
+        :type sg_data: dict
+        :param confirm_action: True will ask the user to confirm executing this action,
+                               or False to execute the action immediately.
+        :type confirm_action: bool
+        :return: True for success, else False
+        :rtype: bool
         """
 
         # The current entity. This entity dictionary will be the return value to
@@ -194,7 +205,7 @@ class VREDActions(HookBaseClass):
 
         # Load for review action only supports Version entity type
         if sg_data["type"] != "Version":
-            return entity
+            return True
 
         # Ask the user if they want to proceed with loading the Version for review.
         if confirm_action:
@@ -207,17 +218,17 @@ class VREDActions(HookBaseClass):
 
             if answer == QtGui.QMessageBox.Cancel:
                 # Abort this action altogether.
-                return None
+                return False
 
             if answer == QtGui.QMessageBox.No:
                 # Continue this action but do not load for review.
-                return entity
+                return True
 
         # Check for unsaved changes and do not load new scene until changes are resolved.
         engine = self.parent.engine
         resolved = engine.save_or_discard_changes()
         if not resolved:
-            return None
+            return False
 
         # OK to proceed with loading the Version for review
         published_file_entity_type = sgtk.util.get_published_file_entity_type(self.sgtk)
@@ -266,7 +277,7 @@ class VREDActions(HookBaseClass):
             )
             QtGui.QApplication.restoreOverrideCursor()
 
-        return entity
+        return True
 
 
 def _get_published_file_path(published_file):
