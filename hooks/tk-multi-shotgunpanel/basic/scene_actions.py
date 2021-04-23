@@ -18,11 +18,10 @@ try:
 except ImportError:
     import __builtins__ as builtins
 
-import re
-
 import sgtk
 from sgtk import util
 from sgtk.platform.qt import QtCore, QtGui
+from tank.util import sgre as re
 from tank_vendor.six.moves import urllib
 
 from vrKernelServices import vrSceneplateTypes
