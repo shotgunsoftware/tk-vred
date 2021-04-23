@@ -35,7 +35,7 @@ class VREDShotgunFilters(HookBaseClass):
         :param context_project: The current context project.
         :param context_user: The current context user.
 
-        :returns: Std shotgun filters that can be used to retrieve
+        :returns: Standard SG api3 filters that can be used to retrieve
                   associated data
         """
 
