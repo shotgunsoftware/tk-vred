@@ -332,10 +332,10 @@ class VREDActions(HookBaseClass):
         )
 
         if not published_files:
-            raise Exception("Version has no published files to load for review.")
+            raise sgtk.TankError("Version has no published files to load for review.")
 
         if len(published_files) != 1:
-            raise Exception(
+            raise sgtk.TankError(
                 "Failed to load Version for review with VRED because there is more than one PublishedFile entity with the same PublishedFileType associated for this Version"
             )
 
@@ -344,7 +344,7 @@ class VREDActions(HookBaseClass):
         if published_file:
             path = _get_published_file_path(published_file)
             if not path:
-                raise Exception(
+                raise sgtk.TankError(
                     "Unable to determine the path on disk for published file with id '{}'.".format(
                         published_file["id"]
                     )
