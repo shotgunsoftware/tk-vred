@@ -94,3 +94,5 @@ class DockWidget(QtGui.QDockWidget):
         """
 
         self.parentWidget().addDockWidget(dock_area or self.default_dock_area, self)
+        # Show dock with minimum width
+        self.parentWidget().resizeDocks([self], [0], QtCore.Qt.Horizontal)
