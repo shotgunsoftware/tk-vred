@@ -66,6 +66,9 @@ class SceneOperation(HookClass):
         if operation == "current_path":
             current_path = vrFileIO.getFileIOFilePath()
             return "" if current_path is None else current_path
+        
+        if operation == "prepare_new":
+            pass
 
         if operation == "open":
             vrFileIO.load(
