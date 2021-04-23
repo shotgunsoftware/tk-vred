@@ -571,9 +571,11 @@ class VREDEngine(sgtk.platform.Engine):
 
         :param override_cursor: A Qt cursor type that will be used to set an override
                                 cursor when opening QMessageBox.
+        :type override_cursor: :class:`sgtk.platform.qt.QtGui.QCursor`
         :returns: True indicating the user has successfully saved or discarded their
                   current changes, if any, else False indicates the user failed to
                   resolve their unsaved changes.
+        :rtype: bool
         """
         from sgtk.platform.qt import QtGui
 
