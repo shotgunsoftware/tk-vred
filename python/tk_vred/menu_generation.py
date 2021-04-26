@@ -31,6 +31,19 @@ class VREDMenuGenerator(object):
         """
         self._engine = engine
         self._root_menu = None
+        self._menu_favourites = None
+
+    @property
+    def favourites(self):
+        """
+        The menu favourites, in sorted order by name.
+        """
+
+        if self._menu_favourites is None:
+            self._menu_favourites = self._engine.get_setting("menu_favourites", [])
+            self._menu_favourites.sort(key=lambda f: f["name"])
+
+        return self._menu_favourites
 
     @property
     def root_menu(self):
@@ -164,10 +177,10 @@ class VREDMenuGenerator(object):
         :param add_separator: Set to True will add a separator before the first favourite command is added.
         """
 
-        favourites = self._engine.get_setting("menu_favourites")
-        favourites.sort(key=lambda f: f["name"])
+        if not self.favourites:
+            return
 
-        for favourite in favourites:
+        for favourite in self.favourites:
             app_instance_name = favourite["app_instance"]
             menu_name = favourite["name"]
 

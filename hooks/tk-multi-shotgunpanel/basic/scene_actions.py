@@ -19,10 +19,15 @@ except ImportError:
     import __builtins__ as builtins
 
 import sgtk
+from sgtk import util
+from sgtk.platform.qt import QtCore, QtGui
+from tank.util import sgre as re
+from tank_vendor.six.moves import urllib
 
 from vrKernelServices import vrSceneplateTypes
 from vrKernelServices import vrdSceneplateNode
 import vrFileIO
+import vrScenegraph
 
 builtins.vrReferenceService = vrReferenceService
 
@@ -94,16 +99,6 @@ class VREDActions(HookBaseClass):
                 }
             )
 
-        if "smart_reference" in actions:
-            action_instances.append(
-                {
-                    "name": "smart_reference",
-                    "params": None,
-                    "caption": "Create Smart Reference",
-                    "description": "This will import the item to the universe as a smart reference.",
-                }
-            )
-
         if "import_sceneplate" in actions:
             action_instances.append(
                 {
@@ -111,6 +106,26 @@ class VREDActions(HookBaseClass):
                     "params": None,
                     "caption": "Import image(s) into scene as a sceneplate",
                     "description": "This will import the image(s) into the current VRED Scene.",
+                }
+            )
+
+        if "load_for_review" in actions:
+            action_instances.append(
+                {
+                    "name": "load_for_review",
+                    "params": None,
+                    "caption": "Load for Review",
+                    "description": "This will reset and load the item into the current universe.",
+                }
+            )
+
+        if "smart_reference" in actions:
+            action_instances.append(
+                {
+                    "name": "smart_reference",
+                    "params": None,
+                    "caption": "Create Smart Reference",
+                    "description": "This will import the item to the universe as a smart reference.",
                 }
             )
 
@@ -124,7 +139,8 @@ class VREDActions(HookBaseClass):
         :param name: Action name string representing one of the items returned by generate_actions.
         :param params: Params data, as specified by generate_actions.
         :param sg_data: Shotgun data dictionary with all the standard publish fields.
-        :returns: No return value expected.
+        :returns: Dictionary representing an Entity if action requires a context change in the panel,
+                  otherwise no return value expected.
         """
 
         self.logger.debug(
@@ -133,24 +149,31 @@ class VREDActions(HookBaseClass):
             "SG Data: {data}".format(name=name, params=params, data=sg_data)
         )
 
+        result = None
+
         if name == "import":
             path = self.get_publish_path(sg_data)
             vrFileIO.loadGeometry(path)
-
-        elif name == "smart_reference":
-            path = self.get_publish_path(sg_data)
-            self.create_smart_reference(path)
 
         elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_data)
             self.import_sceneplate(image_path)
 
+        elif name == "load_for_review":
+            result = self._load_for_review(sg_data)
+
+        elif name == "smart_reference":
+            path = self.get_publish_path(sg_data)
+            self.create_smart_reference(path)
+
         else:
             try:
-                HookBaseClass.execute_action(self, name, params, sg_data)
+                result = HookBaseClass.execute_action(self, name, params, sg_data)
             except AttributeError:
                 # base class doesn't have the method, so ignore and continue
                 pass
+
+        return result
 
     def execute_multiple_actions(self, actions):
         """
@@ -182,6 +205,22 @@ class VREDActions(HookBaseClass):
             sg_data = single_action["sg_data"]
             params = single_action["params"]
             self.execute_action(name, params, sg_data)
+
+    def execute_entity_doubleclicked_action(self, sg_data):
+        """
+        This action is triggered when an entity is double-clicked.
+        Perform any specific actions and return a tuple represetnting
+        the entity that the panel will navigate to.
+
+        :param sg_data: Dictionary containing data for the entity that
+                        was double-clicked.
+        :type sg_data: dict
+        :return: True to indicate to the caller to continue on with the
+                 double-click event, else False to abort it.
+        :rtype: bool
+        """
+
+        return self._load_for_review(sg_data, confirm_action=True)
 
     def create_smart_reference(self, path):
         """
@@ -227,3 +266,140 @@ class VREDActions(HookBaseClass):
         newSceneplate.setContentType(vrSceneplateTypes.ContentType.Image)
         # Assign the image to the Sceneplate
         newSceneplate.setImage(imageObject)
+
+    def _load_for_review(self, sg_data, confirm_action=False):
+        """
+        Find an associated published file from the entity defined by the `sg_data`,
+        and load it into VRED.
+
+        :param sg_data: The Shotgun data for the entity to load for review.
+        :type sg_data: dict
+        :param confirm_action: True will ask the user to confirm executing this action,
+                               or False to execute the action immediately.
+        :type confirm_action: bool
+        :return: True for success, else False
+        :rtype: bool
+        """
+
+        # The current entity. This entity dictionary will be the return value to
+        # trigger a context change in SG Panel to this entity.
+        entity = {"type": sg_data["type"], "id": sg_data["id"]}
+
+        # Load for review action only supports Version entity type
+        if sg_data["type"] != "Version":
+            return True
+
+        # Ask the user if they want to proceed with loading the Version for review.
+        if confirm_action:
+            answer = QtGui.QMessageBox.question(
+                None,
+                "Load for Review?",
+                "Do you want to load this {} for review?".format(sg_data["type"]),
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No | QtGui.QMessageBox.Cancel,
+            )
+
+            if answer == QtGui.QMessageBox.Cancel:
+                # Abort this action altogether.
+                return False
+
+            if answer == QtGui.QMessageBox.No:
+                # Continue this action but do not load for review.
+                return True
+
+        # Check for unsaved changes and do not load new scene until changes are resolved.
+        engine = self.parent.engine
+        resolved = engine.save_or_discard_changes()
+        if not resolved:
+            return False
+
+        # OK to proceed with loading the Version for review
+        published_file_entity_type = sgtk.util.get_published_file_entity_type(self.sgtk)
+        accepted_published_file_types = engine.get_setting(
+            "accepted_published_file_types", []
+        )
+        published_files = self.parent.engine.shotgun.find(
+            published_file_entity_type,
+            [
+                ["version", "is", entity],
+                [
+                    "published_file_type.PublishedFileType.code",
+                    "in",
+                    accepted_published_file_types,
+                ],
+            ],
+            fields=["id", "path"],
+            order=[{"field_name": "version_number", "direction": "desc"}],
+        )
+
+        if not published_files:
+            raise sgtk.TankError("Version has no published files to load for review.")
+
+        if len(published_files) != 1:
+            raise sgtk.TankError(
+                "Failed to load Version for review with VRED because there is more than one PublishedFile entity with the same PublishedFileType associated for this Version"
+            )
+
+        # Load the Version's "latest" PublishedFile, the one with the highest version.
+        published_file = published_files[0]
+        if published_file:
+            path = _get_published_file_path(published_file)
+            if not path:
+                raise sgtk.TankError(
+                    "Unable to determine the path on disk for published file with id '{}'.".format(
+                        published_file["id"]
+                    )
+                )
+
+            QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+            vrFileIO.load(
+                [path],
+                vrScenegraph.getRootNode(),
+                newFile=True,
+                showImportOptions=False,
+            )
+            QtGui.QApplication.restoreOverrideCursor()
+
+        return True
+
+
+def _get_published_file_path(published_file):
+    """
+    Return the path on disk for the given published file.
+    """
+
+    if published_file is None:
+        return None
+
+    path = published_file.get("path", None)
+    if path is None:
+        return ""
+
+    # Return the local path right away, if we have it
+    if path.get("local_path", None) is not None:
+        return path["local_path"]
+
+    # This published file came from a zero config publish, it will
+    # have a file URL rather than a local path.
+    path_on_disk = path.get("url", None)
+    if path_on_disk is not None:
+        # We might have something like a %20, which needs to be
+        # unquoted into a space, as an example.
+        if "%" in path_on_disk:
+            path_on_disk = urllib.parse.unquote(path_on_disk)
+
+        # If this came from a file url via a zero-config style publish
+        # then we'll need to remove that from the head in order to end
+        # up with the local disk path to the file.
+        #
+        # On Windows, we will have a path like file:///E:/path/to/file.jpg
+        # and we need to ditch all three of the slashes at the head. On
+        # other operating systems it will just be file:///path/to/file.jpg
+        # and we will want to keep the leading slash.
+        if util.is_windows():
+            pattern = r"^file:///"
+        else:
+            pattern = r"^file://"
+
+        path_on_disk = re.sub(pattern, "", path_on_disk)
+
+    return path_on_disk

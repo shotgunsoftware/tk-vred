@@ -564,6 +564,54 @@ class VREDEngine(sgtk.platform.Engine):
         window_title_string = self._get_dialog_parent().windowTitle()
         return re.findall(r"\*", window_title_string)
 
+    def save_or_discard_changes(self, override_cursor=None):
+        """
+        Check if the current VRED scene has any changes. Open a dialog to as the user
+        to save their changes, if any, or proceed with discarding any changes.
+
+        :param override_cursor: A Qt cursor type that will be used to set an override
+                                cursor when opening QMessageBox.
+        :type override_cursor: :class:`sgtk.platform.qt.QtGui.QCursor`
+        :returns: True indicating the user has successfully saved or discarded their
+                  current changes, if any, else False indicates the user failed to
+                  resolve their unsaved changes.
+        :rtype: bool
+        """
+        from sgtk.platform.qt import QtGui
+
+        resolved = not self.has_unsaved_changes()
+        has_overriden_cursor = False
+
+        while not resolved:
+            if override_cursor and not has_overriden_cursor:
+                has_overriden_cursor = True
+                QtGui.QApplication.setOverrideCursor(override_cursor)
+
+            answer = QtGui.QMessageBox.question(
+                None,
+                "Save your scene?",
+                "Your scene has unsaved changes. Save before proceeding?",
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No | QtGui.QMessageBox.Cancel,
+            )
+
+            if answer == QtGui.QMessageBox.Cancel:
+                # User has indicated to abort the operation
+                break
+
+            if answer == QtGui.QMessageBox.No:
+                # User has indicated to discard changes
+                resolved = True
+
+            elif answer == QtGui.QMessageBox.Yes:
+                # User has indicated they want to save changes before proceeding
+                self.open_save_as_dialog()
+                resolved = not self.has_unsaved_changes()
+
+        if has_overriden_cursor:
+            QtGui.QApplication.restoreOverrideCursor()
+
+        return resolved
+
     def open_save_as_dialog(self):
         """
         Open the tk-multi-workfiles2 app's file save dialog. Fallback to using VRED save
