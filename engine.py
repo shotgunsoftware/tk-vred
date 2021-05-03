@@ -494,9 +494,11 @@ class VREDEngine(sgtk.platform.Engine):
         # newly created widget with the same Id.
         for widget in QtGui.QApplication.allWidgets():
             if widget.objectName() == panel_id:
+                widget.close()
                 widget.deleteLater()
+                self._tk_vred._dock_widgets.clear()
                 widget = None
-                break
+                return widget
 
         if not self.has_ui:
             self.log_error(
@@ -508,7 +510,7 @@ class VREDEngine(sgtk.platform.Engine):
         # Create a dialog with the panel widget -- the dialog itself is not needed
         # to display the docked widget but it is responsible for cleaning up the widget.
         # The dialog also applies desired styling to the widget.
-        _, widget = self._create_dialog_with_widget(
+        dialog, widget = self._create_dialog_with_widget(
             title, bundle, widget_class, *args, **kwargs
         )
 
