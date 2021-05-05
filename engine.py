@@ -487,19 +487,6 @@ class VREDEngine(sgtk.platform.Engine):
 
         self.logger.debug("Begin showing panel {}".format(panel_id))
 
-        # If the widget already exists, do not reuse it since it is not guaranteed
-        # to be in a valid state (e.g. on reload/restart the ShotgunPanel widget
-        # will be partially cleaned up and will error if attempted to be reused).
-        # Mark the widget for deletion so that the Id does not clash with the
-        # newly created widget with the same Id.
-        for widget in QtGui.QApplication.allWidgets():
-            if widget.objectName() == panel_id:
-                widget.close()
-                widget.deleteLater()
-                self._tk_vred._dock_widgets.clear()
-                widget = None
-                return widget
-
         if not self.has_ui:
             self.log_error(
                 "Sorry, this environment does not support UI display! Cannot show "
@@ -507,20 +494,32 @@ class VREDEngine(sgtk.platform.Engine):
             )
             return None
 
-        # Create a dialog with the panel widget -- the dialog itself is not needed
-        # to display the docked widget but it is responsible for cleaning up the widget.
-        # The dialog also applies desired styling to the widget.
-        dialog, widget = self._create_dialog_with_widget(
-            title, bundle, widget_class, *args, **kwargs
-        )
+        # If the widget already exists, do not reuse it since it is not guaranteed
+        # to be in a valid state (e.g. on reload/restart the ShotgunPanel widget
+        # will be partially cleaned up and will error if attempted to be reused).
+        # Mark the widget for deletion so that the Id does not clash with the
+        # newly created widget with the same Id.
+        for widget in QtGui.QApplication.allWidgets():
+            if widget.objectName() == panel_id:
+                widget_instance = widget
+                parent = self._get_dialog_parent()
+                widget_instance.setParent(parent)
+                break
+        else:
+            # Create a dialog with the panel widget -- the dialog itself is not needed
+            # to display the docked widget but it is responsible for cleaning up the widget.
+            # The dialog also applies desired styling to the widget.
+            _, widget_instance = self._create_dialog_with_widget(
+                title, bundle, widget_class, *args, **kwargs
+            )
 
-        self.show_dock_widget(panel_id, title, widget)
+        self.show_dock_widget(panel_id, title, widget_instance)
 
         # Return the widget created by the method, _create_dialog_with_widget, since this will
         # have the widget_class type expected by the caller. This widget represents the panel
         # so it should have the object name set to the panel_id
-        widget.setObjectName(panel_id)
-        return widget
+        widget_instance.setObjectName(panel_id)
+        return widget_instance
 
     def show_dock_widget(self, panel_id, title, widget, dock_area=None):
         """
