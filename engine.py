@@ -10,6 +10,7 @@
 import logging
 import os
 import re
+import tempfile
 
 import sgtk
 from tank_vendor import six
@@ -44,6 +45,7 @@ class VREDEngine(sgtk.platform.Engine):
         self._tk_vred = None
         self._menu_generator = None
         self._dock_widgets = {}
+        self._temp_dirs = []
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
 
@@ -130,6 +132,9 @@ class VREDEngine(sgtk.platform.Engine):
             widget.deleteLater()
             widget = None
         self._dock_widgets.clear()
+
+        for temp_dir in self._temp_dirs:
+            temp_dir.cleanup()
 
         # Close all Shotgun app dialogs that are still opened since
         # some apps do threads cleanup in their onClose event handler
@@ -743,3 +748,13 @@ class VREDEngine(sgtk.platform.Engine):
         )
 
         vrRenderSettings.setRenderFilename(render_path)
+
+    def create_temp_dir(self):
+        """
+        Create and return a temporary directory whose lifetime will persist until this VRED Engine instance
+        is destroyed.
+        """
+
+        temp_dir = tempfile.TemporaryDirectory()
+        self._temp_dirs.append(temp_dir)
+        return temp_dir

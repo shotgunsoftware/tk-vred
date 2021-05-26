@@ -12,6 +12,7 @@
 Hook that loads defines all the available actions, broken down by publish type.
 """
 import os
+import zipfile
 
 try:
     import builtins
@@ -31,6 +32,7 @@ from vrKernelServices import vrSceneplateTypes
 from vrKernelServices import vrdSceneplateNode
 import vrFileIO
 import vrScenegraph
+import vrNodeUtils
 
 builtins.vrReferenceService = vrReferenceService
 
@@ -112,6 +114,16 @@ class VREDActions(HookBaseClass):
                 }
             )
 
+        if "load_annotation" in actions:
+            action_instances.append(
+                {
+                    "name": "load_annotation",
+                    "params": None,
+                    "caption": "Load Annotation",
+                    "description": "This will load the Note's last annotation.",
+                }
+            )
+
         if "load_for_review" in actions:
             action_instances.append(
                 {
@@ -129,6 +141,16 @@ class VREDActions(HookBaseClass):
                     "params": None,
                     "caption": "Create Smart Reference",
                     "description": "This will import the item to the universe as a smart reference.",
+                }
+            )
+
+        if "import_zip" in actions:
+            action_instances.append(
+                {
+                    "name": "import_zip",
+                    "params": None,
+                    "caption": "Import the Zip File contents",
+                    "description": "This will import the zip file contents based on the Task Type.",
                 }
             )
 
@@ -161,6 +183,37 @@ class VREDActions(HookBaseClass):
         elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_data)
             self.import_sceneplate(image_path)
+
+        elif name == "import_zip":
+            path = self.get_publish_path(sg_data)
+            if path:
+                published_file_type = sg_data.get("published_file_type", {}).get("name")
+
+                if published_file_type == "Zip File":
+                    temp_dir = self.parent.engine.create_temp_dir()
+
+                    with zipfile.ZipFile(path, "r") as zip_ref:
+                        dest_dir_name = zip_ref.namelist()[0][:-1]
+
+                        # FIXME let the root html filenmame be configurable?
+                        index_html = os.path.join(
+                            temp_dir.name,
+                            dest_dir_name,
+                            "index.html",
+                        )
+
+                        zip_ref.extractall(temp_dir.name)
+
+                    plane = vrNodeUtils.createPlane(5000, 5000, 10, 10, 255, 255, 255)
+                    # TODO set the name based on the Task - Asset - PF
+                    webEngine = vrWebEngineService.createWebEngine("HMI")
+                    webEngine.setUrl(index_html)
+                    webEngine.setMaterial(plane.getMaterial())
+
+        elif name == "load_annotation":
+            # Set the camera
+            # Show the attachment?
+            self._load_annotation(sg_data)
 
         elif name == "load_for_review":
             result = self._load_for_review(sg_data)
@@ -269,6 +322,13 @@ class VREDActions(HookBaseClass):
         newSceneplate.setContentType(vrSceneplateTypes.ContentType.Image)
         # Assign the image to the Sceneplate
         newSceneplate.setImage(imageObject)
+
+    def _load_annotation(self, sg_data):
+        """
+        Load the annotation.
+        """
+
+        pass
 
     def _load_for_review(self, sg_data, confirm_action=False):
         """
