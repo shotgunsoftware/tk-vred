@@ -35,6 +35,7 @@ import vrController
 import vrFileDialog
 import vrFileIO
 import vrRenderSettings
+import vrScenegraph
 import vrNodeUtils
 from vrKernelServices import vrdWebEngine
 
@@ -770,29 +771,39 @@ class VREDEngine(sgtk.platform.Engine):
         Import the contents of a zip file.
         """
 
-        if path:
-            published_file_type = sg_data.get("published_file_type", {}).get("name")
+        if not path:
+            return
 
-            if published_file_type == "Zip File":
-                temp_dir = self._create_temp_dir()
+        # TODO handle different HMI data formats other than zip folder with HTML content
+        published_file_type = sg_data.get("published_file_type", {}).get("name")
+        if published_file_type != "Zip File":
+            return
 
-                with zipfile.ZipFile(path, "r") as zip_ref:
-                    dest_dir_name = zip_ref.namelist()[0][:-1]
+        temp_dir = self._create_temp_dir()
+        with zipfile.ZipFile(path, "r") as zip_ref:
+            dest_dir_name = zip_ref.namelist()[0][:-1]
 
-                    # FIXME let the root html filenmame be configurable?
-                    index_html = os.path.join(
-                        temp_dir.name,
-                        dest_dir_name,
-                        "index.html",
-                    )
+            # FIXME the root entry point must be named index.html in the top-most level of the zip folder
+            index_html = os.path.join(
+                temp_dir.name,
+                dest_dir_name,
+                "index.html",
+            )
 
-                    zip_ref.extractall(temp_dir.name)
+            zip_ref.extractall(temp_dir.name)
 
-                plane = vrNodeUtils.createPlane(1024, 768, 10, 10, 255, 255, 255)
-                # TODO set the name based on the Task - Asset - PF
-                web_engine = vrWebEngineService.createWebEngine("HMI")
-                web_engine.setTexture(vrdWebEngine.TextureSlotType.Diffuse)
-                # web_engine.setWidth(1024)
-                # web_engine.setHeight(768)
-                web_engine.setMaterial(plane.getMaterial())
-                web_engine.setUrl(index_html)
+        web_engine_name = sg_data.get("name", "HMI").split(".")[0]
+        web_engine = vrWebEngineService.createWebEngine(web_engine_name)
+        web_engine.setTexture(vrdWebEngine.TextureSlotType.Diffuse)
+
+        # FIXME set the widget and height based on the HMI content (e.g. parse the index.html for size)
+        web_engine.setWidth(2048)
+        web_engine.setHeight(1080)
+
+        # Get the selected node to link the web engine to
+        selected = vrScenegraph.getSelectedNodes()
+        if selected:
+            web_engine.setMaterial(selected[0].getMaterial())
+
+        # Finally set the URL to point ot the HTML root entry point
+        web_engine.setUrl(index_html)

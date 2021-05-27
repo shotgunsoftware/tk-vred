@@ -128,8 +128,8 @@ class VredActions(HookBaseClass):
                 {
                     "name": "import_zip",
                     "params": None,
-                    "caption": "Import Zip File",
-                    "description": "This will import the zip file contents based on the Task Type.",
+                    "caption": "Create Web Engine",
+                    "description": "This will unzip the file contents and create a web engine with url pointing to the index.html in the unzipped folder.",
                 }
             )
 
