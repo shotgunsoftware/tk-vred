@@ -13,9 +13,6 @@ Hook that loads defines all the available actions, broken down by publish type.
 """
 import os
 
-# import tempfile
-import zipfile
-
 try:
     import builtins
 except ImportError:
@@ -131,7 +128,7 @@ class VredActions(HookBaseClass):
                 {
                     "name": "import_zip",
                     "params": None,
-                    "caption": "Import the Zip File contents",
+                    "caption": "Import Zip File",
                     "description": "This will import the zip file contents based on the Task Type.",
                 }
             )
@@ -170,19 +167,7 @@ class VredActions(HookBaseClass):
             self.import_sceneplate(image_path)
 
         elif name == "import_zip":
-            if path:
-                published_file_type = sg_publish_data.get(
-                    "published_file_type", {}
-                ).get("name")
-
-                if published_file_type == "Zip File":
-                    temp_dir = self.parent.engine.create_temp_dir()
-
-                    with zipfile.ZipFile(path, "r") as zip_ref:
-                        zip_ref.extractall(temp_dir.name)
-
-                    # Create a Web Engine
-                    # Load the index.html
+            self.parent.engine.import_zip_file(sg_publish_data, path)
 
     def execute_multiple_actions(self, actions):
         """

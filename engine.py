@@ -11,6 +11,7 @@ import logging
 import os
 import re
 import tempfile
+import zipfile
 
 import sgtk
 from tank_vendor import six
@@ -19,18 +20,23 @@ try:
     import builtins
 
     builtins.vrFileIOService = vrFileIOService
+    builtins.vrWebEngineService = vrWebEngineService
 except ImportError:
     import __builtin__
 
     try:
         __builtin__.vrFileIOService = vrFileIOService
+        __builtin__.vrWebEngineService = vrWebEngineService
     except NameError:
         vrFileIOService = False
+        vrWebEngineService = False
 
 import vrController
 import vrFileDialog
 import vrFileIO
 import vrRenderSettings
+import vrNodeUtils
+from vrKernelServices import vrdWebEngine
 
 
 class VREDEngine(sgtk.platform.Engine):
@@ -749,7 +755,7 @@ class VREDEngine(sgtk.platform.Engine):
 
         vrRenderSettings.setRenderFilename(render_path)
 
-    def create_temp_dir(self):
+    def _create_temp_dir(self):
         """
         Create and return a temporary directory whose lifetime will persist until this VRED Engine instance
         is destroyed.
@@ -758,3 +764,35 @@ class VREDEngine(sgtk.platform.Engine):
         temp_dir = tempfile.TemporaryDirectory()
         self._temp_dirs.append(temp_dir)
         return temp_dir
+
+    def import_zip_file(self, sg_data, path):
+        """
+        Import the contents of a zip file.
+        """
+
+        if path:
+            published_file_type = sg_data.get("published_file_type", {}).get("name")
+
+            if published_file_type == "Zip File":
+                temp_dir = self._create_temp_dir()
+
+                with zipfile.ZipFile(path, "r") as zip_ref:
+                    dest_dir_name = zip_ref.namelist()[0][:-1]
+
+                    # FIXME let the root html filenmame be configurable?
+                    index_html = os.path.join(
+                        temp_dir.name,
+                        dest_dir_name,
+                        "index.html",
+                    )
+
+                    zip_ref.extractall(temp_dir.name)
+
+                plane = vrNodeUtils.createPlane(1024, 768, 10, 10, 255, 255, 255)
+                # TODO set the name based on the Task - Asset - PF
+                web_engine = vrWebEngineService.createWebEngine("HMI")
+                web_engine.setTexture(vrdWebEngine.TextureSlotType.Diffuse)
+                # web_engine.setWidth(1024)
+                # web_engine.setHeight(768)
+                web_engine.setMaterial(plane.getMaterial())
+                web_engine.setUrl(index_html)
