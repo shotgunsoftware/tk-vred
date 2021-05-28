@@ -10,7 +10,6 @@
 import logging
 import os
 import re
-import tempfile
 import zipfile
 
 import sgtk
@@ -52,7 +51,6 @@ class VREDEngine(sgtk.platform.Engine):
         self._tk_vred = None
         self._menu_generator = None
         self._dock_widgets = {}
-        self._temp_dirs = []
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
 
@@ -139,9 +137,6 @@ class VREDEngine(sgtk.platform.Engine):
             widget.deleteLater()
             widget = None
         self._dock_widgets.clear()
-
-        for temp_dir in self._temp_dirs:
-            temp_dir.cleanup()
 
         # Close all Shotgun app dialogs that are still opened since
         # some apps do threads cleanup in their onClose event handler
@@ -756,16 +751,6 @@ class VREDEngine(sgtk.platform.Engine):
 
         vrRenderSettings.setRenderFilename(render_path)
 
-    def _create_temp_dir(self):
-        """
-        Create and return a temporary directory whose lifetime will persist until this VRED Engine instance
-        is destroyed.
-        """
-
-        temp_dir = tempfile.TemporaryDirectory()
-        self._temp_dirs.append(temp_dir)
-        return temp_dir
-
     def import_zip_file(self, sg_data, path):
         """
         Import the contents of a zip file.
@@ -779,18 +764,27 @@ class VREDEngine(sgtk.platform.Engine):
         if published_file_type != "Zip File":
             return
 
-        temp_dir = self._create_temp_dir()
-        with zipfile.ZipFile(path, "r") as zip_ref:
-            dest_dir_name = zip_ref.namelist()[0][:-1]
+        # FIXME publish HMI content more specifically than just a zip file to have a more robust method
+        # to acess the HMI content after publishing.
+        folder_path = ".".join(path.split(".")[:-1])
 
-            # FIXME the root entry point must be named index.html in the top-most level of the zip folder
-            index_html = os.path.join(
-                temp_dir.name,
-                dest_dir_name,
-                "index.html",
-            )
+        if not os.path.exists(folder_path):
+            # This is the first time someone has tried to open the zip folder, unzip and leave it to persist
+            # FIXME should we unzip this on publish?
+            with zipfile.ZipFile(path, "r") as zip_ref:
+                zip_ref.extractall(folder_path)
 
-            zip_ref.extractall(temp_dir.name)
+        # FIXME this assumes the HMI content is HTML and the root entry point is an index.html file at the
+        # root level of the directory
+        folder_name, _ = os.path.splitext(sg_data["name"])
+        index_html = os.path.join(
+            folder_path,
+            folder_name,
+            "index.html",
+        )
+        if not os.path.exists(index_html):
+            # TODO more verbose error?
+            self.logger.error("HMI index.html not foud")
 
         web_engine_name = sg_data.get("name", "HMI").split(".")[0]
         web_engine = vrWebEngineService.createWebEngine(web_engine_name)
