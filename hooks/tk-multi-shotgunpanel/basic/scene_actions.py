@@ -161,6 +161,8 @@ class VREDActions(HookBaseClass):
 
         elif name == "load_for_review":
             if self._load_for_review(sg_data):
+                # Set the result to return as the shotgun data to signal to the panel to navigate to
+                # the entity associated with the shotgun data.
                 result = sg_data
 
         elif name == "smart_reference":
