@@ -53,8 +53,8 @@ configuration:
 requires_shotgun_fields:
 
 # More verbose description of this item
-display_name: "Shotgun Engine for VRED"
-description: "Shotgun Integration for VRED"
+display_name: "ShotGrid Engine for VRED"
+description: "ShotGrid Integration for VRED"
 
 # Required minimum versions for this item to run
 requires_shotgun_version:

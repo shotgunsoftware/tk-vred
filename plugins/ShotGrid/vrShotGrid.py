@@ -14,23 +14,23 @@ import vrScenegraph
 
 sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
-vrShotgun_form, vrShotgun_base = uiTools.loadUiType("vrShotgunGUI.ui")
+vrShotGrid_form, vrShotGrid_base = uiTools.loadUiType("vrShotGridGUI.ui")
 
-# The vrShotgun plugin module instance
-shotgun = None
+# The vrShotGrid plugin module instance
+shotgrid = None
 
 
-class vrShotgun(vrShotgun_form, vrShotgun_base):
+class vrShotGrid(vrShotgun_form, vrShotgun_base):
     context = None
     gif_aspect_ratio = None
 
     def __init__(self, parent=None):
-        super(vrShotgun, self).__init__(parent)
+        super(vrShotGrid, self).__init__(parent)
         parent.layout().addWidget(self)
         self.setupUi(self)
 
         # Set up the gif animation, but don't start playing it until the widget is shown
-        gif_movie = QtGui.QMovie("vred_shotgun_menu.gif")
+        gif_movie = QtGui.QMovie("vred_shotgrid_menu.gif")
         gif_movie.jumpToFrame(0)
         movie_size = gif_movie.currentImage().size()
         self.gif_aspect_ratio = movie_size.width() / movie_size.height()
@@ -97,7 +97,7 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
             self.adjustSize()
             self.parentWidget().parentWidget().adjustSize()
 
-        return super(vrShotgun, self).resizeEvent(event)
+        return super(vrShotGrid, self).resizeEvent(event)
 
 
 def onDestroyVREDScriptPlugin():
@@ -112,6 +112,6 @@ def onDestroyVREDScriptPlugin():
 
 try:
     if os.getenv("SHOTGUN_ENABLE") == "1":
-        shotgun = vrShotgun(VREDPluginWidget)
+        shotgrid = vrShotGrid(VREDPluginWidget)
 except Exception as e:
     logger.exception(e)

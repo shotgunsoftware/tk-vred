@@ -159,7 +159,7 @@ class VREDMenuGenerator(object):
         ctx_name = six.ensure_str(str(ctx))
 
         context_menu = create_qt_menu(ctx_name)
-        context_menu.addAction("Jump to Shotgun", self._jump_to_sg)
+        context_menu.addAction("Jump to ShotGrid", self._jump_to_sg)
 
         # Add the menu item only when there are filesystem locations.
         if ctx.filesystem_locations:
