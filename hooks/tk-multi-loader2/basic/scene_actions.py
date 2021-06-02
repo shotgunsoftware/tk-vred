@@ -16,7 +16,10 @@ import os
 try:
     import builtins
 except ImportError:
-    import __builtins__ as builtins
+    try:
+        import __builtins__ as builtins
+    except ImportError:
+        import __builtin__ as builtins
 
 import sgtk
 
