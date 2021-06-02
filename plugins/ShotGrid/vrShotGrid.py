@@ -20,7 +20,7 @@ vrShotGrid_form, vrShotGrid_base = uiTools.loadUiType("vrShotGridGUI.ui")
 shotgrid = None
 
 
-class vrShotGrid(vrShotgun_form, vrShotgun_base):
+class vrShotGrid(vrShotGrid_form, vrShotGrid_base):
     context = None
     gif_aspect_ratio = None
 
