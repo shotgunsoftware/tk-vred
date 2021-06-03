@@ -163,7 +163,10 @@ class VREDActions(HookBaseClass):
             self.import_sceneplate(image_path)
 
         elif name == "load_for_review":
-            result = self._load_for_review(sg_data)
+            if self._load_for_review(sg_data):
+                # Set the result to the SG data to trigger navigation in SG panel to he entity
+                # represented by the SG data.
+                result = sg_data
 
         elif name == "smart_reference":
             path = self.get_publish_path(sg_data)
