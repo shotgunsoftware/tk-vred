@@ -66,7 +66,7 @@ class UploadVersionPlugin(HookBaseClass):
             "Upload": {
                 "type": "bool",
                 "default": False,
-                "description": "Upload content to Shotgun?",
+                "description": "Upload content to ShotGrid?",
             },
         }
 
@@ -168,7 +168,7 @@ class UploadVersionPlugin(HookBaseClass):
                 thumbnail_path,
                 output_directory,
             ) = self._translate_file_to_lmv(item)
-            self.logger.debug("Uploading LMV file to Shotgun")
+            self.logger.debug("Uploading LMV file to ShotGrid")
             self.parent.shotgun.update(
                 entity_type="Version",
                 entity_id=item.properties["sg_version_data"]["id"],
