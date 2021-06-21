@@ -29,12 +29,13 @@ class VREDLauncher(SoftwareLauncher):
         "VRED Pro": dict(icon="icon_pro_256.png"),
         "VRED Design": dict(icon="icon_design_256.png"),
         "VRED Presenter": dict(icon="icon_presenter_256.png"),
+        "VRED Core": dict(icon="icon_core_400.png"),
     }
 
     @property
     def minimum_supported_version(self):
         """The minimum VRED version that is supported by the launcher."""
-        return "2020.0"
+        return "2020.3"
 
     @property
     def minimum_supported_presenter_version(self):
@@ -241,7 +242,7 @@ def _get_installation_paths_from_windows_registry(logger):
     logger.debug(
         "Querying Windows registry for keys "
         "HKEY_LOCAL_MACHINE\\SOFTWARE\\Autodesk\\VRED "
-        "Pro | Design | Presenter"
+        "Pro | Design | Presenter | Core"
     )
 
     install_paths = []
@@ -265,6 +266,12 @@ def _get_installation_paths_from_windows_registry(logger):
             "VREDLocation",
             "\\VREDPresenter.exe",
             "VRED Presenter",
+        ],
+        [
+            "SOFTWARE\\Autodesk\\VREDCore",
+            "VREDLocation",
+            "\\VREDCore.exe",
+            "VRED Core",
         ],
     ]
     for base_key_name in base_key_names:
