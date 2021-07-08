@@ -138,7 +138,7 @@ class VREDMenuGenerator(object):
 
     def clean_menu(self):
         """
-        Remove Shotgun root menu in VRED, if it exists.
+        Remove ShotGrid root menu in VRED, if it exists.
         """
 
         if self._root_menu is not None:
@@ -257,7 +257,7 @@ class VREDMenuGenerator(object):
 
     def _jump_to_sg(self):
         """
-        Jump to shotgun, launch web browser
+        Jump to ShotGrid, launch web browser
         """
         url = self._engine.context.shotgun_url
 
@@ -293,7 +293,7 @@ class VREDMenuGenerator(object):
 class VREDMenu(object):
     """
     Class manages a custom menu action in VRED. This is primarily used to create the
-    Shotgun menu in VRED.
+    ShotGrid menu in VRED.
     """
 
     def __init__(self, name, menu_bar):
