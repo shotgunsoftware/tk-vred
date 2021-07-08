@@ -177,7 +177,7 @@ class VREDLauncher(SoftwareLauncher):
 
         try:
             year = int(version[:2]) + 2008
-            return "{0}{1}".format(year, version[2:6]) # Can include build number here
+            return "{0}{1}".format(year, version[2:6])  # Can include build number here
         except Exception:
             return version
 
