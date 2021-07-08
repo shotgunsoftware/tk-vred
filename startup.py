@@ -169,9 +169,15 @@ class VREDLauncher(SoftwareLauncher):
 
     @staticmethod
     def _map_version_year(version):
+        """
+        Convert the string version to integers for comparison
+
+        :param version: string value of the version
+        """
+
         try:
             year = int(version[:2]) + 2008
-            return "{0}{1}".format(year, version[2:4])
+            return "{0}{1}".format(year, version[2:6])  # Can include build number here
         except Exception:
             return version
 
