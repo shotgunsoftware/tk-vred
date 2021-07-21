@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Autodesk, Inc.
+# Copyright (c) 2021 Autodesk, Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -25,9 +25,11 @@ import sgtk
 
 from vrKernelServices import vrSceneplateTypes
 from vrKernelServices import vrdSceneplateNode
-import vrFileIO
+import vrScenegraph
 
 builtins.vrReferenceService = vrReferenceService
+builtins.vrFileIOService = vrFileIOService
+builtins.vrGUIService = vrGUIService
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -69,7 +71,7 @@ class VredActions(HookBaseClass):
         one object is returned for an action, use the params key to pass additional
         data into the run_action hook.
 
-        :param sg_publish_data: Shotgun data dictionary with all the standard publish fields.
+        :param sg_publish_data: ShotGrid data dictionary with all the standard publish fields.
         :param actions: List of action strings which have been defined in the app configuration.
         :param ui_area: String denoting the UI Area (see above).
         :returns List of dictionaries, each with keys name, params, caption and description
@@ -113,6 +115,17 @@ class VredActions(HookBaseClass):
                 }
             )
 
+        if "import_with_options" in actions:
+            action_instances.append(
+                {
+                    "name": "import_with_options",
+                    "params": None,
+                    "caption": "Open Import Dialog to change options...",
+                    "description": "This will open the Import Options Dialog.",
+                }
+            )
+
+
         if "import_sceneplate" in actions:
             action_instances.append(
                 {
@@ -132,7 +145,7 @@ class VredActions(HookBaseClass):
 
         :param name: Action name string representing one of the items returned by generate_actions.
         :param params: Params data, as specified by generate_actions.
-        :param sg_publish_data: Shotgun data dictionary with all the standard publish fields.
+        :param sg_publish_data: ShotGrid data dictionary with all the standard publish fields.
         :returns: No return value expected.
         """
 
@@ -149,14 +162,18 @@ class VredActions(HookBaseClass):
         if name == "smart_reference":
             self.create_smart_reference(path)
 
-        elif name == "import":
-            vrFileIO.loadGeometry(path)
+        elif name == "import": #TODO: move to function
+            parent = vrScenegraph.getRootNode()
+            vrFileIOService.importFiles([path], parent)
+
+        elif name == "import_with_options": #TODO: move to function
+            vrGUIService.openImportDialog([path])
 
         elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_publish_data)
             self.import_sceneplate(image_path)
 
-    def execute_multiple_actions(self, actions):
+    def execute_multiple_actions(self, actions): #TODO: make multi-select work
         """
         Executes the specified action on a list of items.
 
@@ -167,7 +184,7 @@ class VredActions(HookBaseClass):
         Each entry will have the following values:
 
             name: Name of the action to execute
-            sg_publish_data: Publish information coming from Shotgun
+            sg_publish_data: Publish information coming from ShotGrid
             params: Parameters passed down from the generate_actions hook.
 
         .. note::
