@@ -203,20 +203,20 @@ class VREDEngine(sgtk.platform.Engine):
             ),
             None,
         )
-        shotgun_action = next(
-            (
-                submenu_action
-                for submenu_action in scripts_action.menu().actions()
-                if submenu_action.text() == "Shotgun"
-            ),
-            None,
-        )
-
-        # Remove the Shotgun entry from the Scripts menu
-        if shotgun_action:
-            shotgun_action.setVisible(False)
-        # Also remove the Scrips menu in VRED Design
         if scripts_action:
+            shotgun_action = next(
+                (
+                    submenu_action
+                    for submenu_action in scripts_action.menu().actions()
+                    if submenu_action.text() == "Shotgun"
+                ),
+                None,
+            )
+
+            # Remove the Shotgun entry from the Scripts menu
+            if shotgun_action:
+                shotgun_action.setVisible(False)
+            # Also remove the Scripts menu in VRED Design
             if os.getenv("TK_VRED_EXECPATH").endswith("VREDDesign.exe"):
                 scripts_action.setVisible(False)
 
