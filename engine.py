@@ -190,24 +190,35 @@ class VREDEngine(sgtk.platform.Engine):
 
     def _hide_menu_in_scripts(self):
         """
-        Remove the entry in the VRED Scripts window
+        Remove the entry in the VRED Scripts menu
+        If running in VRED Design also remove the Scripts menu itself
         """
         main_window = self._get_dialog_parent()
-        menu_names = main_window.menuBar().actions()
+        menu_actions = main_window.menuBar().actions()
+        scripts_action = next(
+            (
+                menu_action
+                for menu_action in menu_actions
+                if menu_action.text() == "Scripts"
+            ),
+            None,
+        )
+        shotgun_action = next(
+            (
+                submenu_action
+                for submenu_action in scripts_action.menu().actions()
+                if submenu_action.text() == "Shotgun"
+            ),
+            None,
+        )
 
-        # Make it invisible for both Pro & Design
-        for menu_name in menu_names:
-            if menu_name.text() == "Scripts":
-                scripts_menu_items = menu_name.menu().actions()
-                for scripts_menu_item in scripts_menu_items:
-                    if scripts_menu_item.text() == "Shotgun":
-                        scripts_menu_item.setVisible(False)
-
-        # Check if it is Design and also "mute" the menu we made
-        if os.getenv("TK_VRED_EXECPATH").endswith("VREDDesign.exe"):
-            for menu_name in menu_names:
-                if menu_name.text() == "Scripts":
-                    menu_name.setVisible(False)
+        # Remove the Shotgun entry from the Scripts menu
+        if shotgun_action:
+            shotgun_action.setVisible(False)
+        # Also remove the Scrips menu in VRED Design
+        if scripts_action:
+            if os.getenv("TK_VRED_EXECPATH").endswith("VREDDesign.exe"):
+                scripts_action.setVisible(False)
 
     def _run_app_instance_commands(self):
         """
