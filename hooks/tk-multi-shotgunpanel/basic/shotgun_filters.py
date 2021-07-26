@@ -15,9 +15,9 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 class VREDShotgunFilters(HookBaseClass):
     """
-    Controls the filter configuration for the Shotgun Panel.
+    Controls the filter configuration for the ShotGrid Panel.
 
-    Via this hook, the data that is retrieved for the Shotgun Panel can be controlled.
+    Via this hook, the data that is retrieved for the ShotGrid Panel can be controlled.
     """
 
     def get_link_filters(self, sg_location, entity_type, context_project, context_user):

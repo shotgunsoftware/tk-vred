@@ -19,7 +19,7 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 class UploadVersionPlugin(HookBaseClass):
     """
-    Plugin for sending quicktimes and images to shotgun for review.
+    Plugin for sending quicktimes and images to ShotGrid for review.
     """
 
     @property
@@ -212,7 +212,7 @@ class UploadVersionPlugin(HookBaseClass):
 
     def _translate_file_to_lmv(self, item):
         """
-        Translate the current Alias file as an LMV package in order to upload it to Shotgun as a 3D Version
+        Translate the current Alias file as an LMV package in order to upload it to ShotGrid as a 3D Version
 
         :param item: Item to process
         :returns:

@@ -70,7 +70,7 @@ class VREDActions(HookBaseClass):
         one object is returned for an action, use the params key to pass additional
         data into the run_action hook.
 
-        :param sg_data: Shotgun data dictionary with all the standard publish fields.
+        :param sg_data: ShotGrid data dictionary with all the standard publish fields.
         :param actions: List of action strings which have been defined in the app configuration.
         :param ui_area: String denoting the UI Area (see above).
         :returns List of dictionaries, each with keys name, params, caption and description
@@ -141,7 +141,7 @@ class VREDActions(HookBaseClass):
 
         :param name: Action name string representing one of the items returned by generate_actions.
         :param params: Params data, as specified by generate_actions.
-        :param sg_data: Shotgun data dictionary with all the standard publish fields.
+        :param sg_data: ShotGrid data dictionary with all the standard publish fields.
         :returns: Dictionary representing an Entity if action requires a context change in the panel,
                   otherwise no return value expected.
         """
@@ -192,7 +192,7 @@ class VREDActions(HookBaseClass):
         Each entry will have the following values:
 
             name: Name of the action to execute
-            sg_data: Publish information coming from Shotgun
+            sg_data: Publish information coming from ShotGrid
             params: Parameters passed down from the generate_actions hook.
 
         .. note::
@@ -278,7 +278,7 @@ class VREDActions(HookBaseClass):
         Find an associated published file from the entity defined by the `sg_data`,
         and load it into VRED.
 
-        :param sg_data: The Shotgun data for the entity to load for review.
+        :param sg_data: The ShotGrid data for the entity to load for review.
         :type sg_data: dict
         :param confirm_action: True will ask the user to confirm executing this action,
                                or False to execute the action immediately.
