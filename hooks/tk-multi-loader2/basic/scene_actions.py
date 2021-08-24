@@ -115,8 +115,12 @@ class VredActions(HookBaseClass):
             )
 
         if "import_with_options" in actions:
-            vred_version = int(self.parent.engine.vred_version.replace(".", ""))
-            if vred_version >= 202210:
+            if (
+                self.parent.engine._version_check(
+                    self.parent.engine.vred_version, "2022.1"
+                )
+                >= 0
+            ):
                 action_instances.append(
                     {
                         "name": "import_with_options",
@@ -127,9 +131,9 @@ class VredActions(HookBaseClass):
                 )
             else:
                 self.logger.debug(
-                    "Not able to add import_with_options to Loader actions."
+                    "Not able to add import_with_options to Loader actions. "
+                    "This capability requires VRED 2022.1 or later."
                 )
-                self.logger.debug("This capability requires VRED 2022.1 or later.")
 
         if "import_sceneplate" in actions:
             action_instances.append(

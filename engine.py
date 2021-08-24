@@ -90,17 +90,21 @@ class VREDEngine(sgtk.platform.Engine):
         # check for version compatibility
         self.vred_version = os.getenv("TK_VRED_VERSION", None)
         self.logger.debug("Running VRED version {}".format(self.vred_version))
-        if int(self.vred_version[0:4]) > self.get_setting(
-            "compatibility_dialog_min_version", 2021
+        if (
+            self._version_check(
+                self.vred_version,
+                str(self.get_setting("compatibility_dialog_min_version")),
+            )
+            >= 0
         ):
             msg = (
                 "The ShotGrid Pipeline Toolkit has not yet been fully tested with VRED {version}. "
                 "You can continue to use the Toolkit but you may experience bugs or "
                 "instability.  Please report any issues you see to {support_url}".format(
-                    version=vred_version, support_url=sgtk.support_url
+                    version=self.vred_version, support_url=sgtk.support_url
                 )
             )
-        elif int(self.vred_version[0:4]) < 2021 and self.get_setting(
+        elif self._version_check(self.vred_version, "2021.0") <= 0 and self.get_setting(
             "compatibility_dialog_old_version"
         ):
             msg = (
@@ -222,6 +226,43 @@ class VREDEngine(sgtk.platform.Engine):
             # Also remove the Scripts menu in VRED Design
             if os.getenv("TK_VRED_EXECPATH").endswith("VREDDesign.exe"):
                 scripts_action.setVisible(False)
+
+    def _version_check(self, version1, version2):
+        """
+        Compare version strings and return 1 if version1 is greater than version2,
+            0 if they are equal and -1 if version1 is less than version2
+        :param version1: A version string to compare against version2 e.g. 2022.2
+        :param version2: A version string to compare against version1 e.g. 2021.3.1
+        :return: 1, 0, -1 as per above.
+        """
+        # This will split both the versions by the '.' character
+        arr1 = version1.split(".")
+        arr2 = version2.split(".")
+        n = len(arr1)
+        m = len(arr2)
+
+        # Converts to integer from string
+        arr1 = [int(i) for i in arr1]
+        arr2 = [int(i) for i in arr2]
+
+        # Compares which list is bigger and fills
+        # the smaller list with zero (for unequal delimeters)
+        if n > m:
+            for i in range(m, n):
+                arr2.append(0)
+        elif m > n:
+            for i in range(n, m):
+                arr1.append(0)
+
+        # Returns 1 if version1 is greater
+        # Returns -1 if version2 is greater
+        # Returns 0 if they are equal
+        for i in range(len(arr1)):
+            if arr1[i] > arr2[i]:
+                return 1
+            elif arr2[i] > arr1[i]:
+                return -1
+        return 0
 
     def _run_app_instance_commands(self):
         """
