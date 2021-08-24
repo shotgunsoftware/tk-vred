@@ -95,7 +95,7 @@ class VREDEngine(sgtk.platform.Engine):
                 self.vred_version,
                 str(self.get_setting("compatibility_dialog_min_version")),
             )
-            >= 0
+            > 0
         ):
             msg = (
                 "The ShotGrid Pipeline Toolkit has not yet been fully tested with VRED {version}. "
@@ -104,7 +104,7 @@ class VREDEngine(sgtk.platform.Engine):
                     version=self.vred_version, support_url=sgtk.support_url
                 )
             )
-        elif self._version_check(self.vred_version, "2021.0") <= 0 and self.get_setting(
+        elif self._version_check(self.vred_version, "2021.0") < 0 and self.get_setting(
             "compatibility_dialog_old_version"
         ):
             msg = (
