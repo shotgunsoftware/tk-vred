@@ -44,6 +44,7 @@ class VREDEngine(sgtk.platform.Engine):
         """
         self._tk_vred = None
         self._menu_generator = None
+        self.vred_version = None
         self._dock_widgets = {}
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
@@ -87,9 +88,11 @@ class VREDEngine(sgtk.platform.Engine):
         self._tk_vred = self.import_module("tk_vred")
 
         # check for version compatibility
-        vred_version = int(vrController.getVredVersionYear())
-        self.logger.debug("Running VRED version {}".format(vred_version))
-        if vred_version > self.get_setting("compatibility_dialog_min_version", 2021):
+        self.vred_version = os.getenv("TK_VRED_VERSION", None)
+        self.logger.debug("Running VRED version {}".format(self.vred_version))
+        if int(self.vred_version[0:4]) > self.get_setting(
+            "compatibility_dialog_min_version", 2021
+        ):
             msg = (
                 "The ShotGrid Pipeline Toolkit has not yet been fully tested with VRED {version}. "
                 "You can continue to use the Toolkit but you may experience bugs or "
@@ -97,14 +100,14 @@ class VREDEngine(sgtk.platform.Engine):
                     version=vred_version, support_url=sgtk.support_url
                 )
             )
-        elif vred_version < 2021 and self.get_setting(
+        elif int(self.vred_version[0:4]) < 2021 and self.get_setting(
             "compatibility_dialog_old_version"
         ):
             msg = (
                 "The ShotGrid Pipeline Toolkit is not fully capable with VRED {version}. "
                 "You should consider upgrading to a more recent version of VRED. "
                 "Please report any issues you see to {support_url}".format(
-                    version=vred_version, support_url=sgtk.support_url
+                    version=self.vred_version, support_url=sgtk.support_url
                 )
             )
             self.logger.warning(msg)

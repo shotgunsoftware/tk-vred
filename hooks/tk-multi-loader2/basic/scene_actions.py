@@ -29,7 +29,6 @@ import vrScenegraph
 
 builtins.vrReferenceService = vrReferenceService
 builtins.vrFileIOService = vrFileIOService
-builtins.vrGUIService = vrGUIService
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -116,15 +115,21 @@ class VredActions(HookBaseClass):
             )
 
         if "import_with_options" in actions:
-            action_instances.append(
-                {
-                    "name": "import_with_options",
-                    "params": None,
-                    "caption": "Open Import Dialog to change options...",
-                    "description": "This will open the Import Options Dialog.",
-                }
-            )
-
+            vred_version = int(self.parent.engine.vred_version.replace(".", ""))
+            if vred_version >= 202210:
+                action_instances.append(
+                    {
+                        "name": "import_with_options",
+                        "params": None,
+                        "caption": "Open Import Dialog to change options...",
+                        "description": "This will open the Import Options Dialog.",
+                    }
+                )
+            else:
+                self.logger.debug(
+                    "Not able to add import_with_options to Loader actions."
+                )
+                self.logger.debug("This capability requires VRED 2022.1 or later.")
 
         if "import_sceneplate" in actions:
             action_instances.append(
@@ -162,18 +167,17 @@ class VredActions(HookBaseClass):
         if name == "smart_reference":
             self.create_smart_reference(path)
 
-        elif name == "import": #TODO: move to function
-            parent = vrScenegraph.getRootNode()
-            vrFileIOService.importFiles([path], parent)
+        elif name == "import":
+            self.import_file(path)
 
-        elif name == "import_with_options": #TODO: move to function
-            vrGUIService.openImportDialog([path])
+        elif name == "import_with_options":
+            self.open_import_dialog(path)
 
         elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_publish_data)
             self.import_sceneplate(image_path)
 
-    def execute_multiple_actions(self, actions): #TODO: make multi-select work
+    def execute_multiple_actions(self, actions):
         """
         Executes the specified action on a list of items.
 
@@ -249,3 +253,17 @@ class VredActions(HookBaseClass):
         ref_node.setSmartPath(path)
         ref_node.load()
         ref_node.setName(ref_name)
+
+    def import_file(self, path):
+        """
+        :param path: Path of file to import
+        """
+        parent = vrScenegraph.getRootNode()
+        vrFileIOService.importFiles([path], parent)
+
+    def open_import_dialog(self, path):
+        """
+        :param path: Path to the file to display import options for
+        """
+        builtins.vrGUIService = vrGUIService
+        vrGUIService.openImportDialog([path])
