@@ -30,11 +30,12 @@ import vrController
 import vrFileDialog
 import vrFileIO
 import vrRenderSettings
+import vrVredUi
 
 
 class VREDEngine(sgtk.platform.Engine):
     """
-    A VRED engine for Shotgun Toolkit.
+    A VRED engine for ShotGrid Toolkit.
     """
 
     def __init__(self, tk, context, engine_instance_name, env):
@@ -68,7 +69,7 @@ class VREDEngine(sgtk.platform.Engine):
 
         self.logger.debug("{}: Initializing...".format(self))
 
-        # unicode characters returned by the shotgun api need to be converted
+        # unicode characters returned by the ShotGrid api need to be converted
         # to display correctly in all of the app windows
         # tell QT to interpret C strings as utf-8
         from sgtk.platform.qt import QtCore, QtGui
@@ -90,16 +91,26 @@ class VREDEngine(sgtk.platform.Engine):
         self.logger.debug("Running VRED version {}".format(vred_version))
         if vred_version > self.get_setting("compatibility_dialog_min_version", 2021):
             msg = (
-                "The SG Pipeline Toolkit has not yet been fully tested with VRED {version}. "
+                "The ShotGrid Pipeline Toolkit has not yet been fully tested with VRED {version}. "
                 "You can continue to use the Toolkit but you may experience bugs or "
                 "instability.  Please report any issues you see to {support_url}".format(
+                    version=vred_version, support_url=sgtk.support_url
+                )
+            )
+        elif vred_version < 2021 and self.get_setting(
+            "compatibility_dialog_old_version"
+        ):
+            msg = (
+                "The ShotGrid Pipeline Toolkit is not fully capable with VRED {version}. "
+                "You should consider upgrading to a more recent version of VRED. "
+                "Please report any issues you see to {support_url}".format(
                     version=vred_version, support_url=sgtk.support_url
                 )
             )
             self.logger.warning(msg)
             QtGui.QMessageBox.warning(
                 self._get_dialog_parent(),
-                "Warning - SG Pipeline Toolkit!",
+                "Warning - ShotGrid Pipeline Toolkit!",
                 msg,
             )
 
@@ -115,6 +126,9 @@ class VREDEngine(sgtk.platform.Engine):
 
         # Run a series of app instance commands at startup.
         self._run_app_instance_commands()
+
+        # Hide the Shotgun entry from the VRED Scripts menu
+        self._hide_menu_in_scripts()
 
     def destroy_engine(self):
         """
@@ -151,7 +165,7 @@ class VREDEngine(sgtk.platform.Engine):
     @property
     def menu_generator(self):
         """
-        Menu generator to help the engine manage the Shotgun menu in VRED.
+        Menu generator to help the engine manage the ShotGrid menu in VRED.
         """
         if self._menu_generator is None:
             self._menu_generator = self._tk_vred.VREDMenuGenerator(engine=self)
@@ -162,10 +176,8 @@ class VREDEngine(sgtk.platform.Engine):
         """
         Get the QWidget parent for all dialogs created through show_dialog & show_modal.
         """
-
         from sgtk.platform.qt import QtGui
         from shiboken2 import wrapInstance
-        import vrVredUi
 
         if six.PY2:
             window = wrapInstance(
@@ -175,6 +187,38 @@ class VREDEngine(sgtk.platform.Engine):
             window = wrapInstance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
 
         return window
+
+    def _hide_menu_in_scripts(self):
+        """
+        Remove the entry in the VRED Scripts menu
+        If running in VRED Design also remove the Scripts menu itself
+        """
+        main_window = self._get_dialog_parent()
+        menu_actions = main_window.menuBar().actions()
+        scripts_action = next(
+            (
+                menu_action
+                for menu_action in menu_actions
+                if menu_action.text() == "Scripts"
+            ),
+            None,
+        )
+        if scripts_action:
+            shotgun_action = next(
+                (
+                    submenu_action
+                    for submenu_action in scripts_action.menu().actions()
+                    if submenu_action.text() == "Shotgun"
+                ),
+                None,
+            )
+
+            # Remove the Shotgun entry from the Scripts menu
+            if shotgun_action:
+                shotgun_action.setVisible(False)
+            # Also remove the Scripts menu in VRED Design
+            if os.getenv("TK_VRED_EXECPATH").endswith("VREDDesign.exe"):
+                scripts_action.setVisible(False)
 
     def _run_app_instance_commands(self):
         """

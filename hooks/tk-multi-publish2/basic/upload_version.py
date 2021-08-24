@@ -17,7 +17,7 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 class VREDUploadVersionPlugin(HookBaseClass):
     """
-    Plugin for sending quicktimes and images to shotgun for review.
+    Plugin for sending quicktimes and images to ShotGrid for review.
 
     This hook relies on functionality found in the base file publisher hook in
     the publish2 app and should inherit from it in the configuration. The hook

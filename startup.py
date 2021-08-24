@@ -63,7 +63,7 @@ class VREDLauncher(SoftwareLauncher):
             args += " -console"
 
         # Register plugins
-        plugin_dir = os.path.join(self.disk_location, "plugins", "ShotGrid")
+        plugin_dir = os.path.join(self.disk_location, "plugins", "Shotgun")
         vred_plugins_dir = os.path.join(os.path.dirname(exec_path), "Scripts")
 
         # be sure to not override the VRED_SCRIPT_PLUGINS environment variable if it's already declared
