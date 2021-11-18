@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Autodesk, Inc.
+# Copyright (c) 2021 Autodesk, Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -25,9 +25,10 @@ import sgtk
 
 from vrKernelServices import vrSceneplateTypes
 from vrKernelServices import vrdSceneplateNode
-import vrFileIO
+import vrScenegraph
 
 builtins.vrReferenceService = vrReferenceService
+builtins.vrFileIOService = vrFileIOService
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -113,6 +114,27 @@ class VredActions(HookBaseClass):
                 }
             )
 
+        if "import_with_options" in actions:
+            if (
+                self.parent.engine._version_check(
+                    self.parent.engine.vred_version, "2022.1"
+                )
+                >= 0
+            ):
+                action_instances.append(
+                    {
+                        "name": "import_with_options",
+                        "params": None,
+                        "caption": "Open Import Dialog to change options...",
+                        "description": "This will open the Import Options Dialog.",
+                    }
+                )
+            else:
+                self.logger.debug(
+                    "Not able to add import_with_options to Loader actions. "
+                    "This capability requires VRED 2022.1 or later."
+                )
+
         if "import_sceneplate" in actions:
             action_instances.append(
                 {
@@ -150,7 +172,10 @@ class VredActions(HookBaseClass):
             self.create_smart_reference(path)
 
         elif name == "import":
-            vrFileIO.loadGeometry(path)
+            self.import_file(path)
+
+        elif name == "import_with_options":
+            self.open_import_dialog(path)
 
         elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_publish_data)
@@ -232,3 +257,17 @@ class VredActions(HookBaseClass):
         ref_node.setSmartPath(path)
         ref_node.load()
         ref_node.setName(ref_name)
+
+    def import_file(self, path):
+        """
+        :param path: Path of file to import
+        """
+        parent = vrScenegraph.getRootNode()
+        vrFileIOService.importFiles([path], parent)
+
+    def open_import_dialog(self, path):
+        """
+        :param path: Path to the file to display import options for
+        """
+        builtins.vrGUIService = vrGUIService
+        vrGUIService.openImportDialog([path])

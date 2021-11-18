@@ -92,6 +92,10 @@ class VREDLauncher(SoftwareLauncher):
         # Add VRED executable path as an environment variable to be used by the translators
         required_env["TK_VRED_EXECPATH"] = exec_path
 
+        # Add VRED version to control API imports in hooks
+        raw_version = _get_windows_version(exec_path, self.logger)
+        required_env["TK_VRED_VERSION"] = self._map_version_year(raw_version)
+
         return LaunchInformation(exec_path, args, required_env)
 
     def scan_software(self):
