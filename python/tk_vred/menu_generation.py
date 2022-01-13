@@ -39,9 +39,8 @@ class VREDMenuGenerator(object):
         The menu favourites, in sorted order by name.
         """
 
-        if self._menu_favourites is None:
-            self._menu_favourites = self._engine.get_setting("menu_favourites", [])
-            self._menu_favourites.sort(key=lambda f: f["name"])
+        self._menu_favourites = self._engine.get_setting("menu_favourites", [])
+        self._menu_favourites.sort(key=lambda f: f["name"])
 
         return self._menu_favourites
 
