@@ -138,14 +138,19 @@ class VREDMenuGenerator(object):
 
     def clean_menu(self):
         """
-        Remove ShotGrid root menu in VRED, if it exists.
+        Remove ShotGrid root menu in VRED, if it exists and
+        clear the menu_favourites property.
         """
 
         if self._root_menu is not None:
-            self._engine.logger.debug("{}: Clean up menu".format(self))
+            self._engine.logger.debug("{}: Clean up root menu".format(self))
 
             self._root_menu.clean()
             self._root_menu = None
+
+        if self._menu_favourites is not None:
+            self._engine.logger.debug("{}: Clean up favourites menu".format(self))
+            self._menu_favourites = None
 
     def _create_context_menu(self):
         """
