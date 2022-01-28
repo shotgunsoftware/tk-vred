@@ -109,43 +109,6 @@ class UploadVersionPlugin(HookBaseClass):
         """
         return ["vred.session"]
 
-    @property
-    def description(self):
-        """
-        Verbose, multi-line description of what the plugin does (:class:`str`).
-
-        The string can contain html for formatting for display in the UI (any
-        html tags supported by Qt's rich text engine).
-
-        The description is displayed via the plugin's default
-        :meth:`create_settings_widget` implementation, as shown in the image
-        below:
-
-        .. image:: ./resources/plugin_description.png
-
-        |
-
-        A simple implementation example:
-
-        .. code-block:: python
-
-            @property
-            def description(self):
-
-                return '''
-                Creates a publish in Shotgun.
-
-                A <b>Publish</b> entry will be created in Shotgun which will
-                include a reference to the file's path on disk. Other users will
-                be able to access the published file via the
-                <b><a href='%s'>Loader</a></b> so long as they have access to
-                the file's location on disk.
-                ''' % (loader_url,)
-
-        """
-
-        return self.VERSION_TYPE_DESCRIPTIONS[self.VERSION_TYPE_2D]
-
     def accept(self, settings, item):
         """
         Method called by the publisher to determine if an item is of any
