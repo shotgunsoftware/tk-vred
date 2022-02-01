@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Autodesk, Inc.
 
 from sgtk.platform.qt import QtCore, QtGui
+from tank_vendor import six
 
 
 class DockWidget(QtGui.QDockWidget):
@@ -17,7 +18,23 @@ class DockWidget(QtGui.QDockWidget):
     for docking widgets within VRED.
     """
 
-    def __init__(self, title, main_window, widget_id, widget, closable, dock_area=None):
+    POSITIONS = {
+        "right": QtCore.Qt.RightDockWidgetArea,
+        "left": QtCore.Qt.LeftDockWidgetArea,
+        "top": QtCore.Qt.TopDockWidgetArea,
+        "bottom": QtCore.Qt.BottomDockWidgetArea,
+    }
+
+    def __init__(
+        self,
+        title,
+        main_window,
+        widget_id,
+        widget,
+        closable,
+        dock_area=None,
+        tabbed=False,
+    ):
         """
         Constructor calls the parent constructor and then sets up and performs any
         custom functionality.
@@ -27,6 +44,16 @@ class DockWidget(QtGui.QDockWidget):
 
         self._widget_id = widget_id
         self._closable = closable
+        self._tabbed = tabbed
+
+        if dock_area is None:
+            self._dock_area = QtCore.Qt.RightDockWidgetArea
+        elif isinstance(dock_area, six.string_types):
+            self._dock_area = self.POSITIONS.get(
+                dock_area, QtCore.Qt.RightDockWidgetArea
+            )
+        else:
+            self._dock_area = dock_area
 
         if not closable:
             # Hide the close button while the widget is docked. On some OS platforms,
@@ -35,7 +62,6 @@ class DockWidget(QtGui.QDockWidget):
             self.setFeatures(self.features() & ~QtGui.QDockWidget.DockWidgetClosable)
 
         self.setWidget(widget)
-        self.dock_to_parent()
 
     @property
     def widget_id(self):
@@ -54,12 +80,28 @@ class DockWidget(QtGui.QDockWidget):
         return self._closable
 
     @property
-    def default_dock_area(self):
+    def dock_area(self):
         """
-        Get the default docking area.
+        Get or set the docking area for this widget.
         """
 
-        return QtCore.Qt.RightDockWidgetArea
+        return self._dock_area
+
+    @dock_area.setter
+    def dock_area(self, value):
+        self._dock_area = value
+
+    @property
+    def tabbed(self):
+        """
+        Get or set the flag indicating if the widget is tabbed when docked.
+        """
+
+        return self._tabbed
+
+    @tabbed.setter
+    def tabbed(self, value):
+        self._tabbed = value
 
     def closeEvent(self, event):
         """
@@ -78,21 +120,24 @@ class DockWidget(QtGui.QDockWidget):
             event.ignore()
             self.setFloating(False)
 
-    def reinitialize(self, title, widget, dock_area=None):
+    def reinitialize(self, title, widget, dock_with_widget=None):
         """
         Re-set the title and child widget, and add the dock widget to the main window.
         """
 
-        dock_area = dock_area or self.default_dock_area
         self.setWindowTitle(title)
         self.setWidget(widget)
-        self.dock_to_parent(dock_area)
+        self.dock_to_parent(dock_with_widget)
 
-    def dock_to_parent(self, dock_area=None):
+    def dock_to_parent(self, tabify_widget=None):
         """
         Convenience method to dock the widget to its parent widget.
         """
 
-        self.parentWidget().addDockWidget(dock_area or self.default_dock_area, self)
+        if tabify_widget and self.tabbed:
+            self.parentWidget().tabifyDockWidget(tabify_widget, self)
+        else:
+            self.parentWidget().addDockWidget(self.dock_area, self)
+
         # Show dock with minimum width
         self.parentWidget().resizeDocks([self], [0], QtCore.Qt.Horizontal)
