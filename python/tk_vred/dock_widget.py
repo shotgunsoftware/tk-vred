@@ -120,18 +120,28 @@ class DockWidget(QtGui.QDockWidget):
             event.ignore()
             self.setFloating(False)
 
-    def reinitialize(self, title, widget, dock_with_widget=None):
+    def reinitialize(self, title, widget, tabify_widget=None):
         """
         Re-set the title and child widget, and add the dock widget to the main window.
+
+        :param title: the title to display on the dock widget
+        :type title: str
+        :param widget: the widget to set for this dock widget
+        :type widget: QtGui.QWidget
+        :param tabify_widget: (optional) the widget to put in a tab group with this dock widget
+        :type tabify_widget: DockWidget
         """
 
         self.setWindowTitle(title)
         self.setWidget(widget)
-        self.dock_to_parent(dock_with_widget)
+        self.dock_to_parent(tabify_widget)
 
     def dock_to_parent(self, tabify_widget=None):
         """
         Convenience method to dock the widget to its parent widget.
+
+        :param tabify_widget: (optional) the widget to put in a tab group with this dock widget
+        :type tabify_widget: DockWidget
         """
 
         if tabify_widget and self.tabbed:
