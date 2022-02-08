@@ -154,7 +154,7 @@ class VREDEngine(sgtk.platform.Engine):
         self._dock_widgets.clear()
         self._tabbed_dock_widgets.clear()
 
-        # Close all Shotgun app dialogs that are still opened since
+        # Close all ShotGrid app dialogs that are still opened since
         # some apps do threads cleanup in their onClose event handler
         # Note that this function is called when the engine is restarted (through "Reload Engine and Apps")
 
