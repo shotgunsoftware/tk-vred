@@ -46,6 +46,7 @@ class VREDEngine(sgtk.platform.Engine):
         self._menu_generator = None
         self.vred_version = None
         self._dock_widgets = {}
+        self._tabbed_dock_widgets = {}
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
 
@@ -151,8 +152,9 @@ class VREDEngine(sgtk.platform.Engine):
             widget.deleteLater()
             widget = None
         self._dock_widgets.clear()
+        self._tabbed_dock_widgets.clear()
 
-        # Close all Shotgun app dialogs that are still opened since
+        # Close all ShotGrid app dialogs that are still opened since
         # some apps do threads cleanup in their onClose event handler
         # Note that this function is called when the engine is restarted (through "Reload Engine and Apps")
 
@@ -571,7 +573,8 @@ class VREDEngine(sgtk.platform.Engine):
 
         :returns: the created widget_class instance
         """
-        from sgtk.platform.qt import QtGui
+
+        from sgtk.platform.qt import QtCore, QtGui
 
         self.logger.debug("Begin showing panel {}".format(panel_id))
 
@@ -601,7 +604,12 @@ class VREDEngine(sgtk.platform.Engine):
                 title, bundle, widget_class, *args, **kwargs
             )
 
-        self.show_dock_widget(panel_id, title, widget_instance)
+        dock_properties = self.get_setting("docked_apps", {}).get(bundle.name, {})
+        dock_area = dock_properties.get("pos", None)
+        tabbed = dock_properties.get("tabbed", False)
+        self.show_dock_widget(
+            panel_id, title, widget_instance, dock_area=dock_area, tabbed=tabbed
+        )
 
         # Return the widget created by the method, _create_dialog_with_widget, since this will
         # have the widget_class type expected by the caller. This widget represents the panel
@@ -609,7 +617,7 @@ class VREDEngine(sgtk.platform.Engine):
         widget_instance.setObjectName(panel_id)
         return widget_instance
 
-    def show_dock_widget(self, panel_id, title, widget, dock_area=None):
+    def show_dock_widget(self, panel_id, title, widget, dock_area=None, tabbed=False):
         """
         Create a dock widget managed by the VRED engine, if one has not yet been created. Set the
         widget to show in the dock widget and add it to the VRED dock area.
@@ -621,6 +629,15 @@ class VREDEngine(sgtk.platform.Engine):
 
         dock_widget = self._dock_widgets.get(panel_id, None)
 
+        tabify_widget = None
+        if tabbed:
+            # This dock widget is tabbed, find the (if any) existing docked widgets
+            # in the dock_area to tabify (e.g. add to same dock area and toggle
+            # between widgets with tab bar).
+            tabbed_widets_in_pos = self._tabbed_dock_widgets.get(dock_area, [])
+            if tabbed_widets_in_pos:
+                tabify_widget = tabbed_widets_in_pos[-1]
+
         if dock_widget is None:
             dock_widget = self._tk_vred.DockWidget(
                 title,
@@ -630,12 +647,20 @@ class VREDEngine(sgtk.platform.Engine):
                 self.menu_generator.root_menu
                 is not None,  # closable if there is a menu to reopen it
                 dock_area,
+                tabbed,
             )
             dock_widget.setMinimumWidth(400)
-            self._dock_widgets[panel_id] = dock_widget
 
+            # Keep track of the dock widget
+            self._dock_widgets[panel_id] = dock_widget
+            # If the dock widget is tabbed, keep track of it by dock position in order
+            # to tabify with other dock widgets
+            if tabbed:
+                self._tabbed_dock_widgets.setdefault(dock_area, []).append(dock_widget)
+
+            dock_widget.dock_to_parent(tabify_widget)
         else:
-            dock_widget.reinitialize(title, widget)
+            dock_widget.reinitialize(title, widget, tabify_widget)
 
         dock_widget.show()
 

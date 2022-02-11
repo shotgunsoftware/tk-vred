@@ -53,6 +53,17 @@ configuration:
         default_value: [ VRED Scene, Alias File, Catpart File, Jt File, Igs File ]
         description: "A list of PublishedFileTypes that are allowed for review with VRED."
 
+    docked_apps:
+        description: "Specify (docking related) properties for docked Apps. This is a dictionary where
+                      each key is the name of the Toolkit App (e.g. tk-multi-shotunpanel) and values
+                      are a dictionary with two keys: 'pos' and 'tabbed'. The 'pos' value is a str, and
+                      must be one of: 'left', 'right', 'top', 'bottom', which indicates the dock area
+                      for the App. The 'tabbed' value is a bool, which indicates whether the docked App
+                      should be tabified with other docked widgets or not."
+        allows_empty: True
+        type: dict
+        default_value: {}
+
 
 # the ShotGrid fields that this engine needs in order to operate correctly
 requires_shotgun_fields:
