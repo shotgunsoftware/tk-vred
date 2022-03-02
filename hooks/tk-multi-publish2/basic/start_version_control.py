@@ -134,7 +134,8 @@ class VREDStartVersionControlPlugin(HookBaseClass):
             # provide a save button. the session will need to be saved before
             # validation will succeed.
             self.logger.warn(
-                "The VRED session has not been saved.", extra=_get_save_as_action()
+                "The VRED session has not been saved.",
+                extra=sgtk.platform.current_engine().open_save_as_dialog,
             )
 
         self.logger.info(
@@ -167,7 +168,9 @@ class VREDStartVersionControlPlugin(HookBaseClass):
             # the session still requires saving. provide a save button.
             # validation fails
             error_msg = "The VRED session has not been saved."
-            self.logger.error(error_msg, extra=_get_save_as_action())
+            self.logger.error(
+                error_msg, extra=sgtk.platform.current_engine().open_save_as_dialog
+            )
             raise Exception(error_msg)
 
         # NOTE: If the plugin is attached to an item, that means no version
@@ -183,7 +186,9 @@ class VREDStartVersionControlPlugin(HookBaseClass):
                 "A file already exists with a version number. Please "
                 "choose another name."
             )
-            self.logger.error(error_msg, extra=_get_save_as_action())
+            self.logger.error(
+                error_msg, extra=sgtk.platform.current_engine().open_save_as_dialog
+            )
             raise Exception(error_msg)
 
         return True
@@ -265,24 +270,6 @@ class VREDStartVersionControlPlugin(HookBaseClass):
             version_number = publisher.util.get_version_number(path)
 
         return version_number
-
-
-def _get_save_as_action():
-    """
-
-    Simple helper for returning a log action dict for saving the session
-    """
-
-    engine = sgtk.platform.current_engine()
-    callback = engine.open_save_as_dialog
-
-    return {
-        "action_button": {
-            "label": "Save As...",
-            "tooltip": "Save the current session",
-            "callback": callback,
-        }
-    }
 
 
 def _get_version_docs_action():
