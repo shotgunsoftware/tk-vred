@@ -299,19 +299,29 @@ class VREDSessionPublishPlugin(HookBaseClass):
             instances.
         :param item: Item to process
         """
+
+        # get the publish "mode" stored inside of the root item properties
+        bg_processing = item.parent.properties.get("bg_processing", False)
+        in_bg_process = item.parent.properties.get("in_bg_process", False)
+
         # get the path in a normalized state. no trailing separator, separators
         # are appropriate for current os, no double separators, etc.
         session_path = vrFileIO.getFileIOFilePath()
         path = sgtk.util.ShotgunPath.normalize(session_path)
 
         # ensure the session is saved
-        self.save_file(path)
+        if not bg_processing or (bg_processing and not in_bg_process):
+            self.save_file(path)
+            if "session_path" not in item.parent.properties:
+                item.parent.properties["session_path"] = path
 
         # update the item with the saved session path
         item.properties["path"] = path
 
-        # let the base class register the publish
-        super(VREDSessionPublishPlugin, self).publish(settings, item)
+        if not bg_processing or (bg_processing and in_bg_process):
+
+            # let the base class register the publish
+            super(VREDSessionPublishPlugin, self).publish(settings, item)
 
     def finalize(self, settings, item):
         """
@@ -323,11 +333,18 @@ class VREDSessionPublishPlugin(HookBaseClass):
             instances.
         :param item: Item to process
         """
-        # do the base class finalization
-        super(VREDSessionPublishPlugin, self).finalize(settings, item)
+
+        # get the publish "mode" stored inside of the root item properties
+        bg_processing = item.parent.properties.get("bg_processing", False)
+        in_bg_process = item.parent.properties.get("in_bg_process", False)
+
+        if not bg_processing or (bg_processing and in_bg_process):
+            # do the base class finalization
+            super(VREDSessionPublishPlugin, self).finalize(settings, item)
 
         # bump the session file to the next version
-        self._save_to_next_version(item.properties["path"], item, self.save_file)
+        if not bg_processing or (bg_processing and not in_bg_process):
+            self._save_to_next_version(item.properties["path"], item, self.save_file)
 
     def save_file(self, path):
         """
