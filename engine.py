@@ -105,6 +105,12 @@ class VREDEngine(sgtk.platform.Engine):
                     version=self.vred_version, support_url=sgtk.support_url
                 )
             )
+            self.logger.warning(msg)
+            QtGui.QMessageBox.warning(
+                self._get_dialog_parent(),
+                "Warning - ShotGrid Pipeline Toolkit!",
+                msg,
+            )
         elif self._version_check(self.vred_version, "2021.0") < 0 and self.get_setting(
             "compatibility_dialog_old_version"
         ):
