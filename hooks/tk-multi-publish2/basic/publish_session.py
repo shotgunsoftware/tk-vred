@@ -176,7 +176,8 @@ class VREDSessionPublishPlugin(HookBaseClass):
             # provide a save button. the session will need to be saved before
             # validation will succeed.
             self.logger.warn(
-                "The VRED session has not been saved.", extra=_get_save_as_action()
+                "The VRED session has not been saved.",
+                extra=sgtk.platform.current_engine().open_save_as_dialog,
             )
 
         self.logger.info(
@@ -204,7 +205,9 @@ class VREDSessionPublishPlugin(HookBaseClass):
             # the session still requires saving. provide a save button.
             # validation fails.
             error_msg = "The VRED session has not been saved."
-            self.logger.error(error_msg, extra=_get_save_as_action())
+            self.logger.error(
+                error_msg, extra=sgtk.platform.current_engine().open_save_as_dialog
+            )
             raise Exception(error_msg)
 
         # ---- check the session against any attached work template
@@ -220,19 +223,19 @@ class VREDSessionPublishPlugin(HookBaseClass):
         work_template = item.properties.get("work_template")
         if work_template:
             if not work_template.validate(path):
+                error_msg = "The current session does not match the configured work file template."
                 self.logger.warning(
-                    "The current session does not match the configured work "
-                    "file template.",
+                    error_msg,
                     extra={
                         "action_button": {
                             "label": "Save File",
                             "tooltip": "Save the current VRED session to a "
                             "different file name",
-                            # will launch wf2 if configured
-                            "callback": _get_save_as_action(),
+                            "callback": sgtk.platform.current_engine().open_save_as_dialog,
                         }
                     },
                 )
+                raise Exception(error_msg)
             else:
                 self.logger.debug("Work template configured and matches session file.")
         else:
@@ -334,20 +337,3 @@ class VREDSessionPublishPlugin(HookBaseClass):
         """
 
         self.parent.engine.save_current_file(path)
-
-
-def _get_save_as_action():
-    """
-    Simple helper for returning a log action dict for saving the session
-    """
-
-    engine = sgtk.platform.current_engine()
-    callback = engine.open_save_as_dialog
-
-    return {
-        "action_button": {
-            "label": "Save As...",
-            "tooltip": "Save the current session",
-            "callback": callback,
-        }
-    }
