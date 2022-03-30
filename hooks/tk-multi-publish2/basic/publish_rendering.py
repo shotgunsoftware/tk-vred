@@ -148,8 +148,8 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
         """
 
         # get the publish "mode" stored inside of the root item properties
-        bg_processing = item.parent.properties.get("bg_processing", False)
-        in_bg_process = item.parent.properties.get("in_bg_process", False)
+        bg_processing = item.parent.parent.properties.get("bg_processing", False)
+        in_bg_process = item.parent.parent.properties.get("in_bg_process", False)
 
         if not bg_processing or (bg_processing and in_bg_process):
 
@@ -168,8 +168,8 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
         """
 
         # get the publish "mode" stored inside of the root item properties
-        bg_processing = item.parent.properties.get("bg_processing", False)
-        in_bg_process = item.parent.properties.get("in_bg_process", False)
+        bg_processing = item.parent.parent.properties.get("bg_processing", False)
+        in_bg_process = item.parent.parent.properties.get("in_bg_process", False)
 
         if not bg_processing or (bg_processing and in_bg_process):
             # do the base class finalization
