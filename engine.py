@@ -50,6 +50,19 @@ class VREDEngine(sgtk.platform.Engine):
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
 
+    @property
+    def has_ui(self):
+        """
+        Detect and return if VRED is running in interactive/non-interactive mode
+        """
+        # for now, we don't have a method in VRED to get the execution mode
+        # so, we're assuming that if we can't access to the menubar, we're running VRED in non-ui mode
+        menubar = self._get_dialog_parent().menuBar()
+        if menubar and menubar.isVisible() and menubar.isEnabled():
+            return True
+        else:
+            return False
+
     def post_context_change(self, old_context, new_context):
         """
         Runs after a context change has occurred.
@@ -61,7 +74,8 @@ class VREDEngine(sgtk.platform.Engine):
         self.logger.debug("{}: Post context change...".format(self))
 
         # Rebuild the menu on context change.
-        self.menu_generator.create_menu()
+        if self.has_ui:
+            self.menu_generator.create_menu()
 
     def pre_app_init(self):
         """
@@ -82,8 +96,9 @@ class VREDEngine(sgtk.platform.Engine):
 
         # Temporarily monkey patch QToolButton and QMenu to resolve a Qt 5.15.0 bug (seems that it will fixed in 5.15.1)
         # where QToolButton menu will open only on primary screen.
-        self._monkey_patch_qtoolbutton()
-        self._monkey_patch_qmenu()
+        if self.has_ui:
+            self._monkey_patch_qtoolbutton()
+            self._monkey_patch_qmenu()
 
         # import python/tk_vred module
         self._tk_vred = self.import_module("tk_vred")
@@ -105,6 +120,13 @@ class VREDEngine(sgtk.platform.Engine):
                     version=self.vred_version, support_url=sgtk.support_url
                 )
             )
+            self.logger.warning(msg)
+            if self.has_ui:
+                QtGui.QMessageBox.warning(
+                    self._get_dialog_parent(),
+                    "Warning - ShotGrid Pipeline Toolkit!",
+                    msg,
+                )
         elif self._version_check(self.vred_version, "2021.0") < 0 and self.get_setting(
             "compatibility_dialog_old_version"
         ):
@@ -116,11 +138,12 @@ class VREDEngine(sgtk.platform.Engine):
                 )
             )
             self.logger.warning(msg)
-            QtGui.QMessageBox.warning(
-                self._get_dialog_parent(),
-                "Warning - ShotGrid Pipeline Toolkit!",
-                msg,
-            )
+            if self.has_ui:
+                QtGui.QMessageBox.warning(
+                    self._get_dialog_parent(),
+                    "Warning - ShotGrid Pipeline Toolkit!",
+                    msg,
+                )
 
     def post_app_init(self):
         """
@@ -130,13 +153,15 @@ class VREDEngine(sgtk.platform.Engine):
         self.logger.debug("{}: Post Initializing...".format(self))
 
         # Init menu
-        self.menu_generator.create_menu(clean_menu=False)
+        if self.has_ui:
+            self.menu_generator.create_menu(clean_menu=False)
 
         # Run a series of app instance commands at startup.
         self._run_app_instance_commands()
 
         # Hide the Shotgun entry from the VRED Scripts menu
-        self._hide_menu_in_scripts()
+        if self.has_ui:
+            self._hide_menu_in_scripts()
 
     def destroy_engine(self):
         """
@@ -145,8 +170,9 @@ class VREDEngine(sgtk.platform.Engine):
         self.logger.debug("{}: Destroying...".format(self))
 
         # Clean up the menu and clear the menu generator
-        self.menu_generator.clean_menu()
-        self._menu_generator = None
+        if self.has_ui:
+            self.menu_generator.clean_menu()
+            self._menu_generator = None
 
         for widget in self._dock_widgets.values():
             widget.deleteLater()
