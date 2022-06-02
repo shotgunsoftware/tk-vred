@@ -136,3 +136,41 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
             return False
 
         return super(VREDSessionRenderingPublishPlugin, self).validate(settings, item)
+
+    def publish(self, settings, item):
+        """
+        Executes the publish logic for the given item and settings.
+
+        :param settings: Dictionary of Settings. The keys are strings, matching
+            the keys returned in the settings property. The values are `Setting`
+            instances.
+        :param item: Item to process
+        """
+
+        # get the publish "mode" stored inside of the root item properties
+        bg_processing = item.parent.parent.properties.get("bg_processing", False)
+        in_bg_process = item.parent.parent.properties.get("in_bg_process", False)
+
+        if not bg_processing or (bg_processing and in_bg_process):
+
+            # let the base class register the publish
+            super(VREDSessionRenderingPublishPlugin, self).publish(settings, item)
+
+    def finalize(self, settings, item):
+        """
+        Execute the finalization pass. This pass executes once all the publish
+        tasks have completed, and can for example be used to version up files.
+
+        :param settings: Dictionary of Settings. The keys are strings, matching
+            the keys returned in the settings property. The values are `Setting`
+            instances.
+        :param item: Item to process
+        """
+
+        # get the publish "mode" stored inside of the root item properties
+        bg_processing = item.parent.parent.properties.get("bg_processing", False)
+        in_bg_process = item.parent.parent.properties.get("in_bg_process", False)
+
+        if not bg_processing or (bg_processing and in_bg_process):
+            # do the base class finalization
+            super(VREDSessionRenderingPublishPlugin, self).finalize(settings, item)
