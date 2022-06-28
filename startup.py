@@ -334,7 +334,14 @@ def _get_windows_version(full_path, logger):
     """
     Use `wmic` to determine the installed version of VRED
     """
+
     version = "0.0.0.0"
+
+    # define some startup info to be able to run the command in a silent mode
+    startup_info = subprocess.STARTUPINFO()
+    startup_info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startup_info.wShowWindow |= subprocess.SW_HIDE
+
     try:
         version_command = subprocess.check_output(
             [
@@ -345,7 +352,8 @@ def _get_windows_version(full_path, logger):
                 "get",
                 "Version",
                 "/value",
-            ]
+            ],
+            startupinfo=startup_info
         )
 
     except subprocess.CalledProcessError:
@@ -358,7 +366,7 @@ def _get_windows_version(full_path, logger):
             "Version" + " "
             "/value"
         )
-        version_command = subprocess.check_output(command_string)
+        version_command = subprocess.check_output(command_string, startupinfo=startup_info)
 
     finally:
         logger.debug("Could not determine version using `wmic`.")
