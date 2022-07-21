@@ -63,6 +63,15 @@ class DockWidget(QtGui.QDockWidget):
 
         self.setWidget(widget)
 
+    def __eq__(self, other):
+        """
+        Override the equality operator to compare dock widgets.
+
+        A dock widget is equal to another dock widget if they have the same widget id.
+        """
+
+        return self.widget_id == other.widget_id
+
     @property
     def widget_id(self):
         """
