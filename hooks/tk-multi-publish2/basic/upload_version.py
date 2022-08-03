@@ -81,14 +81,39 @@ class VREDUploadVersionPlugin(HookBaseClass):
         :param item: Item to process
         """
 
-        publisher = self.parent
-        path = item.properties["path"]
+        # get the publish "mode" stored inside of the root item properties
+        bg_processing = item.parent.parent.properties.get("bg_processing", False)
+        in_bg_process = item.parent.parent.properties.get("in_bg_process", False)
 
-        # be sure to strip the extension from the publish name
-        path_components = publisher.util.get_file_path_components(path)
-        filename = path_components["filename"]
-        (publish_name, extension) = os.path.splitext(filename)
-        item.properties["publish_name"] = publish_name
+        if not bg_processing or (bg_processing and in_bg_process):
 
-        # create the Version in Shotgun
-        super(VREDUploadVersionPlugin, self).publish(settings, item)
+            publisher = self.parent
+            path = item.properties["path"]
+
+            # be sure to strip the extension from the publish name
+            path_components = publisher.util.get_file_path_components(path)
+            filename = path_components["filename"]
+            (publish_name, extension) = os.path.splitext(filename)
+            item.properties["publish_name"] = publish_name
+
+            # create the Version in Shotgun
+            super(VREDUploadVersionPlugin, self).publish(settings, item)
+
+    def finalize(self, settings, item):
+        """
+        Execute the finalization pass. This pass executes once all the publish
+        tasks have completed, and can for example be used to version up files.
+
+        :param settings: Dictionary of Settings. The keys are strings, matching
+            the keys returned in the settings property. The values are `Setting`
+            instances.
+        :param item: Item to process
+        """
+
+        # get the publish "mode" stored inside of the root item properties
+        bg_processing = item.parent.parent.properties.get("bg_processing", False)
+        in_bg_process = item.parent.parent.properties.get("in_bg_process", False)
+
+        if not bg_processing or (bg_processing and in_bg_process):
+            # do the base class finalization
+            super(VREDUploadVersionPlugin, self).finalize(settings, item)

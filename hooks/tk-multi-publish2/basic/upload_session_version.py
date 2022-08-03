@@ -189,77 +189,101 @@ class UploadVersionPlugin(HookBaseClass):
         :param item: Item to process
         """
 
-        publisher = self.parent
-        path = item.properties["path"]
+        # get the publish "mode" stored inside of the root item properties
+        bg_processing = item.parent.properties.get("bg_processing", False)
+        in_bg_process = item.parent.properties.get("in_bg_process", False)
 
-        # be sure to strip the extension from the publish name
-        path_components = publisher.util.get_file_path_components(path)
-        filename = path_components["filename"]
-        (publish_name, extension) = os.path.splitext(filename)
-        item.properties["publish_name"] = publish_name
+        if not bg_processing or (bg_processing and in_bg_process):
 
-        # create the Version in Shotgun
-        super(UploadVersionPlugin, self).publish(settings, item)
+            publisher = self.parent
+            path = item.properties["path"]
 
-        # Get the version type to create
-        version_type = settings.get("Version Type").value
+            # be sure to strip the extension from the publish name
+            path_components = publisher.util.get_file_path_components(path)
+            filename = path_components["filename"]
+            (publish_name, extension) = os.path.splitext(filename)
+            item.properties["publish_name"] = publish_name
 
-        # generate the Version content: LMV file (for 3D) or simple 2D thumbnail
-        if version_type == self.VERSION_TYPE_3D:
-            self.logger.debug("Creating LMV files from source file")
-            # translate the file to lmv and upload the corresponding package to the Version
-            (
-                package_path,
-                thumbnail_path,
-                output_directory,
-            ) = self._translate_file_to_lmv(item)
-            self.logger.debug("Uploading LMV file to ShotGrid")
-            self.parent.shotgun.update(
-                entity_type="Version",
-                entity_id=item.properties["sg_version_data"]["id"],
-                data={"sg_translation_type": "LMV"},
-            )
-            self.parent.shotgun.upload(
-                entity_type="Version",
-                entity_id=item.properties["sg_version_data"]["id"],
-                path=package_path,
-                field_name="sg_uploaded_movie",
-            )
-            # if the Version thumbnail is empty, update it with the newly created thumbnail
-            if not item.get_thumbnail_as_path() and thumbnail_path:
-                self.parent.shotgun.upload_thumbnail(
+            # create the Version in Shotgun
+            super(UploadVersionPlugin, self).publish(settings, item)
+
+            # Get the version type to create
+            version_type = settings.get("Version Type").value
+
+            # generate the Version content: LMV file (for 3D) or simple 2D thumbnail
+            if version_type == self.VERSION_TYPE_3D:
+                self.logger.debug("Creating LMV files from source file")
+                # translate the file to lmv and upload the corresponding package to the Version
+                (
+                    package_path,
+                    thumbnail_path,
+                    output_directory,
+                ) = self._translate_file_to_lmv(item)
+                self.logger.debug("Uploading LMV file to ShotGrid")
+                self.parent.shotgun.update(
+                    entity_type="Version",
+                    entity_id=item.properties["sg_version_data"]["id"],
+                    data={"sg_translation_type": "LMV"},
+                )
+                self.parent.shotgun.upload(
+                    entity_type="Version",
+                    entity_id=item.properties["sg_version_data"]["id"],
+                    path=package_path,
+                    field_name="sg_uploaded_movie",
+                )
+                # if the Version thumbnail is empty, update it with the newly created thumbnail
+                if not item.get_thumbnail_as_path() and thumbnail_path:
+                    self.parent.shotgun.upload_thumbnail(
+                        entity_type="Version",
+                        entity_id=item.properties["sg_version_data"]["id"],
+                        path=thumbnail_path,
+                    )
+                # delete the temporary folder on disk
+                self.logger.debug("Deleting temporary folder")
+                shutil.rmtree(output_directory)
+
+            elif version_type == self.VERSION_TYPE_2D:
+                thumbnail_path = item.get_thumbnail_as_path()
+                if not thumbnail_path:
+                    self.logger.debug(
+                        "Using VRED api to take a thumbnail for the current scene."
+                    )
+                    thumbnail_path = tempfile.NamedTemporaryFile(
+                        suffix=".jpg", prefix="sgtk_thumb", delete=False
+                    ).name
+                    vrMovieExport.createSnapshotFastInit(800, 600)
+                    vrMovieExport.createSnapshotFast(thumbnail_path)
+                    vrMovieExport.createSnapshotFastTerminate()
+                self.parent.shotgun.upload(
                     entity_type="Version",
                     entity_id=item.properties["sg_version_data"]["id"],
                     path=thumbnail_path,
+                    field_name="sg_uploaded_movie",
                 )
-            # delete the temporary folder on disk
-            self.logger.debug("Deleting temporary folder")
-            shutil.rmtree(output_directory)
+            else:
+                raise NotImplementedError(
+                    "Failed to generate thumbnail for Version Type '{}'".format(
+                        version_type
+                    )
+                )
 
-        elif version_type == self.VERSION_TYPE_2D:
-            thumbnail_path = item.get_thumbnail_as_path()
-            if not thumbnail_path:
-                self.logger.debug(
-                    "Using VRED api to take a thumbnail for the current scene."
-                )
-                thumbnail_path = tempfile.NamedTemporaryFile(
-                    suffix=".jpg", prefix="sgtk_thumb", delete=False
-                ).name
-                vrMovieExport.createSnapshotFastInit(800, 600)
-                vrMovieExport.createSnapshotFast(thumbnail_path)
-                vrMovieExport.createSnapshotFastTerminate()
-            self.parent.shotgun.upload(
-                entity_type="Version",
-                entity_id=item.properties["sg_version_data"]["id"],
-                path=thumbnail_path,
-                field_name="sg_uploaded_movie",
-            )
-        else:
-            raise NotImplementedError(
-                "Failed to generate thumbnail for Version Type '{}'".format(
-                    version_type
-                )
-            )
+    def finalize(self, settings, item):
+        """
+        Execute the finalization pass. This pass executes once all the publish
+        tasks have completed, and can for example be used to version up files.
+
+        :param settings: Dictionary of Settings. The keys are strings, matching
+            the keys returned in the settings property. The values are `Setting`
+            instances.
+        :param item: Item to process
+        """
+
+        # get the publish "mode" stored inside of the root item properties
+        bg_processing = item.parent.properties.get("bg_processing", False)
+        in_bg_process = item.parent.properties.get("in_bg_process", False)
+
+        if not bg_processing or (bg_processing and in_bg_process):
+            super(UploadVersionPlugin, self).finalize(settings, item)
 
     ############################################################################
     # Methods for creating/displaying custom plugin interface
