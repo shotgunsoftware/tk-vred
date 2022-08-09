@@ -353,7 +353,7 @@ def _get_windows_version(full_path, logger):
                 "Version",
                 "/value",
             ],
-            startupinfo=startup_info
+            startupinfo=startup_info,
         )
 
     except subprocess.CalledProcessError:
@@ -366,7 +366,9 @@ def _get_windows_version(full_path, logger):
             "Version" + " "
             "/value"
         )
-        version_command = subprocess.check_output(command_string, startupinfo=startup_info)
+        version_command = subprocess.check_output(
+            command_string, startupinfo=startup_info
+        )
 
     finally:
         logger.debug("Could not determine version using `wmic`.")
