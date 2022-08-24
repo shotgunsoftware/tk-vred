@@ -611,21 +611,20 @@ class VREDEngine(sgtk.platform.Engine):
             )
             return None
 
-        # If the widget already exists, do not reuse it since it is not guaranteed
-        # to be in a valid state (e.g. on reload/restart the ShotgunPanel widget
-        # will be partially cleaned up and will error if attempted to be reused).
-        # Mark the widget for deletion so that the Id does not clash with the
-        # newly created widget with the same Id.
-        for widget in QtGui.QApplication.allWidgets():
-            if widget.objectName() == panel_id:
-                widget_instance = widget
+        # Reuse the widget instance, if it already exists. Only reuse the widget
+        # instance if it is found in the docked widgets - widgets found by
+        # traversing all the application widgets may point to stale widgets and
+        # attempting to reuse them may cause errors (e.g. there have been issues
+        # with reusing Shotgun Panel App by finding it from QApplication.allWidgets())
+        widget_instance = None
+        for dock_widget_panel_id, dock_widget in self._dock_widgets.items():
+            if dock_widget_panel_id == panel_id:
+                widget_instance = dock_widget.widget()
                 parent = self._get_dialog_parent()
                 widget_instance.setParent(parent)
                 break
-        else:
-            # Create a dialog with the panel widget -- the dialog itself is not needed
-            # to display the docked widget but it is responsible for cleaning up the widget.
-            # The dialog also applies desired styling to the widget.
+
+        if not widget_instance:
             _, widget_instance = self._create_dialog_with_widget(
                 title, bundle, widget_class, *args, **kwargs
             )
