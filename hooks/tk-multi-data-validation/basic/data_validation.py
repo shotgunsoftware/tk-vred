@@ -8,151 +8,182 @@
 # agreement to the ShotGrid Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
-from distutils.log import error
-from tkinter import W
 import sgtk
-
-
-try:
-    import builtins
-except ImportError:
-    try:
-        import __builtins__ as builtins
-    except ImportError:
-        import __builtin__ as builtins
-
-# VRED API v2 imports
-builtins.vrDecoreService = vrDecoreService
-builtins.vrNodeService = vrNodeService
-builtins.vrMaterialService = vrMaterialService
-builtins.vrBakeService = vrBakeService
-builtins.vrReferenceService = vrReferenceService
-from vrKernelServices import vrdDecoreSettings, vrGeometryTypes, vrdMaterial, vrdNode
-
-# VRED API v1 imports
-import vrOptimize
-import vrScenegraph
-import vrGeometryEditor
-import vrNodePtr
-import vrNodeUtils
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
 
-class SceneDataValidationHook(HookBaseClass):
+class VREDDataValidationHook(HookBaseClass):
     """
-    Hook to define Alias scene validation functionality.
+    Hook to integrate VRED with the Data Validation App (DVA).
+
+    The DVA provides the user interface to visualize the data in a DCC, and handles executing
+    the validation functions and applying the resolution functions to the data.
+
+    The purpose of this hook is to define the data validation details specific to VRED, such
+    that the DVA can use it in order to perform checks and fixes to the data in VRED. The main
+    hook method that is essential to the DVA, and must be implemented, is:
+
+        `get_validation_data`
+
+    ; it is responsible for returning a dictionary of data that defines the validation
+    rules for VRED. The DVA calls this hook method to set up the valdiation rules that are
+    displayed in the app. Each rule may contain details in how it is displayed (e.g. validate
+    and fix button names, error messages, etc.), as well as the validate and fix functions. See
+    the `get_validation_data` method for more details on the validation data formatting and
+    supported values.
+
+    The second key part to this hook is to define the validation, fix and/or action functions,
+    which are defined in the validation data (the data returned by `get_validation_data`). For
+    any rule that defines a validate or fix function, those functions can be defined as hook
+    methods in this file (or they can call other module functions). To customize any
+    particular validate, fix, and/or action function, this hook `VREDDataValidationHook` can
+    be subclassed and hook methods (that are the valdiate, fix, action functions) can be
+    overridden.
+
+    The last function to note, and which also must be implemented is:
+
+        `sanitize_check_result`
+
+    ; it is responsible for formatting the data returned by a validation "check" function,
+    such that it can be processed by the DVA. See the `sanitize_check_result` hook method for
+    more details.
     """
+
+    class VREDDataValidationError(Exception):
+        """Custom exception class to report VRED Data Validation specific errors."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the hook."""
+
+        super(VREDDataValidationHook, self).__init__(*args, **kwargs)
+
+        # Get the VRED python api module from the engine. Use this module to access all of the VRED API
+        # functions (instead of directly importing here).
+        self.vred_py = self.parent.engine.vred_py
+
+    # -------------------------------------------------------------------------------------------------------
+    # Override base hook methods
+    # -------------------------------------------------------------------------------------------------------
 
     def get_validation_data(self):
         """
-        Return the validation rule data set to validate an Alias scene.
+        The main hook method that returns the VRED data validation rules.
 
-        This method will retrieve the default validation rules returned by
-        :meth:`AliasSceneDataValidator.get_validation_data`. To customize the default
-        validation rules, override this hook method to modify the returned data dictionary.
-
-        The dictionary returned by this function should be formated such that it can be passed
+        The dictionary returned by this function is formated such that it can be passed
         to the :class:`~tk-multi-data-validation:data.ValidationRule` class constructor to
-        create a new validation rule object.
+        create a new validation rule object. See the ValidationRule constructor for more
+        details on the supported key-values in the data dictionary.
 
         :return: The validation rules data set.
         :rtype: dict
         """
 
         return {
-            "optimize_geometries": {
-                "name": "Optimize Geometries",
-                "description": "Optimizes the geometry structure.",
-                "fix_func": optimize_geometries,
-            },
-            "optimize_share_geometries": {
-                "name": "Optimize/Share Geometries",
-                "description": "Optimizes the geometry structure and tries to share duplicated geometries.",
-                "fix_func": share_geometries,
-            },
-            "optimize_merge_geometries": {
-                "name": "Merge/Optimmize/Share Geometries",
-                "description": "This is much more aggressive and changes the scenegraph structure.",
-                "fix_func": merge_geometries,
-            },
-            "geometry_tessellate": {
-                "name": "Tessellate",
-                "description": "Retessellates the given surfaces.",
-                "fix_func": tessellate,
-            },
-            "geometry_decore": {
-                "name": "Decore & Correct Wrong Normal",
-                "description": "Remove redundant geometry that is inside other geometry. This feature only works with OpenGL",
-                "check_func": check_decore,
-                "fix_func": decore,
-            },
-            "material_remove_duplicates": {
-                "name": "Merge Duplicate Materials",
-                "description": "Share materials with the same properties.",
-                "fix_func": merge_duplicate_materials,
-            },
             "material_unused": {
                 "name": "Remove Unused Materials",
                 "description": "Remove Unused Materials",
                 "error_msg": "Found unused materials",
-                "check_func": find_unused_materials,
-                "fix_func": remove_unused_materials,
+                "check_func": self._find_unused_materials,
+                "fix_func": self._remove_unused_materials,
                 "actions": [
                     {
                         "name": "Select All",
-                        "callback": select_materials,
+                        "callback": self._select_materials,
                     }
                 ],
                 "item_actions": [
                     {
                         "name": "Select",
-                        "callback": select_materials,
+                        "callback": self._select_materials,
                     }
                 ],
             },
-            "bake_repath_lightmaps": {
-                "name": "Repath Lightmaps",
-                "description": "Re-path existing lightmaps from a list of geometry nodes.",
-                "fix_func": repath_lightmaps,
+            "material_clearcoat_orangepeel": {
+                "name": "Use Orange Peel for Clearcoats",
+                "description": "Ensure materials with clearcoat are using orange peel.",
+                "error_msg": "Found materials with clearcoat not using orange peel",
+                "check_func": self._find_materials_not_using_orange_peel,
+                "fix_func": self._use_clearcoat_orange_peel,
+                "fix_name": "Use Orange Peel",
+                "actions": [
+                    {
+                        "name": "Select All",
+                        "callback": self._select_materials,
+                    }
+                ],
+                "item_actions": [
+                    {
+                        "name": "Use Orange Peel",
+                        "callback": self._use_clearcoat_orange_peel,
+                    },
+                    {
+                        "name": "Select",
+                        "callback": self._select_materials,
+                    },
+                ],
+            },
+            "material_bump_normal_map": {
+                "name": "Use Bump and Normal Maps",
+                "description": "Ensure materials with bump texture are using bump or normal maps.",
+                "error_msg": "Found materials with bump texture not using bump or normal maps",
+                "check_func": self._find_materials_not_using_texture,
+                "fix_func": self._set_material_use_texture,
+                "fix_name": "Use Bump or Normal Maps",
+                "actions": [
+                    {
+                        "name": "Select All",
+                        "callback": self._select_materials,
+                    }
+                ],
+                "item_actions": [
+                    {
+                        "name": "Use Bump or Normal Maps",
+                        "callback": self._set_material_use_texture,
+                    },
+                    {
+                        "name": "Select",
+                        "callback": self._select_materials,
+                    },
+                ],
             },
             "scene_graph_hidden_nodes": {
                 "name": "Delete Hidden Nodes",
                 "description": "Find hidden nodes in the Scene Graph and delete them.",
                 "error_msg": "Found hidden nodes in the Scene Graph.",
-                "check_func": find_hidden_nodes,
-                "fix_func": delete_hidden_nodes,
+                "check_func": self._find_hidden_nodes,
+                "fix_func": self._delete_hidden_nodes,
                 "fix_name": "Delete All",
                 "actions": [
                     {
                         "name": "Show All",
-                        "callback": show_hidden_nodes,
+                        "callback": self._show_nodes,
                     },
                     {
                         "name": "Set All To B Side",
-                        "callback": set_hidden_nodes_to_b_side,
+                        "callback": self._set_hidden_nodes_to_b_side,
                     },
                     {
                         "name": "Select All",
-                        "callback": select_nodes,
+                        "callback": self._select_nodes,
                     },
                 ],
                 "item_actions": [
                     {
                         "name": "Select",
-                        "callback": select_nodes,
+                        "callback": self._select_nodes,
                     },
                     {
                         "name": "Show",
-                        "callback": show_hidden_nodes,
+                        "callback": self._show_nodes,
                     },
                     {
                         "name": "Set To B Side",
-                        "callback": set_hidden_nodes_to_b_side,
+                        "callback": self._set_hidden_nodes_to_b_side,
                     },
                     {
                         "name": "Delete",
-                        "callback": delete_hidden_nodes,
+                        "callback": self._delete_hidden_nodes,
                     },
                 ],
             },
@@ -160,349 +191,1274 @@ class SceneDataValidationHook(HookBaseClass):
                 "name": "Delete References",
                 "description": "Find reference nodes in the Scene Graph and delete the reference nodes.",
                 "error_msg": "Found reference nodes in the Scene Graph.",
-                "check_func": find_references,
-                "fix_func": delete_references,
+                "check_func": self._find_references,
+                "fix_func": self._delete_references,
                 "fix_name": "Delete All",
                 "actions": [
                     {
                         "name": "Select All",
-                        "callback": select_nodes,
+                        "callback": self._select_nodes,
                     },
                 ],
                 "item_actions": [
                     {
                         "name": "Select",
-                        "callback": select_nodes,
+                        "callback": self._select_nodes,
                     },
                     {
                         "name": "Delete",
-                        "callback": delete_references,
+                        "callback": self._delete_references,
+                    },
+                ],
+            },
+            "scene_graph_ref_unload": {
+                "name": "Unload References",
+                "description": "Find all loaded reference nodes in the Scene Graph and unload them.",
+                "error_msg": "Found loaded reference nodes in the Scene Graph.",
+                "check_func": self._find_loaded_references,
+                "fix_func": self._unload_reference,
+                "fix_name": "Unload All",
+                "actions": [
+                    {
+                        "name": "Select All",
+                        "callback": self._select_nodes,
+                    },
+                ],
+                "item_actions": [
+                    {
+                        "name": "Select",
+                        "callback": self._select_nodes,
+                    },
+                    {
+                        "name": "Unload",
+                        "callback": self._unload_reference,
+                    },
+                ],
+            },
+            "animation_clip_delete": {
+                "name": "Delete Clips",
+                "description": "Find all animation clips and delete them.",
+                "error_msg": "Found animation clips.",
+                "check_func": self._find_animation_clips,
+                "fix_func": self._delete_animation_clips,
+                "fix_name": "Delete All",
+                "item_actions": [
+                    {
+                        "name": "Delete",
+                        "callback": self._delete_animation_clips,
+                    },
+                ],
+            },
+            "animation_clip_empty": {
+                "name": "Delete Empty Clips",
+                "description": "Find all empty animation clips and delete them.",
+                "error_msg": "Found animation clips.",
+                "check_func": self._find_empty_animation_clips,
+                "fix_func": self._delete_empty_animation_clips,
+                "fix_name": "Delete All",
+                "item_actions": [
+                    {
+                        "name": "Delete",
+                        "callback": self._delete_empty_animation_clips,
+                    },
+                ],
+            },
+            "animation_delete": {
+                "name": "Delete Animations",
+                "description": "Find all animations and delete them.",
+                "error_msg": "Found animations.",
+                "check_func": self._find_animations,
+                "fix_func": self._delete_animations,
+                "fix_name": "Delete All",
+                "item_actions": [
+                    {
+                        "name": "Delete",
+                        "callback": self._delete_animations,
+                    },
+                ],
+            },
+            "animation_block_uncheck": {
+                "name": "Uncheck Animation Blocks",
+                "description": "Find all checked animation blocks and uncheck them.<br/>NOTE: group animation blocks does not seem to do anything",
+                "error_msg": "Found checked animations.",
+                "check_func": self._find_checked_animation_blocks,
+                "fix_func": self._uncheck_animation_blocks,
+                "fix_name": "Uncheck All",
+                "actions": [
+                    {
+                        "name": "Group All",
+                        "callback": self._group_animation_blocks,
+                    },
+                ],
+                "item_actions": [
+                    {
+                        "name": "Uncheck",
+                        "callback": self._uncheck_animation_blocks,
+                    },
+                ],
+            },
+            "uv_mat_missing": {
+                "name": "Create Missing Material UV Sets",
+                "description": "Find all geometries without Material UV Set and create UVs. UVs will be created using the unfold method.",
+                "error_msg": "Found geometries without Material UV Sets.",
+                "check_func": self._find_geometries_without_material_uvs,
+                "fix_func": self._create_material_uvs_for_geometries_without,
+                "fix_name": "Create UVs",
+                "actions": [
+                    {
+                        "name": "Select All",
+                        "callback": self._select_nodes,
+                    },
+                ],
+                "item_actions": [
+                    {
+                        "name": "Create UVs",
+                        "callback": self._create_material_uvs_for_geometries_without,
+                    },
+                    {
+                        "name": "Select",
+                        "callback": self._select_nodes,
+                    },
+                ],
+            },
+            "uv_light_missing": {
+                "name": "Create Missing Light UV Sets",
+                "description": "Find all geometries without Light UV Set and create UVs. UVs will be created using the unfold method.",
+                "error_msg": "Found geometries without Light UV Sets.",
+                "check_func": self._find_geometries_without_light_uvs,
+                "fix_func": self._create_light_uvs_for_geometries_without,
+                "fix_name": "Create UVs",
+                "actions": [
+                    {
+                        "name": "Select All",
+                        "callback": self._select_nodes,
+                    },
+                ],
+                "item_actions": [
+                    {
+                        "name": "Create UVs",
+                        "callback": self._create_light_uvs_for_geometries_without,
+                    },
+                    {
+                        "name": "Select",
+                        "callback": self._select_nodes,
+                    },
+                ],
+            },
+            # -------------------------------------------------------------------------------------------------------
+            # Data validation that is actually optimizations - nothing to "check" just fix
+            # -------------------------------------------------------------------------------------------------------
+            "material_remove_duplicates": {
+                "name": "Merge Duplicate Materials",
+                "description": "Share materials with the same properties.",
+                "fix_func": self._merge_duplicate_materials,
+                "fix_name": "Merge",
+            },
+            "optimize_geometries": {
+                "name": "Optimize Geometries",
+                "description": "Optimizes the geometry structure.",
+                "fix_func": self._optimize_geometry,
+                "fix_name": "Optimize",
+                "get_kwargs": lambda: {
+                    "strips": True,
+                    "fans": True,
+                    "stitches": False,
+                },
+            },
+            "optimize_share_geometries": {
+                "name": "Optimize/Share Geometries",
+                "description": "Optimizes the geometry structure and tries to share duplicated geometries.",
+                "fix_func": self._share_geometries,
+                "fix_name": "Optimize",
+                "get_kwargs": lambda: {"check_world_geometries": False},
+            },
+            "optimize_merge_geometries": {
+                "name": "Merge/Optimmize/Share Geometries",
+                "description": "This is much more aggressive and changes the scenegraph structure.",
+                "fix_func": self._merge_geometries,
+                "fix_name": "Optimize",
+            },
+            "geometry_tessellate": {
+                "name": "Tessellate",
+                "description": "Retessellates the given surfaces.",
+                "fix_func": self._tessellate,
+                "fix_name": "Tessellate",
+            },
+            "geometry_decore": {
+                "name": "Decore & Correct Wrong Normal",
+                "description": "Remove redundant geometry that is inside other geometry. This feature only works with OpenGL",
+                "fix_func": self._decore,
+                "fix_name": "Decore",
+            },
+            # -------------------------------------------------------------------------------------------------------
+            # Data validation that requires more information (e.g. provide path, settings, etc...)
+            # -------------------------------------------------------------------------------------------------------
+            "bake_texture": {
+                "name": "Bake To Texture",
+                "description": "Bake to texture.",
+                "fix_func": self._bake_to_texture,
+                "fix_name": "Bake",
+            },
+            "bake_repath_lightmaps": {
+                "name": "Repath Lightmaps",
+                "description": "Re-path existing lightmaps from a list of geometry nodes.<br/>NOTE: Need to provide a path for repathing lightmaps.",
+                "fix_func": self._repath_lightmaps,
+            },
+            # -------------------------------------------------------------------------------------------------------
+            # Data validation that don't work quite right..
+            # -------------------------------------------------------------------------------------------------------
+            #
+            # Variant sets are deleted but still appear in the VRED UI - and will crash if interacted with.
+            "variant_set_clear": {
+                "name": "Clear Variant Sets",
+                "description": "Find all variant sets and remove them.",
+                "error_msg": "Found variant sets.",
+                "check_func": self._find_variant_sets,
+                "fix_func": self._delete_variant_sets,
+                "fix_name": "Clear",
+                "item_actions": [
+                    {
+                        "name": "Delete",
+                        "callback": self._delete_variant_sets,
+                    },
+                ],
+            },
+            "variant_set_group_empty": {
+                "name": "Delete Empty Variant Set Groups",
+                "description": "Find all variant set groups and remove them.",
+                "error_msg": "Found empty variant set groups.",
+                "check_func": self._find_empty_variant_set_groups,
+                "fix_func": self._delete_empty_variant_set_groups,
+                "fix_name": "Delete All",
+                "item_actions": [
+                    {
+                        "name": "Delete",
+                        "callback": self._delete_empty_variant_set_groups,
+                    },
+                ],
+            },
+            # -------------------------------------------------------------------------------------------------------
+            # Data validation that requires VRED API updates/additions
+            # -------------------------------------------------------------------------------------------------------
+            #
+            # Requires function to delete the uv set
+            #
+            "uv_light_delete": {
+                "name": "Delete Light UV Sets",
+                "description": "Find all geometries with Light UV Sets and remove them.",
+                "error_msg": "Found geometries with Light UV Sets.",
+                "check_func": self._find_geometries_with_light_uvs,
+                # "fix_func": delete_light_uvs,
+                "fix_name": "Delete UVs",
+                "actions": [
+                    {
+                        "name": "Select All",
+                        "callback": self._select_nodes,
+                    },
+                ],
+                "item_actions": [
+                    # {
+                    #     "name": "Delete UVs",
+                    #     "callback": delete_light_uvs,
+                    # },
+                    {
+                        "name": "Select",
+                        "callback": self._select_nodes,
+                    },
+                ],
+            },
+            "uv_mat_delete": {
+                "name": "Delete Material UV Sets",
+                "description": "Find all geometries with Material UV Sets and remove them.<br/>NOTE: VRED API method not available to delete UV Sets.",
+                "error_msg": "Found geometries with Material UV Sets.",
+                "check_func": self._find_geometries_with_material_uvs,
+                # "fix_func": delete_material_uvs,
+                # "fix_name": "Delete UVs",
+                "actions": [
+                    {
+                        "name": "Select All",
+                        "callback": self._select_nodes,
+                    },
+                ],
+                "item_actions": [
+                    # {
+                    #     "name": "Delete UVs",
+                    #     "callback": delete_material_uvs,
+                    # },
+                    {
+                        "name": "Select",
+                        "callback": self._select_nodes,
                     },
                 ],
             },
         }
 
+    def sanitize_check_result(self, result):
+        """
+        Sanitize the value returned by any validate function to conform to the standard format.
 
-# -------------------------------------------------------------------------------------------------------
-# Helper classes & functions
-# -------------------------------------------------------------------------------------------------------
+        Convert the incoming list of VRED objects (that are errors) to conform to the standard
+        format that the Data Validation App requires:
 
+            is_valid:
+                type: bool
+                description: True if the validate function succeed with the current data, else
+                             False.
 
-class VREDDataValidationError(Exception):
-    """Custom exception class for VRED Data Validation errors."""
+            errors:
+                type: list
+                description: The list of error objects (found by the validate function). None
+                             or empty list if the current data is valid.
+                items:
+                    type: dict
+                    key-values:
+                        id:
+                            type: str | int
+                            description: A unique identifier for the error object.
+                            optional: False
+                        name:
+                            type: str
+                            description: The display name for the error object.
+                            optional: False
+                        type:
+                            type: str
+                            description: The display name of the error object type.
+                            optional: True
 
+        This method will be called by the Data Validation App after any validate function is
+        called, in order to receive the validate result in the required format.
 
-def get_nodes(items):
-    """Return a list of node objects."""
+        :param result: The result returned by a validation rule ``check_func``. This is
+            typically (but not guaranteed) a list of VRED objects.
+        :type result: list
 
-    nodes = []
+        :return: The result of a ``check_func`` in the Data Validation standardized format.
+        :rtype: dict
+        """
 
-    if not items:
-        return nodes
+        return {
+            "is_valid": not result,
+            "errors": self._sanitize_vred_objects(result),
+        }
 
-    if not isinstance(items, (list, tuple)):
-        items = [items]
+    # -------------------------------------------------------------------------------------------------------
+    # Protected hook methods
+    # -------------------------------------------------------------------------------------------------------
 
-    for item in items:
-        node = None
-        if isinstance(item, vrNodePtr.vrNodePtr):
-            node = item
-        elif isinstance(item, int):
-            node = vrNodePtr.toNode(item)
+    def _sanitize_vred_objects(self, objects):
+        """
+        Sanitize the VRED objects.
+
+        This method formats the list of VRED API (v1 or v2) objects such that they are
+        compatible with the DVA. Each object will be formatted as a dictionary with
+        keys-values:
+
+            id:
+                type: str | int
+                description: The VRED object's unique ID.
+
+            name:
+                type: str | int
+                description: The VRED object display name (this may be the same as the ID).
+
+            type:
+                type: str
+                description: (optional) The VRED object type display name.
+
+        :return: The list of sanitized VRED objects.
+        :rtype: list<dict>
+        """
+
+        if not objects:
+            return []
+
+        object_results = []
+        for obj in objects:
+            object_id = self.vred_py.get_id(obj)
+
+            if hasattr(obj, "getName"):
+                object_name = obj.getName()
+            else:
+                # Fallback to use the id as the name
+                object_name = object_id
+
+            object_results.append(
+                {
+                    "id": object_id,
+                    "name": object_name,
+                    "type": self.vred_py.get_type_as_str(obj),
+                }
+            )
+
+        return object_results
+
+    # -------------------------------------------------------------------------------------------------------
+    # Select Methods (action functions)
+    # -------------------------------------------------------------------------------------------------------
+
+    def _select_nodes(self, errors=None):
+        """
+        Select the given nodes in the scene graph.
+
+        This method is used as an individual fix and/or action function for a validation rule -
+        it must include the `errors` key-value argument with default value None.
+
+        :param errors: The nodes to select. If None, current selection does not change.
+        :type errors: list.
+        """
+
+        nodes = self.vred_py.get_nodes(errors)
+        if nodes:
+            select = True
+            self.vred_py.vrScenegraph.selectNodes(nodes, select)
+
+    def _select_materials(self, errors=None):
+        """
+        Select the given materials.
+
+        This method is used as an individual fix and/or action function for a validation rule -
+        it must include the `errors` key-value argument with default value None.
+
+        :param errors: The materials to select. If None, current selection does not change.
+        :type errors: list
+        """
+
+        mats = self.vred_py.get_materials(errors)
+        if mats:
+            self.vred_py.vrMaterialService.setMaterialSelection(mats)
+
+    # -------------------------------------------------------------------------------------------------------
+    # Validation & Fix Methods (check and fix functions)
+    # -------------------------------------------------------------------------------------------------------
+
+    def _find_unused_materials(self):
+        """
+        Find all unused materials.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :return: The unused materials.
+        :rtype: dict
+        """
+
+        return self.vred_py.vrMaterialService.findUnusedMaterials()
+
+    def _remove_unused_materials(self, errors=None):
+        """
+        Remove all unused materials.
+
+        :param errors: A list of unused materials to remove.
+        :type errors: list
+        """
+
+        self.vred_py.vrMaterialService.removeUnusedMaterials()
+
+    def _find_hidden_nodes(self, node=None):
+        """
+        Find all hidden nodes in the scene graph.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :param node: (optional) If None all nodes will be checked, else only nodes in the node
+            subtree will be checked.
+        :type node: vrNodePtr | vrdNode
+
+        :return: The hidden nodes.
+        :rtype: dict
+        """
+
+        return self.vred_py.get_hidden_nodes(root_node=node)
+
+    def _show_nodes(self, errors=None, node=None):
+        """
+        Show the given hidden nodes, or show all hidden nodes if nodes not specified.
+
+        This method is used as an individual fix and/or action function for a validation rule -
+        it must include the `errors` key-value argument with default value None.
+
+        :param errors: The nodes to show. If None, all hidden nodes will be shown.
+        :type errors: list
+        :param node: (optional) If None all nodes will be checked, else only nodes in the node
+            subtree will be checked. This param is ignored if the errors param is not None.
+            This param is ignored if the errors param is specified.
+        :type node: vrNodePtr | vrdNode
+        """
+
+        if errors is None:
+            hidden_nodes = self.vred_py.get_hidden_nodes(root_node=node)
         else:
-            try:
-                node = vrScenegraph.findNode(item)
-            except Exception:
-                pass
+            hidden_nodes = self.vred_py.get_nodes(errors)
 
-        if node:
-            nodes.append(node)
+        self.vred_py.show_nodes(hidden_nodes)
+
+    def _delete_hidden_nodes(self, errors=None, node=None):
+        """
+        Delete the given hidden nodes, or delete all hidden nodes if nodes not specified.
+
+        This method is used as an individual fix and/or action function for a validation rule -
+        it must include the `errors` key-value argument with default value None.
+
+        :param errors: The nodes to delete. If None, all hidden nodes will be deleted.
+        :type errors: list
+        :param node: (optional) If None all nodes will be checked, else only nodes in the node
+            subtree will be checked. This param is ignored if the errors param is not None.
+            This param is ignored if the errors param is specified.
+        :type node: vrNodePtr | vrdNode
+        """
+
+        if errors is None:
+            hidden_nodes = self.vred_py.get_hidden_nodes(root_node=node)
         else:
-            self.logger.error("Failed to get node object from {}".format(node))
+            hidden_nodes = self.vred_py.get_nodes(errors)
 
-    return nodes
+        self.vred_py.delete_nodes(hidden_nodes)
 
+    def _set_hidden_nodes_to_b_side(self, errors=None, node=None):
+        """
+        Set all given nodes to B-Side, or set all hidden nodes if nodes not sepcified.
 
-def get_hidden_nodes():
-    """Return a list of the hidden nodes in the scene graph."""
+        This method is used as an individual fix and/or action function for a validation rule -
+        it must include the `errors` key-value argument with default value None.
 
-    # def getHidden(node, hidden):
-    #     if not node.getActive():
-    #         hidden.append(node)
+        :param errors: The nodes to set to B-Side. If None, all hidden nodes set to B-Side.
+        :type errors: list
+        :param node: (optional) If None all nodes will be checked, else only nodes in the node
+            subtree will be checked. This param is ignored if the errors param is not None.
+            This param is ignored if the errors param is specified.
+        :type node: vrNodePtr | vrdNode
+        """
 
-    #     for i in range(0, node.getNChildren()):
-    #         getHidden(node.getChild(i), hidden)
-
-    hidden = []
-    # nodes = vrScenegraph.getAllNodes()
-    nodes = [vrScenegraph.getRootNode()]
-
-    while nodes:
-        node = nodes.pop()
-        if not node.getActive():
-            hidden.append(node)
-
-        for i in range(node.getNChildren()):
-            nodes.append(node.getChild(i))
-
-    return hidden
-
-
-# -------------------------------------------------------------------------------------------------------
-# Validation helper functions
-# -------------------------------------------------------------------------------------------------------
-
-
-def get_check_result(error_items):
-    """Return the result in a format consumable by the ValidationRule class."""
-
-    return {"is_valid": not error_items, "errors": sanitize_vrd_objects(error_items)}
-
-
-def sanitize_vrd_objects(objects):
-    """
-    Sanitize the VRED objects (objects of type vrdObject) before returning from a validation check function.
-
-    :return: The list of sanitized vrdObjects.
-    :rtype: list<dict>
-    """
-
-    object_results = []
-
-    for obj in objects:
-        if isinstance(obj, vrdNode) or hasattr(obj, "getObjectId"):
-            # v2 API vrdObject
-            object_id = obj.getObjectId()
-        elif isinstance(obj, vrNodePtr.vrNodePtr) or hasattr(obj, "getID"):
-            # v1 API vrNodePtr
-            # Use the name as the ID since the name is used to find objects
-            # object_id = obj.getName()
-            object_id = obj.getID()
+        if errors is None:
+            hidden_nodes = self.vred_py.get_hidden_nodes(root_node=node)
         else:
-            raise VREDDataValidationError("Failed to get object ID from {}", obj)
+            hidden_nodes = self.vred_py.get_nodes(errors)
 
-        if hasattr(obj, "getName"):
-            object_name = obj.getName()
+        self.vred_py.set_to_b_side(hidden_nodes, b_side=True)
+
+    def _find_references(self):
+        """
+        Find all references in the scene graph.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :return: The references.
+        :rtype: dict
+        """
+
+        return self.vred_py.vrReferenceService.getSceneReferences()
+
+    def _delete_references(self, errors=None):
+        """
+        Find all references in the scene graph and delete the reference nodes.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The references to delete. If None, delete all references.
+        :type errors: list
+        """
+
+        if errors is None:
+            ref_nodes = self.vred_py.vrReferenceService.getSceneReferences()
         else:
-            # Fallback to use the id as the name
-            object_name = object_id
+            ref_nodes = self.vred_py.get_nodes(errors, api_version=self.vred_py.v2())
 
-        object_results.append(
-            {
-                "id": object_id,
-                "name": object_name,
-                "type": get_vrd_object_type(obj),
-            }
+        self.vred_py.vrNodeService.removeNodes(ref_nodes)
+
+    def _find_loaded_references(self):
+        """
+        Find references that are loaded, in the scene graph.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :return: The loaded references.
+        :rtype: dict
+        """
+
+        return [
+            r
+            for r in self.vred_py.vrReferenceService.getSceneReferences()
+            if r.isLoaded()
+        ]
+
+    def _unload_reference(self, errors=None):
+        """
+        Unload the references.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The references to unload. If None, unload all references.
+        :type errors: list
+        """
+
+        if errors is None:
+            refs = self.vred_py.vrReferenceService.getSceneReferences()
+        else:
+            refs = self.vred_py.get_nodes(errors, api_version=self.vred_py.v2())
+
+        for ref in refs:
+            if ref.isLoaded():
+                ref.unload()
+
+    def _find_variant_sets(self):
+        """
+        Find all variant sets.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :return: The variant sets.
+        :rtype: dict
+        """
+
+        return self.vred_py.vrVariantSets.getVariantSets()
+
+    def _delete_variant_sets(self, errors=None):
+        """
+        Delete the given variant sets.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The variant sets to delete. If None, delete all variant sets.
+        :type errors: list
+        """
+
+        if errors is None:
+            vsets = self.vred_py.vrVariantSets.getVariantSets()
+        else:
+            vsets = errors
+
+        if not isinstance(vsets, (list, tuple)):
+            vsets = [vsets]
+
+        for vset in vsets:
+            self.vred_py.vrVariantSets.deleteVariantSet(vset)
+
+    def _find_animation_clips(self, top_level_only=False):
+        """
+        Find all animation clips.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :param top_level_only: True will only find the top level animation clips, else False
+            will find all animation clips (including nested/child clips).
+        :type top_level_only: bool
+
+        :return: The animation clips.
+        :rtype: dict
+        """
+
+        return self.vred_py.get_animation_clips(top_level_only=top_level_only)
+
+    def _delete_animation_clips(self, errors=None, top_level_only=False):
+        """
+        Delete the animation clip nodes.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The clips to delete. If None, delete all clips.
+        :type errors: list
+        :param top_level_only: True will only find the top level animation clips, else False
+            will find all animation clips (including nested/child clips). This param is
+            ignored if the errors param is specified.
+        :type top_level_only: bool
+        """
+
+        if errors is None:
+            clip_nodes = self.vred_py.get_animation_clips(top_level_only=top_level_only)
+        else:
+            clip_nodes = self.vred_py.get_nodes(errors)
+
+        self.vred_py.delete_nodes(clip_nodes)
+
+    def _find_empty_animation_clips(self):
+        """
+        Find all empty animation clips nodes.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :return: The empty animation clips.
+        :rtype: dict
+        """
+
+        return self.vred_py.get_empty_animation_clips()
+
+    def _delete_empty_animation_clips(self, errors=None):
+        """
+        Delete empty animation clip nodes.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The animation clips to delete. If none, delete all empty clips.
+        :type errors: list
+        """
+
+        if errors is None:
+            clip_nodes = self.vred_py.get_empty_animation_clips()
+        else:
+            clip_nodes = self.vred_py.get_nodes(errors)
+
+        self.vred_py.delete_nodes(clip_nodes)
+
+    def _find_animations(self):
+        """
+        Find all animation nodes.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :return: The animations.
+        :rtype: dict
+        """
+
+        return self.vred_py.get_animation_clips(anim_type=self.vred_py.anim_type())
+
+    def _delete_animations(self, errors=None):
+        """
+        Delete the given animation nodes, or delete all animation nodes if not specified.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The animations to delete. If None, delete all animations.
+        :type errors: list
+        """
+
+        if errors is None:
+            clip_nodes = self.vred_py.get_animation_clips(
+                anim_type=self.vred_py.anim_type()
+            )
+        else:
+            clip_nodes = self.vred_py.get_nodes(errors)
+
+        self.vred_py.delete_nodes(clip_nodes)
+
+    def _find_checked_animation_blocks(self, include_hidden=True):
+        """
+        Find all checked animation blocks nodes.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :param include_hidden: True will find animation blocks that are hidden, else False
+            will ignore hidden blocks.
+        :type include_hidden: bool
+
+        :return: The checked animation blocks.
+        :rtype: dict
+        """
+
+        return [
+            block
+            for block in self.vred_py.vrAnimWidgets.getAnimBlockNodes(include_hidden)
+            if block.getActive()
+        ]
+
+    def _uncheck_animation_blocks(self, errors=None, include_hidden=True):
+        """
+        Find all checked animation blocks and uncheck them.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The animation blocks to delete. If None, uncheck all animation blocks.
+        :type errors: list
+        :param include_hidden: True will find animation blocks that are hidden, else False
+            will ignore hidden blocks. This param is ignored if the errors param is specified.
+        :type include_hidden: bool
+        """
+
+        if errors is None:
+            checked_blocks = [
+                block
+                for block in self.vred_py.vrAnimWidgets.getAnimBlockNodes(
+                    include_hidden
+                )
+                if block.getActive()
+            ]
+        else:
+            checked_blocks = self.vred_py.get_nodes(errors)
+
+        for block in checked_blocks:
+            block.setActive(False)
+
+    def _find_geometries_without_material_uvs(self):
+        """
+        Find geometries without Material UV Sets.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :return: The geometry without material UV sets.
+        :rtype: dict
+        """
+
+        return self.vred_py.get_geometry_nodes(has_mat_uvs=False)
+
+    def _create_material_uvs_for_geometries_without(
+        self, errors=None, nodes=None, unfold_settings=None, layout_settings=None
+    ):
+        """
+        Find geometries without Material UV Sets and create UVs for them.
+
+        The UVs are created using the unfold operation which does the following:
+
+            Compute unfolded UV coordinates for the given geometry nodes.
+
+            For each geometry, its coordinates are unfolded and packed into UV space according
+            to the provided layout settings. Unfolding is done with Unfold3D. Any existing UV
+            coordinates are overwritten. The input geometry does not need to have UVs. UVs are
+            created from scratch based on the 3D data of the geometry. Degenerate triangles are
+            removed from the input geometry.
+
+            To run unfold on a shell geometry, pass the shell geometry node to this function,
+            do not include the surface nodes in the list. When passing surface nodes to unfold,
+            the surfaces are unfolded individually.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The geometry to unfold. If None, unfold the given nodes.
+        :type errors: list
+        :param nodes: Ignored if errors is not None. The geometry to unfold. If None, unfold
+            all nodes.
+        :type nodes: List[vrdGeometryNode]
+        :param unfold_settings: The settings used to unfold the UVs.
+        :type unfold_settings: vrdUVUnfoldSettings
+        :param layout_settings: The settings used to pack the unfolded UV islands into UV space.
+        :type layout_settings: vrdUVLayoutSettings
+        """
+
+        if errors is None:
+            nodes = self.vred_py.get_geometry_nodes(has_mat_uvs=False)
+        else:
+            if nodes is None:
+                nodes = self.vred_py.get_nodes(errors, api_version=self.vred_py.v2())
+
+        unfold_settings = unfold_settings or self.vred_py.get_unfold_settings()
+        layout_settings = layout_settings or self.vred_py.get_layout_settings()
+
+        self.vred_py.vrUVService.unfold(
+            nodes,
+            unfold_settings,
+            layout_settings,
+            uvSet=self.vred_py.vrUVTypes.MaterialUVSet,
         )
 
-    return object_results
+    def _find_geometries_with_material_uvs(self):
+        """
+        Find geometries with Material UV Sets.
 
+        Format the data before returning to be compatible with the Data Validation App.
 
-def get_vrd_object_type(obj):
-    """ """
+        :return: The geometry with material UV sets.
+        :rtype: dict
+        """
 
-    if hasattr(obj, "getType"):
-        return obj.getType()
+        return self.vred_py.get_geometry_nodes(has_mat_uvs=True)
 
-    if obj.isType(vrdMaterial):
-        return "Material"
+    def _find_geometries_without_light_uvs(self):
+        """
+        Find geometries without Light UV Sets.
 
-    if obj.isType(vrdReferenceNode):
-        return "Reference"
+        Format the data before returning to be compatible with the Data Validation App.
 
-    print("Unknown vrd type", obj)
-    return "Unknown"
+        :return: The geometry without light UV sets.
+        :rtype: dict
+        """
 
+        return self.vred_py.get_geometry_nodes(has_light_uvs=False)
 
-# -------------------------------------------------------------------------------------------------------
-# Action functions
-# -------------------------------------------------------------------------------------------------------
+    def _find_geometries_with_light_uvs(self):
+        """
+        Find geometries with Light UV Sets.
 
+        Format the data before returning to be compatible with the Data Validation App.
 
-def select_nodes(errors=None):
-    """Select the given nodes in the scene graph."""
+        :return: The geometry with light UV sets.
+        :rtype: dict
+        """
 
-    nodes = get_nodes(errors)
-    if not nodes:
-        return
+        return self.vred_py.get_geometry_nodes(has_light_uvs=True)
 
-    select = True
-    vrScenegraph.selectNodes(nodes, select)
+    def _create_light_uvs_for_geometries_without(
+        self, errors=None, nodes=None, unfold_settings=None, layout_settings=None
+    ):
+        """
+        Find geometries without Light UV Sets and create UVs for them.
 
+        The UVs are created using the unfold operation which does the following:
 
-def select_materials(errors=None):
-    """Select the given materials."""
+            Compute unfolded UV coordinates for the given geometry nodes.
 
-    if not errors:
-        return
+            For each geometry, its coordinates are unfolded and packed into UV space according
+            to the provided layout settings. Unfolding is done with Unfold3D. Any existing UV
+            coordinates are overwritten. The input geometry does not need to have UVs. UVs are
+            created from scratch based on the 3D data of the geometry. Degenerate triangles are
+            removed from the input geometry.
 
-    if not isinstance(errors, (list, tuple)):
-        errors = [errors]
+            To run unfold on a shell geometry, pass the shell geometry node to this function,
+            do not include the surface nodes in the list. When passing surface nodes to unfold,
+            the surfaces are unfolded individually.
 
-    materials = []
-    for item in errors:
-        mat = None
-        if isinstance(item, vrdMaterial):
-            mat = item
-        elif isinstance(item, int):
-            mat = vrMaterialService.getMaterialFromId(item)
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The geometry to unfold. If None, unfold the given nodes.
+        :type errors: list
+        :param nodes: Ignored if errors is not None. The geometry to unfold. If None, unfold
+            all nodes.
+        :type nodes: List[vrdGeometryNode]
+        :param unfold_settings: The settings used to unfold the UVs.
+        :type unfold_settings: vrdUVUnfoldSettings
+        :param layout_settings: The settings used to pack the unfolded UV islands into UV space.
+        :type layout_settings: vrdUVLayoutSettings
+        """
+
+        if errors is None:
+            nodes = self.vred_py.get_geometry_nodes(has_light_uvs=False)
         else:
+            if nodes is None:
+                nodes = self.vred_py.get_nodes(errors, api_version=self.vred_py.v2())
+
+        unfold_settings = unfold_settings or self.vred_py.get_unfold_settings()
+        layout_settings = layout_settings or self.vred_py.get_layout_settings()
+
+        self.vred_py.vrUVService.unfold(
+            nodes,
+            unfold_settings,
+            layout_settings,
+            uvSet=self.vred_py.vrUVTypes.LightmapUVSet,
+        )
+
+    def _find_materials_not_using_orange_peel(self):
+        """
+        Find all materials with the clearcoat property and using orange peel.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :return: The materials not using orange peel.
+        :rtype: dict
+        """
+
+        return self.vred_py.find_materials(using_orange_peel=False)
+
+    def _use_clearcoat_orange_peel(self, errors=None):
+        """
+        For materials with the clearcoat property, use orange peel.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The materials to set to use orange peel. If None, set all materials to
+            use orange peel.
+        :type errors: list
+        """
+
+        if errors is None:
+            mats = self.vred_py.find_materials(using_orange_peel=False)
+        else:
+            mats = self.vred_py.get_materials(errors)
+
+        for mat in mats:
             try:
-                mat = vrMaterialService.findMaterial(item)
-            except Exception:
-                pass
+                clearcoat = mat.getClearcoat()
+            except AttributeError:
+                clearcoat = None
 
-        if mat:
-            materials.append(mat)
+            if clearcoat:
+                clearcoat.setUseOrangePeel(True)
+
+    def _find_materials_not_using_texture(self):
+        """
+        Find all materials with the bump map property and using texture.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :return: The materials not using textures.
+        :rtype: dict
+        """
+
+        return self.vred_py.find_materials(using_texture=False)
+
+    def _set_material_use_texture(self, errors=None):
+        """
+        For materials with the bump texture property, set the material to use texture.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The materials to set to use texture. If None, set all materials to use
+            texture.
+        :type errors: list
+        """
+
+        if errors is None:
+            mats = self.vred_py.find_materials(using_texture=False)
         else:
-            self.logger.error("Failed to get vrdMaterial object from {}", item)
+            mats = self.vred_py.get_materials(errors)
 
-    vrMaterialService.setMaterialSelection(materials)
+        for mat in mats:
+            try:
+                bump_texture = mat.getBumpTexture()
+            except AttributeError:
+                bump_texture = None
 
+            if bump_texture:
+                bump_texture.setUseTexture(True)
 
-# -------------------------------------------------------------------------------------------------------
-# Check & Fix functions
-# -------------------------------------------------------------------------------------------------------
+    def _group_animation_blocks(self):
+        """Group all animation block nodes."""
 
+        block_nodes = self.vred_py.vrAnimWidgets.getAnimBlockNodes(True)
+        if block_nodes:
+            self.vred_py.group_nodes(block_nodes)
 
-def optimize_geometries():
-    """ """
+    def _bake_to_texture(
+        self,
+        errors=None,
+        nodes=None,
+        illumination_bake_settings=None,
+        texture_bake_settings=None,
+        replace_texture_bake=True,
+    ):
+        """
+        Start the texture bake calculation for one lightmap per geometry node with the given settings.
 
-    root_node = vrScenegraph.getRootNode()
-    vrOptimize.optimizeGeometries(root_node)
+        This method bakes only a single lightmap per node. invisible geometries are ignored.
 
+        Either a base or a separate lightmap can be baked, depending on the illumination mode,
+        see vrdIlluminationBakeSettings.setDirectIlluminationMode(value).
 
-def share_geometries():
-    """ """
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
 
-    root_node = vrScenegraph.getRootNode()
-    vrOptimize.shareGeometries(root_node)
+        :param errors: The geometry to bake. If None, bake the geometry in the node's subtree.
+        :type errors: list
+        :param nodes: Ignored if errors param is not None. The geometry nodes to bake.
+        :type root_node: list<vrdGeometryNode>. If errors and nodes are None, then bake all nodes.
+        :param illumination_bake_settings: The illumination bake settings.
+        :type illumination_bake_settings: vrdIlluminationBakeSettings
+        :param texture_bake_settings: The texture bake settings.
+        :type texture_bake_settings: vrdIlluminationBakeSettings
+        :param replace_texture_bake: Specify what to do with an already existing separate
+            lightmap on the node when baking a base lightmap. If True, the previous texture
+            baking is replaced by the new base lightmap, the separate lightmap is deleted. If
+            False, the separate lightmap is kept. When baking a separate lightmap this option
+            is ignored, i.e. it creates or updates the separate lightmap and keeps the base
+            lightmap.
+        :type replace_texture_bake: bool
+        """
 
-
-def merge_geometries():
-    """ """
-
-    root_node = vrScenegraph.getRootNode()
-    vrOptimize.mergeGeometries(root_node)
-
-
-def tessellate():
-    """ """
-
-    root_node = vrScenegraph.getRootNode()
-    vrGeometryEditor.tessellateSurfaces(root_node)
-
-
-def check_decore():
-    nodes_to_decore = vrNodeService.findNodes("GeometryToDecore")
-    return get_check_result(nodes_to_decore)
-
-
-def decore():
-    """ """
-
-    settings = vrdDecoreSettings()
-    settings.setResolution(1024)
-    settings.setQualitySteps(8)
-    settings.setCorrectFaceNormals(True)
-    settings.setDecoreEnabled(True)
-    settings.setDecoreMode(vrGeometryTypes.DecoreMode.Remove)
-    settings.setSubObjectMode(vrGeometryTypes.DecoreSubObjectMode.Triangles)
-    settings.setTransparentObjectMode(
-        vrGeometryTypes.DecoreTransparentObjectMode.Ignore
-    )
-    treat_as_combine_object = True
-    nodes_to_decore = vrNodeService.findNodes("GeometryToDecore")
-    vrDecoreService.decore(nodes_to_decore, treat_as_combine_object, settings)
-
-
-def merge_duplicate_materials():
-    """ """
-
-    vrMaterialService.mergeDuplicateMaterials()
-
-
-def find_unused_materials():
-    """Find any unused materials."""
-
-    unused_mats = vrMaterialService.findUnusedMaterials()
-    return get_check_result(unused_mats)
-
-
-def remove_unused_materials():
-    """Remove all unused materials."""
-    vrMaterialService.removeUnusedMaterials()
-
-
-def repath_lightmaps():
-    """ """
-
-    # FIXME pass correct lsit of geometry ndoes
-    root_node = vrScenegraph.getRootNode()
-    nodes_to_repath = [root_node]
-    vrBakeService.repathLightmaps(nodes_to_repath)
-
-
-def find_hidden_nodes():
-    """Find hidden nodes in the scene graph."""
-
-    hidden_nodes = get_hidden_nodes()
-    return get_check_result(hidden_nodes)
-
-
-def show_hidden_nodes(errors=None):
-    """Find hidden nodes in the scene graph and show them (unhide)."""
-
-    if errors is None:
-        hidden_nodes = get_hidden_nodes()
-    else:
-        hidden_nodes = get_nodes(errors)
-
-    vrScenegraph.showNodes(hidden_nodes)
-
-
-def delete_hidden_nodes(errors=None):
-    """Find hidden nodes in the scene graph and delete them."""
-
-    if errors is None:
-        hidden_nodes = get_hidden_nodes()
-    else:
-        hidden_nodes = get_nodes(errors)
-
-    force = False
-    vrScenegraph.deleteNodes(hidden_nodes, force)
-
-
-def set_hidden_nodes_to_b_side(errors=None):
-    """Find all hidden nodes and set them to the B Side."""
-
-    if errors is None:
-        hidden_nodes = get_hidden_nodes()
-    else:
-        hidden_nodes = get_nodes(errors)
-
-    for node in hidden_nodes:
-        if isinstance(node, vrNodePtr.vrNodePtr):
-            vrNodeUtils.setToBSide(node, True)
-        elif isinstance(node, vrdGeometryNode):
-            node.setToBSide(True)
+        if errors is None:
+            nodes = self.vred_py.get_nodes(errors, api_version=self.vred_py.v2())
         else:
-            raise VREDDataValidationError("Unsupported node type {}".format(node))
+            if nodes is None:
+                root = self.vred_py.vrNodeService.getRootNode()
+                nodes = self.vred_py.get_geometry_nodes(root_node=root)
 
+        illumination_bake_settings = (
+            illumination_bake_settings or self.vred_py.get_illumination_bake_settings()
+        )
+        texture_bake_settings = (
+            texture_bake_settings or self.vred_py.get_texture_bake_settings()
+        )
 
-def find_references():
-    """Find references in the scene graph."""
+        self.vred_py.vrBakeService.bakeToTexture(
+            nodes,
+            illumination_bake_settings,
+            texture_bake_settings,
+            replace_texture_bake,
+        )
 
-    ref_nodes = vrReferenceService.getSceneReferences()
-    return get_check_result(ref_nodes)
+    def _repath_lightmaps(self, errors=None, path=None):
+        """
+        Re-paths existing lightmaps from a list of geometry nodes.
 
+        This function takes the current directory paths of the lightmaps and exchanges it with
+        a new one. An existing lightmap name is used to construct the file name. If the name
+        was deleted, the old file name of the texture path is used instead. The new lightmaps
+        will be loaded and replace the current ones.
 
-def delete_references(errors=None):
-    """Find references in the scene graph and delete them."""
+        Re-pathing from a base and separate lightmap to a base only, deletes the separate
+        lightmap.
 
-    if not errors:
-        ref_nodes = vrReferenceService.getSceneReferences()
-    else:
-        ref_nodes = get_nodes(errors)
+        Re-pathing from a base and separate lightmap to a separate only, keeps the old base
+        lightmap unchanged.
 
-    vrNodeService.removeNodes(ref_nodes)
+        Re-pathing from a single base lightmap will also search the new location for a
+        corresponding separate lightmap based on its naming scheme.
+
+        Re-pathing from a single separate lightmap will also search the new location for a
+        corresponding base lightmap based on its naming scheme.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The geometry to re-path. If None, re-path all geometry.
+        :type errors: list
+        :param path: The path to the folder which will replace the current one.
+        :type path: str
+        """
+
+        if not path:
+            raise self.VREDDataValidationError("Path required to re-path lightmaps.")
+
+        if errors is None:
+            geometry_nodes = [self.vred_py.vrNodeService.getRootNode()]
+        else:
+            geometry_nodes = self.vred_py.get_nodes(errors)
+
+        self.vred_py.vrBakeService.repathLightmaps(geometry_nodes, path)
+
+    def _find_empty_variant_set_groups(self):
+        """
+        Find all empty variant set groups.
+
+        Format the data before returning to be compatible with the Data Validation App.
+
+        :return: The empty variant set groups.
+        :rtype: dict
+        """
+
+        return self.vred_py.get_empty_variant_set_groups()
+
+    def _delete_empty_variant_set_groups(self, errors=None):
+        """
+        Delete the empty variant set groups.
+
+        This method is used as a fix/action function for a validation rule - it must include
+        the `errors` key-value argument with default value None.
+
+        :param errors: The groups to delete. If None, delete all groups.
+        :type errors: list
+        """
+
+        if errors is None:
+            empty_groups = self.vred_py.get_empty_variant_set_groups()
+        else:
+            empty_groups = errors
+
+        if not isinstance(empty_groups, (list, tuple)):
+            empty_groups = [empty_groups]
+
+        for group_name in empty_groups:
+            self.vred_py.vrVariantSets.deleteVariantSetGroup(group_name)
+
+    # -------------------------------------------------------------------------------------------------------
+    # Optimize methods
+    #   TODO
+    # -------------------------------------------------------------------------------------------------------
+
+    def _optimize_geometry(
+        self, root_node=None, strips=True, fans=True, stitches=False
+    ):
+        """
+        Optimize geometry to speed up rendering.
+
+        Stripes and fans are optimized primitives that can be rendered much faster by your
+        graphics hardware.
+
+        :param root_node: The root node of the subgraph to be optimized. Defaults to the scene
+            graph root node.
+        :type root_node: vrNodePtr
+        :param strips: Turn strips on or off in optimization. Default is True.
+        :type strips: bool
+        :param fans: Turn fans on or off in optimization. Default is True.
+        :type fans: bool
+        :param stitches: Turn stitches on or off in optimization. Default is False.
+        :type stitches: bool
+        """
+
+        root_node = root_node or self.vred_py.vrNodeService.getRootNode()
+        self.vred_py.vrOptimize.optimizeGeometry(root_node, strips, fans, stitches)
+
+    def _share_geometries(self, root_node=None, check_world_matrix=False):
+        """
+        Share equal geometry nodes.
+
+        :param root_node: The root node of the subgraph to be optimized. Defaults to the scene
+            graph root node.
+        :type root_node: vrNodePtr
+        :param check_world_matrix: If True, only share the geometry when the world matrix of
+        both nodes is equal.
+        :type check_world_matrix: bool
+        """
+
+        root_node = root_node or self.vred_py.vrNodeService.getRootNode()
+        self.vred_py.vrOptimize.shareGeometries(root_node, check_world_matrix)
+
+    def _merge_geometries(self, root_node=None):
+        """
+        Merges geometry nodes.
+
+        :param root_node: The root node of the subgraph to be optimized. Defaults to the scene
+            graph root node.
+        :type root_node: vrNodePtr
+        """
+
+        root_node = root_node or self.vred_py.vrNodeService.getRootNode()
+        self.vred_py.vrOptimize.mergeGeometry(root_node)
+
+    def _tessellate(
+        self,
+        nodes=None,
+        chordal_deviation=0.0,
+        normal_tolerance=0.0,
+        max_chord_len=1.0,
+        enable_stitching=True,
+        stitching_tolerance=1.0,
+        preserve_uvs=False,
+    ):
+        """
+        Retessellate the geometry surfaces.
+
+        :param nodes: The nodes to tessellate. If None, the root node is used.
+        :type nodes: List[vrNodePtr]
+        :param chordal_deviaition: The chordal deviation limit.
+        :type chordal_deviaition: float
+        :param normal_tolerance: The normal tolerance.
+        :type normal_tolerance: float
+        :param max_chord: The maximum length of a chord.
+        :type max_chord: float
+        :param enable_stitching: Sets stitching to either on or off.
+        :type enable_stitching: bool
+        :param stitching_tolerance: The maximum radius to use for stitching.
+        :type stitching_tolerance: float
+        :param preserve_uvs: Preserve existing UV layouts (Optional). Default is off. Enable
+            option if you retessellate surfaces for which you've already setup UVs in VRED.
+        :type preserve_uvs: bool
+        """
+
+        nodes = nodes or [self.vred_py.vrNodeService.getRootNode()]
+
+        self.vred_py.vrGeometryEditor.tessellateSurfaces(
+            nodes,
+            chordal_deviation,
+            normal_tolerance,
+            max_chord_len,
+            enable_stitching,
+            stitching_tolerance,
+            preserve_uvs,
+        )
+
+    def _decore(self, nodes=None, treat_as_combine_object=True, settings=None):
+        """
+        Decores the given objects with the given settings.
+
+        :param nodes: The nodes to decore. Defaults to the root node.
+        :type nodes: List[vrdNode]
+        :param treat_as_combine_object: Defines if the given nodes are treated as combined objects or separately.
+        :type treat_as_combine_object: bool
+        :param settings: Settings for decoring objects.
+        :type settings: vrdDecoreSettings
+        """
+
+        nodes = nodes or [self.vred_py.vrNodeService.getRootNode()]
+        settings = settings or self.vred_py.get_decore_settings()
+
+        self.vred_py.vrDecoreService.decore(nodes, treat_as_combine_object, settings)
+
+    def _merge_duplicate_materials(self):
+        """Optimize the scene by merging duplicate materials."""
+        self.vred_py.vrMaterialService.mergeDuplicateMaterials()
