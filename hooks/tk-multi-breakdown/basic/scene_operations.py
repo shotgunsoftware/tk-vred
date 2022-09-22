@@ -26,7 +26,7 @@ class BreakdownSceneOperation(HookClass):
 
         super(BreakdownSceneOperation, self).__init__(*args, **kwargs)
 
-        self.vred_py = self.vred_py
+        self.vred_py = self.parent.engine.vred_py
 
     def scan_scene(self):
         """
