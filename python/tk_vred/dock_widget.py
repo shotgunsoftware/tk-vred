@@ -70,7 +70,9 @@ class DockWidget(QtGui.QDockWidget):
         A dock widget is equal to another dock widget if they have the same widget id.
         """
 
-        return self.widget_id == other.widget_id
+        if isinstance(other, DockWidget):
+            return self.widget_id == other.widget_id
+        return False
 
     @property
     def widget_id(self):
