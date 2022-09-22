@@ -375,6 +375,8 @@ class VREDPy:
         """
         Determine the object type and return the string representation.
 
+        TODO: extend method to support all VRED object types.
+
         :param obj: The object to get the type as string for.
         :type obj: VRED object
         """
@@ -401,8 +403,7 @@ class VREDPy:
             if obj.isType(vrdGeometryNode):
                 return "Geometry Node"
 
-        print("Unknown vrd type", obj)
-        return "Unknown"
+        raise TypeError("VRED object type {} not supported".format(type(obj)))
 
     # -------------------------------------------------------------------------------------------------------
     # Nodes
