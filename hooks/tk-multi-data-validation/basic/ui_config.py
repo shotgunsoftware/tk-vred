@@ -15,12 +15,7 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class VREDUIConfig(HookBaseClass):
-    """
-    Hook to customize the display of the Data Validation App.
-
-    This is just the start to customizing the app display. For now, there is only one method
-    available to customize the background color of the rule itms in the view. More to follow.
-    """
+    """Hook to customize the display of the Data Validation App."""
 
     def get_rule_item_background_color(self, index):
         """
@@ -30,4 +25,6 @@ class VREDUIConfig(HookBaseClass):
         :rtype: QtGui.QColor
         """
 
+        # The default is the palette's midlight color. Use the alternate base color for more
+        # contrast between rule item rows and the background.
         return QtGui.QApplication.palette().alternateBase()
