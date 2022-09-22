@@ -11,16 +11,6 @@
 import os
 import sgtk
 
-try:
-    import builtins
-except ImportError:
-    try:
-        import __builtins__ as builtins
-    except ImportError:
-        import __builtin__ as builtins
-
-builtins.vrReferenceService = vrReferenceService
-
 HookClass = sgtk.get_hook_baseclass()
 
 
@@ -30,6 +20,13 @@ class BreakdownSceneOperation(HookClass):
 
     This implementation handles detection of VRED source references.
     """
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the hook."""
+
+        super(BreakdownSceneOperation, self).__init__(*args, **kwargs)
+
+        self.vred_py = self.vred_py
 
     def scan_scene(self):
         """
@@ -51,10 +48,10 @@ class BreakdownSceneOperation(HookClass):
 
         refs = []
 
-        for r in vrReferenceService.getSceneReferences():
+        for r in self.vred_py.vrReferenceService.getSceneReferences():
 
             # we only want to keep the top references
-            has_parent = vrReferenceService.getParentReferences(r)
+            has_parent = self.vred_py.vrReferenceService.getParentReferences(r)
             if has_parent:
                 continue
 
@@ -104,7 +101,9 @@ class BreakdownSceneOperation(HookClass):
                 ref_node.setName(new_node_name)
             elif node_type == "smart_reference":
                 ref_node.setSmartPath(path)
-                vrReferenceService.reimportSmartReferences([ref_node])  # noqa
+                self.vred_py.vrReferenceService.reimportSmartReferences(
+                    [ref_node]
+                )  # noqa
 
 
 def get_reference_by_name(ref_name):
@@ -114,7 +113,8 @@ def get_reference_by_name(ref_name):
     :param ref_name: Name of the reference we want to get the associated node from
     :returns: The reference node associated to the reference name
     """
-    ref_list = vrReferenceService.getSceneReferences()
+
+    ref_list = self.vred_py.vrReferenceService.getSceneReferences()
     for r in ref_list:
         if r.getName() == ref_name:
             return r
