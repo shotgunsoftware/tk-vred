@@ -626,8 +626,8 @@ class VREDEngine(sgtk.platform.Engine):
             )
 
         dock_properties = self.get_setting("docked_apps", {}).get(bundle.name, {})
-        dock_area = dock_properties.get("pos", None)
-        tabbed = dock_properties.get("tabbed", False)
+        dock_area = dock_properties.get("pos", QtCore.Qt.RightDockWidgetArea)
+        tabbed = dock_properties.get("tabbed", True)
         self.show_dock_widget(
             panel_id, title, widget_instance, dock_area=dock_area, tabbed=tabbed
         )
@@ -649,16 +649,6 @@ class VREDEngine(sgtk.platform.Engine):
         """
 
         dock_widget = self._dock_widgets.get(panel_id, None)
-
-        tabify_widget = None
-        if tabbed:
-            # This dock widget is tabbed, find the (if any) existing docked widgets
-            # in the dock_area to tabify (e.g. add to same dock area and toggle
-            # between widgets with tab bar).
-            tabbed_widets_in_pos = self._tabbed_dock_widgets.get(dock_area, [])
-            if tabbed_widets_in_pos:
-                tabify_widget = tabbed_widets_in_pos[-1]
-
         if dock_widget is None:
             dock_widget = self._tk_vred.DockWidget(
                 title,
@@ -674,16 +664,43 @@ class VREDEngine(sgtk.platform.Engine):
 
             # Keep track of the dock widget
             self._dock_widgets[panel_id] = dock_widget
-            # If the dock widget is tabbed, keep track of it by dock position in order
-            # to tabify with other dock widgets
+
+            # Get the dock widget to tabify this dock widget with
+            tabify_widget = (
+                self.get_tabify_widget(dock_widget, dock_area) if tabbed else None
+            )
+
             if tabbed:
+                # Keep track of it by dock position in order to tabify with other dock widgets
                 self._tabbed_dock_widgets.setdefault(dock_area, []).append(dock_widget)
 
             dock_widget.dock_to_parent(tabify_widget)
         else:
+            tabify_widget = (
+                self.get_tabify_widget(dock_widget, dock_area) if tabbed else None
+            )
             dock_widget.reinitialize(title, widget, tabify_widget)
 
         dock_widget.show()
+
+    def get_tabify_widget(self, dock_widget, dock_area):
+        """
+        Return the dock widget to tabify the given dock widget with.
+
+        :return: The dock widget to tabify the given dock widget.
+        :rtype: DockWidget
+        """
+
+        tabify_widget = None
+        tabbed_widets_in_pos = self._tabbed_dock_widgets.get(dock_area, [])
+        index = len(tabbed_widets_in_pos) - 1
+
+        while tabify_widget is None and index >= 0:
+            if tabbed_widets_in_pos[index] != dock_widget:
+                tabify_widget = tabbed_widets_in_pos[index]
+            index -= 1
+
+        return tabify_widget
 
     #####################################################################################
     # VRED File IO
