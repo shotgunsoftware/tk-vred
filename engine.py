@@ -14,39 +14,19 @@ import re
 import sgtk
 from tank_vendor import six
 
-try:
-    import builtins
-
-    builtins.vrFileIOService = vrFileIOService
-except ImportError:
-    import __builtin__
-
-    try:
-        __builtin__.vrFileIOService = vrFileIOService
-    except NameError:
-        vrFileIOService = False
-
-import vrController
-import vrFileDialog
-import vrFileIO
-import vrRenderSettings
-import vrVredUi
-
 
 class VREDEngine(sgtk.platform.Engine):
-    """
-    A VRED engine for ShotGrid Toolkit.
-    """
+    """A VRED engine for ShotGrid Toolkit."""
 
     def __init__(self, tk, context, engine_instance_name, env):
-        """
-        Class Constructor
-        """
+        """Class Constructor"""
+
         self._tk_vred = None
         self._menu_generator = None
         self.vred_version = None
         self._dock_widgets = {}
         self._tabbed_dock_widgets = {}
+        self._vred_py = None
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
 
@@ -62,6 +42,15 @@ class VREDEngine(sgtk.platform.Engine):
             return True
         else:
             return False
+
+    @property
+    def vred_py(self):
+        """Return the VRED Python API helper module."""
+        if not self._vred_py:
+            # Create the VREDPy object on first access, if we have access to the tk_vred module
+            if self._tk_vred:
+                self._vred_py = self._tk_vred.VREDPy()
+        return self._vred_py
 
     def post_context_change(self, old_context, new_context):
         """
@@ -192,27 +181,26 @@ class VREDEngine(sgtk.platform.Engine):
 
     @property
     def context_change_allowed(self):
-        """
-        Specifies that context changes are allowed by the engine.
-        """
+        """Specifies that context changes are allowed by the engine."""
         return True
 
     @property
     def menu_generator(self):
-        """
-        Menu generator to help the engine manage the ShotGrid menu in VRED.
-        """
+        """Menu generator to help the engine manage the ShotGrid menu in VRED."""
         if self._menu_generator is None:
             self._menu_generator = self._tk_vred.VREDMenuGenerator(engine=self)
 
         return self._menu_generator
 
     def _get_dialog_parent(self):
-        """
-        Get the QWidget parent for all dialogs created through show_dialog & show_modal.
-        """
+        """Get the QWidget parent for all dialogs created through show_dialog & show_modal."""
         from sgtk.platform.qt import QtGui
         from shiboken2 import wrapInstance
+
+        if self.vred_py:
+            vrVredUi = self.vred_py.vrVredUi
+        else:
+            import vrVredUi
 
         if six.PY2:
             window = wrapInstance(
@@ -225,8 +213,9 @@ class VREDEngine(sgtk.platform.Engine):
 
     def _hide_menu_in_scripts(self):
         """
-        Remove the entry in the VRED Scripts menu
-        If running in VRED Design also remove the Scripts menu itself
+        Remove the entry in the VRED Scripts menu.
+
+        If running in VRED Design also remove the Scripts menu itself.
         """
         main_window = self._get_dialog_parent()
         menu_actions = main_window.menuBar().actions()
@@ -576,6 +565,13 @@ class VREDEngine(sgtk.platform.Engine):
         # was performed on the msg).
         msg = str(handler.format(record))
 
+        # The VREDPy may not have been initialized yet when this method is called, fall back
+        # to import the vrController module
+        if self.vred_py:
+            vrController = self.vred_py.vrController
+        else:
+            import vrController
+
         if record.levelno < logging.WARNING:
             vrController.vrLogInfo(msg)
         elif record.levelno < logging.ERROR:
@@ -789,11 +785,11 @@ class VREDEngine(sgtk.platform.Engine):
         else:
             # Fallback to using VRED's save dialog. Pass flag to not confirm overwrite, the
             # save dialog will already ask this.
-            if vrFileIOService:
-                filename = vrFileIOService.getFileName()
+            if self.vred_py.vrFileIOService:
+                filename = self.vred_py.vrFileIOService.getFileName()
             else:
-                filename = vrFileIO.getFileIOFilePath()
-            path = vrFileDialog.getSaveFileName(
+                filename = self.vred_py.vrFileIO.getFileIOFilePath()
+            path = self.vred_py.vrFileDialog.getSaveFileName(
                 caption="Save As",
                 filename=filename,
                 filter=["VRED Project Binary (*.vpb)"],
@@ -822,7 +818,7 @@ class VREDEngine(sgtk.platform.Engine):
             )
         )
 
-        vrFileIO.save(file_path)
+        self.vred_py.vrFileIO.save(file_path)
 
         if not os.path.exists(six.ensure_str(str(file_path))):
             msg = "VRED Failed to save file {}".format(file_path)
@@ -850,7 +846,7 @@ class VREDEngine(sgtk.platform.Engine):
             return
 
         if file_path is None:
-            file_path = vrFileIO.getFileIOFilePath()
+            file_path = self.vred_py.vrFileIO.getFileIOFilePath()
             if file_path is None:
                 self.logger.debug(
                     "{engine_name} failed to set render path: current scene path not found".format(
@@ -897,4 +893,4 @@ class VREDEngine(sgtk.platform.Engine):
             )
         )
 
-        vrRenderSettings.setRenderFilename(render_path)
+        self.vred_py.vrRenderSettings.setRenderFilename(render_path)
