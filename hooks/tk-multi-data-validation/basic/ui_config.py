@@ -27,4 +27,7 @@ class VREDUIConfig(HookBaseClass):
 
         # The default is the palette's midlight color. Use the alternate base color for more
         # contrast between rule item rows and the background.
-        return QtGui.QApplication.palette().alternateBase()
+        if index.parent():
+            return QtGui.QApplication.palette().alternateBase()
+
+        return QtGui.QApplication.palette().midlight()
