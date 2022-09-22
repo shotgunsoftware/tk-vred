@@ -122,6 +122,7 @@ class VREDDataValidationHook(HookBaseClass):
                         "callback": self._select_materials,
                     },
                 ],
+                "dependency_ids": ["material_unused"],
             },
             "material_bump_normal_map": {
                 "name": "Use Bump and Normal Maps",
@@ -146,6 +147,7 @@ class VREDDataValidationHook(HookBaseClass):
                         "callback": self._select_materials,
                     },
                 ],
+                "dependency_ids": ["material_unused"],
             },
             "scene_graph_hidden_nodes": {
                 "name": "Delete Hidden Nodes",
