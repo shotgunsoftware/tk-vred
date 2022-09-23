@@ -23,7 +23,7 @@ class VredActions(HookBaseClass):
 
         super(VredActions, self).__init__(*args, **kwargs)
 
-        self.vred_py = self.parent.engine.vred_py
+        self.vredpy = self.parent.engine.vredpy
 
     ##############################################################################################################
     # public interface - to be overridden by deriving classes
@@ -215,24 +215,24 @@ class VredActions(HookBaseClass):
         )
 
         # Get the Sceneplate Root object
-        vredSceneplateRoot = self.vred_py.vrSceneplateService.getRootNode()
+        vredSceneplateRoot = self.vredpy.vrSceneplateService.getRootNode()
 
         # Extract the filename for the name of the Sceneplate
         nodeName = os.path.basename(image_path)
 
         # Load in the image
-        imageObject = self.vred_py.vrImageService.loadImage(image_path)
+        imageObject = self.vredpy.vrImageService.loadImage(image_path)
 
         # Create the actual Sceneplate node
-        newSceneplateNode = self.vred_py.vrSceneplateService.createNode(
+        newSceneplateNode = self.vredpy.vrSceneplateService.createNode(
             vredSceneplateRoot,
-            self.vred_py.vrSceneplateTypes.NodeType.Frontplate,
+            self.vredpy.vrSceneplateTypes.NodeType.Frontplate,
             nodeName,
         )
-        newSceneplate = self.vred_py.vrdSceneplateNode(newSceneplateNode)
+        newSceneplate = self.vredpy.vrdSceneplateNode(newSceneplateNode)
 
         # Set the type to image
-        newSceneplate.setContentType(self.vred_py.vrSceneplateTypes.ContentType.Image)
+        newSceneplate.setContentType(self.vredpy.vrSceneplateTypes.ContentType.Image)
 
         # Assign the image to the Sceneplate
         newSceneplate.setImage(imageObject)
@@ -250,7 +250,7 @@ class VredActions(HookBaseClass):
         ref_name = os.path.splitext(os.path.basename(path))[0]
 
         # create the smart ref, load it and finally change the node name to reflect the ref path
-        ref_node = self.vred_py.vrReferenceService.createSmart()
+        ref_node = self.vredpy.vrReferenceService.createSmart()
         ref_node.setSmartPath(path)
         ref_node.load()
         ref_node.setName(ref_name)
@@ -260,12 +260,12 @@ class VredActions(HookBaseClass):
         :param path: Path of file to import
         """
 
-        parent = self.vred_py.vrScenegraph.getRootNode()
-        self.vred_py.vrFileIOService.importFiles([path], parent)
+        parent = self.vredpy.vrScenegraph.getRootNode()
+        self.vredpy.vrFileIOService.importFiles([path], parent)
 
     def open_import_dialog(self, path):
         """
         :param path: Path to the file to display import options for
         """
 
-        self.vred_py.vrGUIService.openImportDialog([path])
+        self.vredpy.vrGUIService.openImportDialog([path])

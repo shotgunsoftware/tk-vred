@@ -26,7 +26,7 @@ class BreakdownSceneOperation(HookClass):
 
         super(BreakdownSceneOperation, self).__init__(*args, **kwargs)
 
-        self.vred_py = self.parent.engine.vred_py
+        self.vredpy = self.parent.engine.vredpy
 
     def scan_scene(self):
         """
@@ -48,10 +48,10 @@ class BreakdownSceneOperation(HookClass):
 
         refs = []
 
-        for r in self.vred_py.vrReferenceService.getSceneReferences():
+        for r in self.vredpy.vrReferenceService.getSceneReferences():
 
             # we only want to keep the top references
-            has_parent = self.vred_py.vrReferenceService.getParentReferences(r)
+            has_parent = self.vredpy.vrReferenceService.getParentReferences(r)
             if has_parent:
                 continue
 
@@ -101,7 +101,7 @@ class BreakdownSceneOperation(HookClass):
                 ref_node.setName(new_node_name)
             elif node_type == "smart_reference":
                 ref_node.setSmartPath(path)
-                self.vred_py.vrReferenceService.reimportSmartReferences(
+                self.vredpy.vrReferenceService.reimportSmartReferences(
                     [ref_node]
                 )  # noqa
 
@@ -114,7 +114,7 @@ def get_reference_by_name(ref_name):
     :returns: The reference node associated to the reference name
     """
 
-    ref_list = self.vred_py.vrReferenceService.getSceneReferences()
+    ref_list = self.vredpy.vrReferenceService.getSceneReferences()
     for r in ref_list:
         if r.getName() == ref_name:
             return r
