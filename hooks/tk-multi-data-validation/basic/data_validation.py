@@ -281,16 +281,16 @@ class VREDDataValidationHook(HookBaseClass):
             },
             "animation_block_uncheck": {
                 "name": "Uncheck Animation Blocks",
-                "description": "Find all checked animation blocks and uncheck them.<br/>NOTE: group animation blocks does not seem to do anything",
+                "description": "Find all checked animation blocks and uncheck them",
                 "error_msg": "Found checked animations.",
                 "check_func": self._find_checked_animation_blocks,
                 "fix_func": self._uncheck_animation_blocks,
                 "fix_name": "Uncheck All",
                 "actions": [
-                    {
-                        "name": "Group All",
-                        "callback": self._group_animation_blocks,
-                    },
+                    # {
+                    #     "name": "Group All",
+                    #     "callback": self._group_animation_blocks,
+                    # },
                 ],
                 "item_actions": [
                     {
