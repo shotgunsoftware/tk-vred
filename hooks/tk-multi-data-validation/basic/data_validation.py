@@ -60,7 +60,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         # Get the VRED python api module from the engine. Use this module to access all of the VRED API
         # functions (instead of directly importing here).
-        self.vred_py = self.parent.engine.vred_py
+        self.vredpy = self.parent.engine.vredpy
 
     # -------------------------------------------------------------------------------------------------------
     # Override base hook methods
@@ -147,6 +147,7 @@ class VREDDataValidationHook(HookBaseClass):
                         "callback": self._select_materials,
                     },
                 ],
+                "warn_msg": "Test multiple warning messages.",
                 "dependency_ids": ["material_unused"],
             },
             "scene_graph_hidden_nodes": {
@@ -576,7 +577,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         object_results = []
         for obj in objects:
-            object_id = self.vred_py.get_id(obj)
+            object_id = self.vredpy.get_id(obj)
 
             if hasattr(obj, "getName"):
                 object_name = obj.getName()
@@ -588,7 +589,7 @@ class VREDDataValidationHook(HookBaseClass):
                 {
                     "id": object_id,
                     "name": object_name,
-                    "type": self.vred_py.get_type_as_str(obj),
+                    "type": self.vredpy.get_type_as_str(obj),
                 }
             )
 
@@ -609,10 +610,10 @@ class VREDDataValidationHook(HookBaseClass):
         :type errors: list.
         """
 
-        nodes = self.vred_py.get_nodes(errors)
+        nodes = self.vredpy.get_nodes(errors)
         if nodes:
             select = True
-            self.vred_py.vrScenegraph.selectNodes(nodes, select)
+            self.vredpy.vrScenegraph.selectNodes(nodes, select)
 
     def _select_materials(self, errors=None):
         """
@@ -625,9 +626,9 @@ class VREDDataValidationHook(HookBaseClass):
         :type errors: list
         """
 
-        mats = self.vred_py.get_materials(errors)
+        mats = self.vredpy.get_materials(errors)
         if mats:
-            self.vred_py.vrMaterialService.setMaterialSelection(mats)
+            self.vredpy.vrMaterialService.setMaterialSelection(mats)
 
     # -------------------------------------------------------------------------------------------------------
     # Validation & Fix Methods (check and fix functions)
@@ -643,7 +644,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.vrMaterialService.findUnusedMaterials()
+        return self.vredpy.vrMaterialService.findUnusedMaterials()
 
     def _remove_unused_materials(self, errors=None):
         """
@@ -653,7 +654,7 @@ class VREDDataValidationHook(HookBaseClass):
         :type errors: list
         """
 
-        self.vred_py.vrMaterialService.removeUnusedMaterials()
+        self.vredpy.vrMaterialService.removeUnusedMaterials()
 
     def _find_hidden_nodes(self, node=None):
         """
@@ -669,7 +670,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.get_hidden_nodes(root_node=node)
+        return self.vredpy.get_hidden_nodes(root_node=node)
 
     def _show_nodes(self, errors=None, node=None):
         """
@@ -687,11 +688,11 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            hidden_nodes = self.vred_py.get_hidden_nodes(root_node=node)
+            hidden_nodes = self.vredpy.get_hidden_nodes(root_node=node)
         else:
-            hidden_nodes = self.vred_py.get_nodes(errors)
+            hidden_nodes = self.vredpy.get_nodes(errors)
 
-        self.vred_py.show_nodes(hidden_nodes)
+        self.vredpy.show_nodes(hidden_nodes)
 
     def _delete_hidden_nodes(self, errors=None, node=None):
         """
@@ -709,11 +710,11 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            hidden_nodes = self.vred_py.get_hidden_nodes(root_node=node)
+            hidden_nodes = self.vredpy.get_hidden_nodes(root_node=node)
         else:
-            hidden_nodes = self.vred_py.get_nodes(errors)
+            hidden_nodes = self.vredpy.get_nodes(errors)
 
-        self.vred_py.delete_nodes(hidden_nodes)
+        self.vredpy.delete_nodes(hidden_nodes)
 
     def _set_hidden_nodes_to_b_side(self, errors=None, node=None):
         """
@@ -731,11 +732,11 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            hidden_nodes = self.vred_py.get_hidden_nodes(root_node=node)
+            hidden_nodes = self.vredpy.get_hidden_nodes(root_node=node)
         else:
-            hidden_nodes = self.vred_py.get_nodes(errors)
+            hidden_nodes = self.vredpy.get_nodes(errors)
 
-        self.vred_py.set_to_b_side(hidden_nodes, b_side=True)
+        self.vredpy.set_to_b_side(hidden_nodes, b_side=True)
 
     def _find_references(self):
         """
@@ -747,7 +748,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.vrReferenceService.getSceneReferences()
+        return self.vredpy.vrReferenceService.getSceneReferences()
 
     def _delete_references(self, errors=None):
         """
@@ -761,11 +762,11 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            ref_nodes = self.vred_py.vrReferenceService.getSceneReferences()
+            ref_nodes = self.vredpy.vrReferenceService.getSceneReferences()
         else:
-            ref_nodes = self.vred_py.get_nodes(errors, api_version=self.vred_py.v2())
+            ref_nodes = self.vredpy.get_nodes(errors, api_version=self.vredpy.v2())
 
-        self.vred_py.vrNodeService.removeNodes(ref_nodes)
+        self.vredpy.vrNodeService.removeNodes(ref_nodes)
 
     def _find_loaded_references(self):
         """
@@ -779,7 +780,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return [
             r
-            for r in self.vred_py.vrReferenceService.getSceneReferences()
+            for r in self.vredpy.vrReferenceService.getSceneReferences()
             if r.isLoaded()
         ]
 
@@ -795,9 +796,9 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            refs = self.vred_py.vrReferenceService.getSceneReferences()
+            refs = self.vredpy.vrReferenceService.getSceneReferences()
         else:
-            refs = self.vred_py.get_nodes(errors, api_version=self.vred_py.v2())
+            refs = self.vredpy.get_nodes(errors, api_version=self.vredpy.v2())
 
         for ref in refs:
             if ref.isLoaded():
@@ -813,7 +814,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.vrVariantSets.getVariantSets()
+        return self.vredpy.vrVariantSets.getVariantSets()
 
     def _delete_variant_sets(self, errors=None):
         """
@@ -827,7 +828,7 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            vsets = self.vred_py.vrVariantSets.getVariantSets()
+            vsets = self.vredpy.vrVariantSets.getVariantSets()
         else:
             vsets = errors
 
@@ -835,7 +836,7 @@ class VREDDataValidationHook(HookBaseClass):
             vsets = [vsets]
 
         for vset in vsets:
-            self.vred_py.vrVariantSets.deleteVariantSet(vset)
+            self.vredpy.vrVariantSets.deleteVariantSet(vset)
 
     def _find_animation_clips(self, top_level_only=False):
         """
@@ -851,7 +852,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.get_animation_clips(top_level_only=top_level_only)
+        return self.vredpy.get_animation_clips(top_level_only=top_level_only)
 
     def _delete_animation_clips(self, errors=None, top_level_only=False):
         """
@@ -869,11 +870,11 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            clip_nodes = self.vred_py.get_animation_clips(top_level_only=top_level_only)
+            clip_nodes = self.vredpy.get_animation_clips(top_level_only=top_level_only)
         else:
-            clip_nodes = self.vred_py.get_nodes(errors)
+            clip_nodes = self.vredpy.get_nodes(errors)
 
-        self.vred_py.delete_nodes(clip_nodes)
+        self.vredpy.delete_nodes(clip_nodes)
 
     def _find_empty_animation_clips(self):
         """
@@ -885,7 +886,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.get_empty_animation_clips()
+        return self.vredpy.get_empty_animation_clips()
 
     def _delete_empty_animation_clips(self, errors=None):
         """
@@ -899,11 +900,11 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            clip_nodes = self.vred_py.get_empty_animation_clips()
+            clip_nodes = self.vredpy.get_empty_animation_clips()
         else:
-            clip_nodes = self.vred_py.get_nodes(errors)
+            clip_nodes = self.vredpy.get_nodes(errors)
 
-        self.vred_py.delete_nodes(clip_nodes)
+        self.vredpy.delete_nodes(clip_nodes)
 
     def _find_animations(self):
         """
@@ -915,7 +916,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.get_animation_clips(anim_type=self.vred_py.anim_type())
+        return self.vredpy.get_animation_clips(anim_type=self.vredpy.anim_type())
 
     def _delete_animations(self, errors=None):
         """
@@ -929,13 +930,13 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            clip_nodes = self.vred_py.get_animation_clips(
-                anim_type=self.vred_py.anim_type()
+            clip_nodes = self.vredpy.get_animation_clips(
+                anim_type=self.vredpy.anim_type()
             )
         else:
-            clip_nodes = self.vred_py.get_nodes(errors)
+            clip_nodes = self.vredpy.get_nodes(errors)
 
-        self.vred_py.delete_nodes(clip_nodes)
+        self.vredpy.delete_nodes(clip_nodes)
 
     def _find_checked_animation_blocks(self, include_hidden=True):
         """
@@ -953,7 +954,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return [
             block
-            for block in self.vred_py.vrAnimWidgets.getAnimBlockNodes(include_hidden)
+            for block in self.vredpy.vrAnimWidgets.getAnimBlockNodes(include_hidden)
             if block.getActive()
         ]
 
@@ -974,13 +975,11 @@ class VREDDataValidationHook(HookBaseClass):
         if errors is None:
             checked_blocks = [
                 block
-                for block in self.vred_py.vrAnimWidgets.getAnimBlockNodes(
-                    include_hidden
-                )
+                for block in self.vredpy.vrAnimWidgets.getAnimBlockNodes(include_hidden)
                 if block.getActive()
             ]
         else:
-            checked_blocks = self.vred_py.get_nodes(errors)
+            checked_blocks = self.vredpy.get_nodes(errors)
 
         for block in checked_blocks:
             block.setActive(False)
@@ -995,7 +994,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.get_geometry_nodes(has_mat_uvs=False)
+        return self.vredpy.get_geometry_nodes(has_mat_uvs=False)
 
     def _create_material_uvs_for_geometries_without(
         self, errors=None, nodes=None, unfold_settings=None, layout_settings=None
@@ -1032,19 +1031,19 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            nodes = self.vred_py.get_geometry_nodes(has_mat_uvs=False)
+            nodes = self.vredpy.get_geometry_nodes(has_mat_uvs=False)
         else:
             if nodes is None:
-                nodes = self.vred_py.get_nodes(errors, api_version=self.vred_py.v2())
+                nodes = self.vredpy.get_nodes(errors, api_version=self.vredpy.v2())
 
-        unfold_settings = unfold_settings or self.vred_py.get_unfold_settings()
-        layout_settings = layout_settings or self.vred_py.get_layout_settings()
+        unfold_settings = unfold_settings or self.vredpy.get_unfold_settings()
+        layout_settings = layout_settings or self.vredpy.get_layout_settings()
 
-        self.vred_py.vrUVService.unfold(
+        self.vredpy.vrUVService.unfold(
             nodes,
             unfold_settings,
             layout_settings,
-            uvSet=self.vred_py.vrUVTypes.MaterialUVSet,
+            uvSet=self.vredpy.vrUVTypes.MaterialUVSet,
         )
 
     def _find_geometries_with_material_uvs(self):
@@ -1057,7 +1056,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.get_geometry_nodes(has_mat_uvs=True)
+        return self.vredpy.get_geometry_nodes(has_mat_uvs=True)
 
     def _find_geometries_without_light_uvs(self):
         """
@@ -1069,7 +1068,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.get_geometry_nodes(has_light_uvs=False)
+        return self.vredpy.get_geometry_nodes(has_light_uvs=False)
 
     def _find_geometries_with_light_uvs(self):
         """
@@ -1081,7 +1080,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.get_geometry_nodes(has_light_uvs=True)
+        return self.vredpy.get_geometry_nodes(has_light_uvs=True)
 
     def _create_light_uvs_for_geometries_without(
         self, errors=None, nodes=None, unfold_settings=None, layout_settings=None
@@ -1118,19 +1117,19 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            nodes = self.vred_py.get_geometry_nodes(has_light_uvs=False)
+            nodes = self.vredpy.get_geometry_nodes(has_light_uvs=False)
         else:
             if nodes is None:
-                nodes = self.vred_py.get_nodes(errors, api_version=self.vred_py.v2())
+                nodes = self.vredpy.get_nodes(errors, api_version=self.vredpy.v2())
 
-        unfold_settings = unfold_settings or self.vred_py.get_unfold_settings()
-        layout_settings = layout_settings or self.vred_py.get_layout_settings()
+        unfold_settings = unfold_settings or self.vredpy.get_unfold_settings()
+        layout_settings = layout_settings or self.vredpy.get_layout_settings()
 
-        self.vred_py.vrUVService.unfold(
+        self.vredpy.vrUVService.unfold(
             nodes,
             unfold_settings,
             layout_settings,
-            uvSet=self.vred_py.vrUVTypes.LightmapUVSet,
+            uvSet=self.vredpy.vrUVTypes.LightmapUVSet,
         )
 
     def _find_materials_not_using_orange_peel(self):
@@ -1143,7 +1142,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.find_materials(using_orange_peel=False)
+        return self.vredpy.find_materials(using_orange_peel=False)
 
     def _use_clearcoat_orange_peel(self, errors=None):
         """
@@ -1158,9 +1157,9 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            mats = self.vred_py.find_materials(using_orange_peel=False)
+            mats = self.vredpy.find_materials(using_orange_peel=False)
         else:
-            mats = self.vred_py.get_materials(errors)
+            mats = self.vredpy.get_materials(errors)
 
         for mat in mats:
             try:
@@ -1181,7 +1180,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.find_materials(using_texture=False)
+        return self.vredpy.find_materials(using_texture=False)
 
     def _set_material_use_texture(self, errors=None):
         """
@@ -1196,9 +1195,9 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            mats = self.vred_py.find_materials(using_texture=False)
+            mats = self.vredpy.find_materials(using_texture=False)
         else:
-            mats = self.vred_py.get_materials(errors)
+            mats = self.vredpy.get_materials(errors)
 
         for mat in mats:
             try:
@@ -1212,9 +1211,9 @@ class VREDDataValidationHook(HookBaseClass):
     def _group_animation_blocks(self):
         """Group all animation block nodes."""
 
-        block_nodes = self.vred_py.vrAnimWidgets.getAnimBlockNodes(True)
+        block_nodes = self.vredpy.vrAnimWidgets.getAnimBlockNodes(True)
         if block_nodes:
-            self.vred_py.group_nodes(block_nodes)
+            self.vredpy.group_nodes(block_nodes)
 
     def _bake_to_texture(
         self,
@@ -1253,20 +1252,20 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            nodes = self.vred_py.get_nodes(errors, api_version=self.vred_py.v2())
+            nodes = self.vredpy.get_nodes(errors, api_version=self.vredpy.v2())
         else:
             if nodes is None:
-                root = self.vred_py.vrNodeService.getRootNode()
-                nodes = self.vred_py.get_geometry_nodes(root_node=root)
+                root = self.vredpy.vrNodeService.getRootNode()
+                nodes = self.vredpy.get_geometry_nodes(root_node=root)
 
         illumination_bake_settings = (
-            illumination_bake_settings or self.vred_py.get_illumination_bake_settings()
+            illumination_bake_settings or self.vredpy.get_illumination_bake_settings()
         )
         texture_bake_settings = (
-            texture_bake_settings or self.vred_py.get_texture_bake_settings()
+            texture_bake_settings or self.vredpy.get_texture_bake_settings()
         )
 
-        self.vred_py.vrBakeService.bakeToTexture(
+        self.vredpy.vrBakeService.bakeToTexture(
             nodes,
             illumination_bake_settings,
             texture_bake_settings,
@@ -1307,11 +1306,11 @@ class VREDDataValidationHook(HookBaseClass):
             raise self.VREDDataValidationError("Path required to re-path lightmaps.")
 
         if errors is None:
-            geometry_nodes = [self.vred_py.vrNodeService.getRootNode()]
+            geometry_nodes = [self.vredpy.vrNodeService.getRootNode()]
         else:
-            geometry_nodes = self.vred_py.get_nodes(errors)
+            geometry_nodes = self.vredpy.get_nodes(errors)
 
-        self.vred_py.vrBakeService.repathLightmaps(geometry_nodes, path)
+        self.vredpy.vrBakeService.repathLightmaps(geometry_nodes, path)
 
     def _find_empty_variant_set_groups(self):
         """
@@ -1323,7 +1322,7 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vred_py.get_empty_variant_set_groups()
+        return self.vredpy.get_empty_variant_set_groups()
 
     def _delete_empty_variant_set_groups(self, errors=None):
         """
@@ -1337,7 +1336,7 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         if errors is None:
-            empty_groups = self.vred_py.get_empty_variant_set_groups()
+            empty_groups = self.vredpy.get_empty_variant_set_groups()
         else:
             empty_groups = errors
 
@@ -1345,7 +1344,7 @@ class VREDDataValidationHook(HookBaseClass):
             empty_groups = [empty_groups]
 
         for group_name in empty_groups:
-            self.vred_py.vrVariantSets.deleteVariantSetGroup(group_name)
+            self.vredpy.vrVariantSets.deleteVariantSetGroup(group_name)
 
     # -------------------------------------------------------------------------------------------------------
     # Optimize methods
@@ -1372,8 +1371,8 @@ class VREDDataValidationHook(HookBaseClass):
         :type stitches: bool
         """
 
-        root_node = root_node or self.vred_py.vrNodeService.getRootNode()
-        self.vred_py.vrOptimize.optimizeGeometry(root_node, strips, fans, stitches)
+        root_node = root_node or self.vredpy.vrNodeService.getRootNode()
+        self.vredpy.vrOptimize.optimizeGeometry(root_node, strips, fans, stitches)
 
     def _share_geometries(self, root_node=None, check_world_matrix=False):
         """
@@ -1387,8 +1386,8 @@ class VREDDataValidationHook(HookBaseClass):
         :type check_world_matrix: bool
         """
 
-        root_node = root_node or self.vred_py.vrNodeService.getRootNode()
-        self.vred_py.vrOptimize.shareGeometries(root_node, check_world_matrix)
+        root_node = root_node or self.vredpy.vrNodeService.getRootNode()
+        self.vredpy.vrOptimize.shareGeometries(root_node, check_world_matrix)
 
     def _merge_geometries(self, root_node=None):
         """
@@ -1399,8 +1398,8 @@ class VREDDataValidationHook(HookBaseClass):
         :type root_node: vrNodePtr
         """
 
-        root_node = root_node or self.vred_py.vrNodeService.getRootNode()
-        self.vred_py.vrOptimize.mergeGeometry(root_node)
+        root_node = root_node or self.vredpy.vrNodeService.getRootNode()
+        self.vredpy.vrOptimize.mergeGeometry(root_node)
 
     def _tessellate(
         self,
@@ -1432,9 +1431,9 @@ class VREDDataValidationHook(HookBaseClass):
         :type preserve_uvs: bool
         """
 
-        nodes = nodes or [self.vred_py.vrNodeService.getRootNode()]
+        nodes = nodes or [self.vredpy.vrNodeService.getRootNode()]
 
-        self.vred_py.vrGeometryEditor.tessellateSurfaces(
+        self.vredpy.vrGeometryEditor.tessellateSurfaces(
             nodes,
             chordal_deviation,
             normal_tolerance,
@@ -1456,11 +1455,11 @@ class VREDDataValidationHook(HookBaseClass):
         :type settings: vrdDecoreSettings
         """
 
-        nodes = nodes or [self.vred_py.vrNodeService.getRootNode()]
-        settings = settings or self.vred_py.get_decore_settings()
+        nodes = nodes or [self.vredpy.vrNodeService.getRootNode()]
+        settings = settings or self.vredpy.get_decore_settings()
 
-        self.vred_py.vrDecoreService.decore(nodes, treat_as_combine_object, settings)
+        self.vredpy.vrDecoreService.decore(nodes, treat_as_combine_object, settings)
 
     def _merge_duplicate_materials(self):
         """Optimize the scene by merging duplicate materials."""
-        self.vred_py.vrMaterialService.mergeDuplicateMaterials()
+        self.vredpy.vrMaterialService.mergeDuplicateMaterials()

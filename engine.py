@@ -26,7 +26,7 @@ class VREDEngine(sgtk.platform.Engine):
         self.vred_version = None
         self._dock_widgets = {}
         self._tabbed_dock_widgets = {}
-        self._vred_py = None
+        self._vredpy = None
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
 
@@ -44,13 +44,13 @@ class VREDEngine(sgtk.platform.Engine):
             return False
 
     @property
-    def vred_py(self):
+    def vredpy(self):
         """Return the VRED Python API helper module."""
-        if not self._vred_py:
+        if not self._vredpy:
             # Create the VREDPy object on first access, if we have access to the tk_vred module
             if self._tk_vred:
-                self._vred_py = self._tk_vred.VREDPy()
-        return self._vred_py
+                self._vredpy = self._tk_vred.VREDPy()
+        return self._vredpy
 
     def post_context_change(self, old_context, new_context):
         """
@@ -197,8 +197,8 @@ class VREDEngine(sgtk.platform.Engine):
         from sgtk.platform.qt import QtGui
         from shiboken2 import wrapInstance
 
-        if self.vred_py:
-            vrVredUi = self.vred_py.vrVredUi
+        if self.vredpy:
+            vrVredUi = self.vredpy.vrVredUi
         else:
             import vrVredUi
 
@@ -567,8 +567,8 @@ class VREDEngine(sgtk.platform.Engine):
 
         # The VREDPy may not have been initialized yet when this method is called, fall back
         # to import the vrController module
-        if self.vred_py:
-            vrController = self.vred_py.vrController
+        if self.vredpy:
+            vrController = self.vredpy.vrController
         else:
             import vrController
 
@@ -785,11 +785,11 @@ class VREDEngine(sgtk.platform.Engine):
         else:
             # Fallback to using VRED's save dialog. Pass flag to not confirm overwrite, the
             # save dialog will already ask this.
-            if self.vred_py.vrFileIOService:
-                filename = self.vred_py.vrFileIOService.getFileName()
+            if self.vredpy.vrFileIOService:
+                filename = self.vredpy.vrFileIOService.getFileName()
             else:
-                filename = self.vred_py.vrFileIO.getFileIOFilePath()
-            path = self.vred_py.vrFileDialog.getSaveFileName(
+                filename = self.vredpy.vrFileIO.getFileIOFilePath()
+            path = self.vredpy.vrFileDialog.getSaveFileName(
                 caption="Save As",
                 filename=filename,
                 filter=["VRED Project Binary (*.vpb)"],
@@ -818,7 +818,7 @@ class VREDEngine(sgtk.platform.Engine):
             )
         )
 
-        self.vred_py.vrFileIO.save(file_path)
+        self.vredpy.vrFileIO.save(file_path)
 
         if not os.path.exists(six.ensure_str(str(file_path))):
             msg = "VRED Failed to save file {}".format(file_path)
@@ -846,7 +846,7 @@ class VREDEngine(sgtk.platform.Engine):
             return
 
         if file_path is None:
-            file_path = self.vred_py.vrFileIO.getFileIOFilePath()
+            file_path = self.vredpy.vrFileIO.getFileIOFilePath()
             if file_path is None:
                 self.logger.debug(
                     "{engine_name} failed to set render path: current scene path not found".format(
@@ -893,4 +893,4 @@ class VREDEngine(sgtk.platform.Engine):
             )
         )
 
-        self.vred_py.vrRenderSettings.setRenderFilename(render_path)
+        self.vredpy.vrRenderSettings.setRenderFilename(render_path)

@@ -28,7 +28,7 @@ class VREDActions(HookBaseClass):
 
         super(VREDActions, self).__init__(*args, **kwargs)
 
-        self.vred_py = self.parent.engine.vred_py
+        self.vredpy = self.parent.engine.vredpy
 
     def generate_actions(self, sg_data, actions, ui_area):
         """
@@ -148,7 +148,7 @@ class VREDActions(HookBaseClass):
 
         if name == "import":
             path = self.get_publish_path(sg_data)
-            self.vred_py.vrFileIO.loadGeometry(path)
+            self.vredpy.vrFileIO.loadGeometry(path)
 
         elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_data)
@@ -250,20 +250,20 @@ class VREDActions(HookBaseClass):
         )
 
         # Get the Sceneplate Root object
-        vredSceneplateRoot = self.vred_py.vrSceneplateService.getRootNode()  # noqa
+        vredSceneplateRoot = self.vredpy.vrSceneplateService.getRootNode()  # noqa
         # Extract the filename for the name of the Sceneplate
         nodeName = os.path.basename(image_path)
         # Load in the image
-        imageObject = self.vred_py.vrImageService.loadImage(image_path)  # noqa
+        imageObject = self.vredpy.vrImageService.loadImage(image_path)  # noqa
         # Create the actual Sceneplate node
-        newSceneplateNode = self.vred_py.vrSceneplateService.createNode(  # noqa
+        newSceneplateNode = self.vredpy.vrSceneplateService.createNode(  # noqa
             vredSceneplateRoot,
-            self.vred_py.vrSceneplateTypes.NodeType.Frontplate,
+            self.vredpy.vrSceneplateTypes.NodeType.Frontplate,
             nodeName,
         )
-        newSceneplate = self.vred_py.vrdSceneplateNode(newSceneplateNode)
+        newSceneplate = self.vredpy.vrdSceneplateNode(newSceneplateNode)
         # Set the type to image
-        newSceneplate.setContentType(self.vred_py.vrSceneplateTypes.ContentType.Image)
+        newSceneplate.setContentType(self.vredpy.vrSceneplateTypes.ContentType.Image)
         # Assign the image to the Sceneplate
         newSceneplate.setImage(imageObject)
 
@@ -351,9 +351,9 @@ class VREDActions(HookBaseClass):
                 )
 
             QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-            self.vred_py.vrFileIO.load(
+            self.vredpy.vrFileIO.load(
                 [path],
-                self.vred_py.vrScenegraph.getRootNode(),
+                self.vredpy.vrScenegraph.getRootNode(),
                 newFile=True,
                 showImportOptions=False,
             )
