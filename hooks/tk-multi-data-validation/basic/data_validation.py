@@ -266,20 +266,6 @@ class VREDDataValidationHook(HookBaseClass):
                     },
                 ],
             },
-            "animation_delete": {
-                "name": "Delete Animations",
-                "description": "Find all animations and delete them.",
-                "error_msg": "Found animations.",
-                "check_func": self._find_animations,
-                "fix_func": self._delete_animations,
-                "fix_name": "Delete All",
-                "item_actions": [
-                    {
-                        "name": "Delete",
-                        "callback": self._delete_animations,
-                    },
-                ],
-            },
             "animation_block_uncheck": {
                 "name": "Uncheck Animation Blocks",
                 "description": "Find all checked animation blocks and uncheck them",
@@ -901,38 +887,6 @@ class VREDDataValidationHook(HookBaseClass):
 
         if errors is None:
             clip_nodes = self.vredpy.get_empty_animation_clips()
-        else:
-            clip_nodes = self.vredpy.get_nodes(errors)
-
-        self.vredpy.delete_nodes(clip_nodes)
-
-    def _find_animations(self):
-        """
-        Find all animation nodes.
-
-        Format the data before returning to be compatible with the Data Validation App.
-
-        :return: The animations.
-        :rtype: dict
-        """
-
-        return self.vredpy.get_animation_clips(anim_type=self.vredpy.anim_type())
-
-    def _delete_animations(self, errors=None):
-        """
-        Delete the given animation nodes, or delete all animation nodes if not specified.
-
-        This method is used as a fix/action function for a validation rule - it must include
-        the `errors` key-value argument with default value None.
-
-        :param errors: The animations to delete. If None, delete all animations.
-        :type errors: list
-        """
-
-        if errors is None:
-            clip_nodes = self.vredpy.get_animation_clips(
-                anim_type=self.vredpy.anim_type()
-            )
         else:
             clip_nodes = self.vredpy.get_nodes(errors)
 
