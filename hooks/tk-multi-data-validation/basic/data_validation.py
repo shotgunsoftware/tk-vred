@@ -239,8 +239,8 @@ class VREDDataValidationHook(HookBaseClass):
                 ],
             },
             "animation_clip_delete": {
-                "name": "Delete Clips",
-                "description": "Find all animation clips and delete them.",
+                "name": "Delete Animation Clips",
+                "description": "Find all animation clips and delete them. All animations in the clips will be deleted.",
                 "error_msg": "Found animation clips.",
                 "check_func": self._find_animation_clips,
                 "fix_func": self._delete_animation_clips,
@@ -253,7 +253,7 @@ class VREDDataValidationHook(HookBaseClass):
                 ],
             },
             "animation_clip_empty": {
-                "name": "Delete Empty Clips",
+                "name": "Delete Empty Animation Clips",
                 "description": "Find all empty animation clips and delete them.",
                 "error_msg": "Found animation clips.",
                 "check_func": self._find_empty_animation_clips,
