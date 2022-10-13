@@ -8,7 +8,6 @@
 # agreement to the ShotGrid Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
-import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 try:
@@ -20,35 +19,44 @@ except ImportError:
         import __builtin__ as builtins
 
 # VRED API v2 imports
-builtins.vrFileIOService = vrFileIOService
-builtins.vrDecoreService = vrDecoreService
-builtins.vrNodeService = vrNodeService
-builtins.vrMaterialService = vrMaterialService
-builtins.vrBakeService = vrBakeService
-builtins.vrReferenceService = vrReferenceService
-builtins.vrGUIService = vrGUIService
-builtins.vrImageService = vrImageService
-builtins.vrSceneplateService = vrSceneplateService
-builtins.vrUVService = vrUVService
+
+builtins.vrFileIOService = vrFileIOService # 2021.0.0
+builtins.vrImageService = vrImageService # 2021.0.0
+builtins.vrNodeService = vrNodeService # 2021.0.0
+builtins.vrReferenceService = vrReferenceService # 2021.0.0
+builtins.vrSceneplateService = vrSceneplateService # 2021.0.0
+
+builtins.vrUVService = vrUVService # 2021.2.0
+
+builtins.vrBakeService = vrBakeService # 2022.0.0
+
+builtins.vrGUIService = vrGUIService # 2022.2.0
+
+builtins.vrDecoreService = vrDecoreService # 2023.0.0
+builtins.vrMaterialService = vrMaterialService # 2023.0.0
+
 from vrKernelServices import (
-    vrdDecoreSettings,
-    vrGeometryTypes,
-    vrdGeometryNode,
-    vrdTransformNode,
-    vrdSurfaceNode,
-    vrdMaterial,
-    vrdMaterialNode,
-    vrdNode,
-    vrdObject,
-    vrUVTypes,
-    vrdReferenceNode,
-    vrdUVUnfoldSettings,
-    vrdUVLayoutSettings,
-    vrdTextureBakeSettings,
-    vrdIlluminationBakeSettings,
-    vrSceneplateTypes,
-    vrdSceneplateNode,
-    vrBakeTypes,
+    vrSceneplateTypes, # 2021.0.0
+    vrdNode,  # 2021.0.0
+    vrdObject,  # 2021.0.0
+    vrdTransformNode,  # 2021.0.0
+    vrdReferenceNode, # 2021.0.0
+    vrdSceneplateNode, # 2021.0.0
+
+    vrGeometryTypes,  # 2021.2.0
+    vrUVTypes, # 2021.2.0
+    vrdGeometryNode, # 2021.2.0
+    vrdSurfaceNode,  # 2021.2.0
+    vrdUVLayoutSettings,  # 2021.2.0
+    vrdUVUnfoldSettings,  # 2021.2.0
+
+    vrBakeTypes,  # 2022.0.0
+    vrdIlluminationBakeSettings,  # 2022.0.0
+    vrdTextureBakeSettings,  # 2022.0.0
+
+    vrdDecoreSettings, # 2023.0.0
+    vrdMaterial, # 2023.0.0
+    vrdMaterialNode, # 2023.0.0
 )
 
 # VRED API v1 imports
