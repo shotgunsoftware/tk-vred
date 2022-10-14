@@ -10,56 +10,8 @@
 
 from sgtk.platform.qt import QtCore, QtGui
 
-try:
-    import builtins
-except ImportError:
-    try:
-        import __builtins__ as builtins
-    except ImportError:
-        import __builtin__ as builtins
-
-# VRED API v2 imports
-
-builtins.vrFileIOService = vrFileIOService # 2021.0.0
-builtins.vrImageService = vrImageService # 2021.0.0
-builtins.vrNodeService = vrNodeService # 2021.0.0
-builtins.vrReferenceService = vrReferenceService # 2021.0.0
-builtins.vrSceneplateService = vrSceneplateService # 2021.0.0
-
-builtins.vrUVService = vrUVService # 2021.2.0
-
-builtins.vrBakeService = vrBakeService # 2022.0.0
-
-builtins.vrGUIService = vrGUIService # 2022.2.0
-
-builtins.vrDecoreService = vrDecoreService # 2023.0.0
-builtins.vrMaterialService = vrMaterialService # 2023.0.0
-
-from vrKernelServices import (
-    vrSceneplateTypes, # 2021.0.0
-    vrdNode,  # 2021.0.0
-    vrdObject,  # 2021.0.0
-    vrdTransformNode,  # 2021.0.0
-    vrdReferenceNode, # 2021.0.0
-    vrdSceneplateNode, # 2021.0.0
-
-    vrGeometryTypes,  # 2021.2.0
-    vrUVTypes, # 2021.2.0
-    vrdGeometryNode, # 2021.2.0
-    vrdSurfaceNode,  # 2021.2.0
-    vrdUVLayoutSettings,  # 2021.2.0
-    vrdUVUnfoldSettings,  # 2021.2.0
-
-    vrBakeTypes,  # 2022.0.0
-    vrdIlluminationBakeSettings,  # 2022.0.0
-    vrdTextureBakeSettings,  # 2022.0.0
-
-    vrdDecoreSettings, # 2023.0.0
-    vrdMaterial, # 2023.0.0
-    vrdMaterialNode, # 2023.0.0
-)
-
-# VRED API v1 imports
+# VRED API v1 imports. VRED API v2 modules are included in the builtins so no need to
+# explicitly import them.
 import vrOptimize
 import vrScenegraph
 import vrGeometryEditor
@@ -90,6 +42,9 @@ class VREDPy:
     class VREDPyError(Exception):
         """Custom exception class for VRED API errors."""
 
+    class VREDModuleNotSupported(Exception):
+        """Custom exception class for reporting VRED API modules that are not supported."""
+
     #########################################################################################################
     # Properties
     #########################################################################################################
@@ -99,142 +54,420 @@ class VREDPy:
     # -----------------------------------------------------------------------------------------
     # Set up properties for each VRED API module so that importing the modules can be done once
     # here in this module, and all other modules can access the modules through the VREDPy
-    # properties.
+    # properties. This handles importing modules when using different versions of VRED (e.g.
+    # handles exceptions when module is not supported by the current version of VRED).
 
     @property
     def vrUVService(self):
         """Return the VRED v2 API module vrUVService."""
-        return vrUVService
+        try:
+            return vrUVService
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported("vrUVService requires VRED >= 2021.2.0")
 
     @property
     def vrSceneplateService(self):
         """Return the VRED v2 API module vrSceneplateService."""
-        return vrSceneplateService
+        try:
+            return vrSceneplateService
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrSceneplateService requires VRED >= 2021.0.0"
+            )
 
     @property
     def vrImageService(self):
         """Return the VRED v2 API module vrImageService."""
-        return vrImageService
+        try:
+            return vrImageService
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrImageService requires VRED >= 2021.0.0"
+            )
 
     @property
     def vrGUIService(self):
         """Return the VRED v2 API module vrGUIService."""
-        return vrGUIService
+        try:
+            return vrGUIService
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrGUIService requires VRED >= 2022.2.0"
+            )
 
     @property
     def vrFileIOService(self):
         """Return the VRED v2 API module vrFileIOService."""
-        return vrFileIOService
+        try:
+            return vrFileIOService
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrFileIOService requires VRED >= 2021.0.0"
+            )
 
     @property
     def vrNodeService(self):
         """Return the VRED v2 API module vrNodeService."""
-        return vrNodeService
+        try:
+            return vrNodeService
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrNodeService requires VRED >= 2021.0.0"
+            )
 
     @property
     def vrMaterialService(self):
         """Return the VRED v2 API module vrMaterialService."""
-        return vrMaterialService
+        try:
+            return vrMaterialService
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrMaterialService requires VRED >= 2023.0.0"
+            )
 
     @property
     def vrReferenceService(self):
         """Return the VRED v2 API module vrReferenceService."""
-        return vrReferenceService
+        try:
+            return vrReferenceService
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrReferenceService requires VRED >= 2021.0.0"
+            )
 
     @property
     def vrBakeService(self):
         """Return the VRED v2 API module vrBakeService."""
-        return vrBakeService
+        try:
+            return vrBakeService
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrBakeService requires VRED >= 2022.0.0"
+            )
 
     @property
     def vrDecoreService(self):
         """Return the VRED v2 API module vrDecoreService."""
-        return vrDecoreService
+        try:
+            return vrDecoreService
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrDecoreService requires VRED >= 2023.0.0"
+            )
 
     @property
     def vrdDecoreSettings(self):
         """Return the VRED v2 API module vrdDecoreSettings."""
-        return vrdDecoreSettings
+        try:
+            # Attempt to return the module right away.
+            return vrdDecoreSettings
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdDecoreSettings
+
+            return vrdDecoreSettings
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdDecoreSettings requires VRED >= 2023.0.0"
+            )
 
     @property
     def vrGeometryTypes(self):
         """Return the VRED v2 API module vrGeometryTypes."""
-        return vrGeometryTypes
+        try:
+            # Attempt to return the module right away.
+            return vrGeometryTypes
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            # Attempt to import the module and return it.
+            from vrKernelServices import vrGeometryTypes
+
+            return vrGeometryTypes
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrGeometryTypes requires VRED >= 2021.2.0"
+            )
 
     @property
     def vrdGeometryNode(self):
         """Return the VRED v2 API module vrdGeometryNode."""
-        return vrdGeometryNode
+        try:
+            # Attempt to return the module right away.
+            return vrdGeometryNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdGeometryNode
+
+            return vrdGeometryNode
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdGeometryNode requires VRED >= 2021.2.0"
+            )
 
     @property
     def vrdNode(self):
         """Return the VRED v2 API module vrdNode."""
-        return vrdNode
+        try:
+            # Attempt to return the module right away.
+            return vrdNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdNode
+
+            return vrdNode
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported("vrdNode requires VRED >= 2021.0.0")
 
     @property
     def vrdSceneplateNode(self):
         """Return the VRED v2 API module vrdSceneplateNode."""
-        return vrdSceneplateNode
+        try:
+            # Attempt to return the module right away.
+            return vrdSceneplateNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdSceneplateNode
+
+            return vrdSceneplateNode
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdSceneplateNode requires VRED >= 2021.0.0"
+            )
 
     @property
     def vrdMaterialNode(self):
         """Return the VRED v2 API module vrdMaterialNode."""
-        return vrdMaterialNode
+        try:
+            # Attempt to return the module right away.
+            return vrdMaterialNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdMaterialNode
+
+            return vrdMaterialNode
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdMaterialNode requires VRED >= 2023.0.0"
+            )
 
     @property
     def vrdSurfaceNode(self):
         """Return the VRED v2 API module vrdSurfaceNode."""
-        return vrdSurfaceNode
+        try:
+            # Attempt to return the module right away.
+            return vrdSurfaceNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdSurfaceNode
+
+            return vrdSurfaceNode
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdSurfaceNode requires VRED >= 2021.2.0"
+            )
 
     @property
     def vrdReferenceNode(self):
         """Return the VRED v2 API module vrdReferenceNode."""
-        return vrdObject
+        try:
+            # Attempt to return the module right away.
+            return vrdReferenceNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdReferenceNode
+
+            return vrdReferenceNode
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdReferenceNode requires VRED >= 2021.0.0"
+            )
 
     @property
     def vrdObject(self):
         """Return the VRED v2 API module vrdObject."""
-        return vrdObject
+        try:
+            # Attempt to return the module right away.
+            return vrdObject
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdObject
+
+            return vrdObject
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported("vrdObject requires VRED >= 2021.0.0")
 
     @property
     def vrdMaterial(self):
-        """Return the VRED v2 API module vrdObject."""
-        return vrdObject
+        """Return the VRED v2 API module vrdMaterial."""
+        try:
+            # Attempt to return the module right away.
+            return vrdMaterial
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdMaterial
+
+            return vrdMaterial
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported("vrdMaterial requires VRED >= 2023.0.0")
 
     @property
     def vrSceneplateTypes(self):
         """Return the VRED v2 API module vrSceneplateTypes."""
-        return vrSceneplateTypes
+        try:
+            # Attempt to return the module right away.
+            return vrSceneplateTypes
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrSceneplateTypes
+
+            return vrSceneplateTypes
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrSceneplateTypes requires VRED >= 2021.0.0"
+            )
 
     @property
     def vrUVTypes(self):
         """Return the VRED v2 API module vrUVTypes."""
-        return vrUVTypes
+        try:
+            # Attempt to return the module right away.
+            return vrUVTypes
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrUVTypes
+
+            return vrUVTypes
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported("vrUVTypes requires VRED >= 2021.2.0")
 
     @property
     def vrBakeTypes(self):
         """Return the VRED v2 API module vrBakeTypes."""
-        return vrBakeTypes
+        try:
+            # Attempt to return the module right away.
+            return vrBakeTypes
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrBakeTypes
+
+            return vrBakeTypes
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported("vrBakeTypes requires VRED >= 2022.0.0")
 
     @property
     def vrdUVUnfoldSettings(self):
         """Return the VRED v2 API module vrdUVUnfoldSettings."""
-        return vrdUVUnfoldSettings
+        try:
+            # Attempt to return the module right away.
+            return vrdUVUnfoldSettings
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdUVUnfoldSettings
+
+            return vrdUVUnfoldSettings
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdUVUnfoldSettings requires VRED >= 2021.2.0"
+            )
 
     @property
     def vrdUVLayoutSettings(self):
         """Return the VRED v2 API module vrdUVLayoutSettings."""
-        return vrdUVLayoutSettings
+        try:
+            # Attempt to return the module right away.
+            return vrdUVLayoutSettings
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdUVLayoutSettings
+
+            return vrdUVLayoutSettings
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdUVLayoutSettings requires VRED >= 2021.2.0"
+            )
 
     @property
     def vrdIlluminationBakeSettings(self):
         """Return the VRED v2 API module vrdIlluminationBakeSettings."""
-        return vrdIlluminationBakeSettings
+        try:
+            # Attempt to return the module right away.
+            return vrdIlluminationBakeSettings
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdIlluminationBakeSettings
+
+            return vrdIlluminationBakeSettings
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdIlluminationBakeSettings requires VRED >= 2022.0.0"
+            )
 
     @property
     def vrdTextureBakeSettings(self):
         """Return the VRED v2 API module vrdTextureBakeSettings."""
-        return vrdTextureBakeSettings
+        try:
+            # Attempt to return the module right away.
+            return vrdTextureBakeSettings
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            from vrKernelServices import vrdTextureBakeSettings
+
+            return vrdTextureBakeSettings
+        except NameError:
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdTextureBakeSettings requires VRED >= 2022.0.0"
+            )
 
     @property
     def vrAnimWidgets(self):
@@ -356,8 +589,7 @@ class VREDPy:
     # Objects
     # -------------------------------------------------------------------------------------------------------
 
-    @staticmethod
-    def get_id(obj):
+    def get_id(self, obj):
         """
         Return the ID for the given object.
 
@@ -368,18 +600,17 @@ class VREDPy:
         :rtype: int
         """
 
-        if isinstance(obj, vrdNode):
+        if isinstance(obj, self.vrdNode):
             return obj.getObjectId()
 
-        if isinstance(obj, vrNodePtr.vrNodePtr):
+        if isinstance(obj, self.vrNodePtr.vrNodePtr):
             return obj.getID()
 
         # Default to returning the object itself as the id if could not determine the id based
         # on object type.
         return obj
 
-    @staticmethod
-    def get_type_as_str(obj):
+    def get_type_as_str(self, obj):
         """
         Determine the object type and return the string representation.
 
@@ -392,23 +623,23 @@ class VREDPy:
         if hasattr(obj, "getType"):
             return obj.getType()
 
-        if isinstance(obj, vrdObject):
-            if obj.isType(vrdMaterial):
+        if isinstance(obj, self.vrdObject):
+            if obj.isType(self.vrdMaterial):
                 return "Material"
 
-            if obj.isType(vrdMaterialNode):
+            if obj.isType(self.vrdMaterialNode):
                 return "Material Node"
 
-            if obj.isType(vrdReferenceNode):
+            if obj.isType(self.vrdReferenceNode):
                 return "Reference Node"
 
-            if obj.isType(vrdSurfaceNode):
+            if obj.isType(self.vrdSurfaceNode):
                 return "Surface Node"
 
-            if obj.isType(vrdTransformNode):
+            if obj.isType(self.vrdTransformNode):
                 return "Transform Node"
 
-            if obj.isType(vrdGeometryNode):
+            if obj.isType(self.vrdGeometryNode):
                 return "Geometry Node"
 
         raise TypeError("VRED object type {} not supported".format(type(obj)))
@@ -417,8 +648,7 @@ class VREDPy:
     # Nodes
     # -------------------------------------------------------------------------------------------------------
 
-    @staticmethod
-    def is_geometry_node(node):
+    def is_geometry_node(self, node):
         """
         Return True if the node is a geometry node.
 
@@ -433,14 +663,13 @@ class VREDPy:
         :rtype: bool
         """
 
-        if isinstance(node, vrdSurfaceNode):
+        if isinstance(node, self.vrdSurfaceNode):
             # Do not include surface nodes
             return False
 
-        return isinstance(node, vrdGeometryNode)
+        return isinstance(node, self.vrdGeometryNode)
 
-    @staticmethod
-    def get_nodes(items, api_version=VRED_API_V1):
+    def get_nodes(self, items, api_version=VRED_API_V1):
         """
         Return a list of node objects.
 
@@ -473,27 +702,27 @@ class VREDPy:
                 item = item.get("id")
 
             node = None
-            if isinstance(item, vrNodePtr.vrNodePtr):
+            if isinstance(item, self.vrNodePtr.vrNodePtr):
                 if api_version == VREDPy.v1():
                     node = item
                 else:
-                    node = vrNodeService.getNodeFromId(item.getID())
-            elif isinstance(item, vrdNode):
+                    node = self.vrNodeService.getNodeFromId(item.getID())
+            elif isinstance(item, self.vrdNode):
                 if api_version == VREDPy.v1():
-                    node = vrNodePtr.toNode(item.getObjcetId())
+                    node = self.vrNodePtr.toNode(item.getObjcetId())
                 else:
                     node = item
             elif isinstance(item, int):
                 if api_version == VREDPy.v1():
-                    node = vrNodePtr.toNode(item)
+                    node = self.vrNodePtr.toNode(item)
                 else:
                     node = vrNodeService.getNodeFromId(item)
             else:
                 try:
                     if api_version == VREDPy.v1():
-                        node = vrScenegraph.findNode(item)
+                        node = self.vrScenegraph.findNode(item)
                     else:
-                        node = vrNodeService.findNode(item)
+                        node = self.vrNodeService.findNode(item)
                 except Exception:
                     pass
 
@@ -504,8 +733,7 @@ class VREDPy:
 
         return nodes
 
-    @staticmethod
-    def get_geometry_nodes(root_node=None, has_mat_uvs=None, has_light_uvs=None):
+    def get_geometry_nodes(self, root_node=None, has_mat_uvs=None, has_light_uvs=None):
         """
         Return all geometry nodes in the subtree of the root_node.
 
@@ -541,17 +769,17 @@ class VREDPy:
                 elif has_mat_uvs is None and has_light_uvs is None:
                     # Add geometry based on both material/light UVs
                     if (
-                        node.hasUVSet(vrUVTypes.MaterialUVSet) == has_mat_uvs
-                        and node.hasUVSet(vrUVTypes.LightmapUVSet) == has_light_uvs
+                        node.hasUVSet(self.vrUVTypes.MaterialUVSet) == has_mat_uvs
+                        and node.hasUVSet(self.vrUVTypes.LightmapUVSet) == has_light_uvs
                     ):
                         result.append(node)
                 elif has_mat_uvs is None:
                     # Add only geometry based on light UVs, ignore material UVs
-                    if node.hasUVSet(vrUVTypes.LightmapUVSet) == has_light_uvs:
+                    if node.hasUVSet(self.vrUVTypes.LightmapUVSet) == has_light_uvs:
                         result.append(node)
                 elif has_light_uvs is None:
                     # Add only geometry based on material UVs, ignore light UVs
-                    if node.hasUVSet(vrUVTypes.MaterialUVSet) == has_mat_uvs:
+                    if node.hasUVSet(self.vrUVTypes.MaterialUVSet) == has_mat_uvs:
                         result.append(node)
 
             for child in node.getChildren():
@@ -559,15 +787,14 @@ class VREDPy:
                     child, result, has_mat_uvs=has_mat_uvs, has_light_uvs=has_light_uvs
                 )
 
-        root_node = root_node or vrNodeService.getRootNode()
+        root_node = root_node or self.vrNodeService.getRootNode()
         nodes = []
         _get_geometry_nodes(
             root_node, nodes, has_mat_uvs=has_mat_uvs, has_light_uvs=has_light_uvs
         )
         return nodes
 
-    @staticmethod
-    def get_hidden_nodes(root_node=None, api_version=VRED_API_V1):
+    def get_hidden_nodes(self, root_node=None, api_version=VRED_API_V1):
         """
         Return a list of the hidden nodes in the scene graph.
 
@@ -585,10 +812,10 @@ class VREDPy:
 
         if root_node is None:
             if api_version == VREDPy.v1():
-                nodes = [vrScenegraph.getRootNode()]
+                nodes = [self.vrScenegraph.getRootNode()]
             else:
                 # v2
-                nodes = [vrNodeService.getRootNode()]
+                nodes = [self.vrNodeService.getRootNode()]
         else:
             nodes = [root_node]
 
@@ -596,7 +823,7 @@ class VREDPy:
         while nodes:
             node = nodes.pop()
 
-            if isinstance(node, vrNodePtr.vrNodePtr):
+            if isinstance(node, self.vrNodePtr.vrNodePtr):
                 if not node.getActive():
                     hidden.append(node)
                 else:
@@ -614,8 +841,7 @@ class VREDPy:
 
         return hidden
 
-    @staticmethod
-    def delete_nodes(nodes, force=False):
+    def delete_nodes(self, nodes, force=False):
         """
         Delete the given nodes.
 
@@ -631,17 +857,16 @@ class VREDPy:
 
         # Check the first node to detect which api version to use to delete.
         # Assumes the list has uniform elements
-        if isinstance(nodes[0], vrNodePtr.vrNodePtr):
-            vrScenegraph.deleteNodes(nodes, force)
+        if isinstance(nodes[0], self.vrNodePtr.vrNodePtr):
+            self.vrScenegraph.deleteNodes(nodes, force)
 
-        elif isinstance(nodes[0], vrdNode):
-            vrNodeService.removeNodes(nodes)
+        elif isinstance(nodes[0], self.vrdNode):
+            self.vrNodeService.removeNodes(nodes)
 
         else:
             raise VREDPy.VREDPyError("Not a node {}".format(nodes[0]))
 
-    @staticmethod
-    def set_to_b_side(nodes, b_side=True):
+    def set_to_b_side(self, nodes, b_side=True):
         """
         Set the given nodes to the B-Side.
 
@@ -658,15 +883,14 @@ class VREDPy:
 
         for node in nodes:
             # Check if we're handling a v1 or v2 node object
-            if isinstance(node, vrNodePtr.vrNodePtr):
-                vrNodeUtils.setToBSide(node, b_side)
-            elif isinstance(node, vrdGeometryNode):
+            if isinstance(node, self.vrNodePtr.vrNodePtr):
+                self.vrNodeUtils.setToBSide(node, b_side)
+            elif isinstance(node, self.vrdGeometryNode):
                 node.setToBSide(b_side)
             else:
                 raise VREDPy.VREDPyError("Not a geometry node {}".format(node))
 
-    @staticmethod
-    def show_nodes(nodes):
+    def show_nodes(self, nodes):
         """
         Show the nodes.
 
@@ -679,18 +903,17 @@ class VREDPy:
 
         # Check the first node to detect which api version to use to delete.
         # Assumes the list has uniform elements
-        if isinstance(nodes[0], vrNodePtr.vrNodePtr):
-            vrScenegraph.showNodes(nodes)
+        if isinstance(nodes[0], self.vrNodePtr.vrNodePtr):
+            self.vrScenegraph.showNodes(nodes)
 
-        elif isinstance(nodes[0], vrdNode):
+        elif isinstance(nodes[0], self.vrdNode):
             for node in nodes:
                 node.setVisibilityFlag(True)
 
         else:
             raise VREDPy.VREDPyError("Not a node {}".format(nodes[0]))
 
-    @staticmethod
-    def group_nodes(nodes):
+    def group_nodes(self, nodes):
         """
         Group the given nodes.
 
@@ -707,16 +930,15 @@ class VREDPy:
         """
 
         select = True
-        vrScenegraph.selectNodes(nodes, select)
-        vrScenegraph.groupSelection()
-        vrScenegraph.deselectAll()
+        self.vrScenegraph.selectNodes(nodes, select)
+        self.vrScenegraph.groupSelection()
+        self.vrScenegraph.deselectAll()
 
     # -------------------------------------------------------------------------------------------------------
     # Materials
     # -------------------------------------------------------------------------------------------------------
 
-    @staticmethod
-    def get_materials(items):
+    def get_materials(self, items):
         """
         Return a list of material objects.
 
@@ -740,13 +962,13 @@ class VREDPy:
                 item = item.get("id")
 
             mat = None
-            if isinstance(item, vrdMaterial):
+            if isinstance(item, self.vrdMaterial):
                 mat = item
             elif isinstance(item, int):
-                mat = vrMaterialService.getMaterialFromId(item)
+                mat = self.vrMaterialService.getMaterialFromId(item)
             else:
                 try:
-                    mat = vrMaterialService.findMaterial(item)
+                    mat = self.vrMaterialService.findMaterial(item)
                 except Exception:
                     pass
 
@@ -759,8 +981,7 @@ class VREDPy:
 
         return materials
 
-    @staticmethod
-    def find_materials(using_orange_peel=None, using_texture=None):
+    def find_materials(self, using_orange_peel=None, using_texture=None):
         """
         Return a list of materials matching the given parameters.
 
@@ -783,7 +1004,7 @@ class VREDPy:
         :rtype: list<vrdMaterial>
         """
 
-        mats = vrMaterialService.getAllMaterials()
+        mats = self.vrMaterialService.getAllMaterials()
 
         if using_orange_peel is None and using_texture is None:
             return mats
@@ -815,11 +1036,10 @@ class VREDPy:
         return result
 
     # -------------------------------------------------------------------------------------------------------
-    # Animatino
+    # Animation
     # -------------------------------------------------------------------------------------------------------
 
-    @staticmethod
-    def is_animation_clip(clip_node):
+    def is_animation_clip(self, clip_node):
         """
         Return True if the clip is an Animation Clip.
 
@@ -829,10 +1049,9 @@ class VREDPy:
         :type clip_node: vrNodePtr
         """
 
-        return clip_node.getType() == VREDPy.clip_type()
+        return clip_node.getType() == self.clip_type()
 
-    @staticmethod
-    def get_animation_clips(top_level_only=True, anim_type=VRED_TYPE_CLIP):
+    def get_animation_clips(self, top_level_only=True, anim_type=VRED_TYPE_CLIP):
         """
         Return all animation clip nodes.
 
@@ -850,9 +1069,9 @@ class VREDPy:
 
         # TODO support multiple animation types to accept
 
-        top_level_nodes = vrAnimWidgets.getAnimClipNodes()
+        top_level_nodes = self.vrAnimWidgets.getAnimClipNodes()
 
-        if top_level_only and anim_type == VREDPy.clip_type():
+        if top_level_only and anim_type == self.clip_type():
             return top_level_nodes
 
         # Recurse to get all child nodes
@@ -870,8 +1089,7 @@ class VREDPy:
 
         return nodes
 
-    @staticmethod
-    def get_empty_animation_clips():
+    def get_empty_animation_clips(self):
         """
         Return all empty animation clips.
 
@@ -904,7 +1122,7 @@ class VREDPy:
                 # Recurse on all children to determine if this clip is empty or not.
                 for i in range(num_children):
                     child = clip.getChild(i)
-                    if child.getType() != VREDPy.clip_type():
+                    if child.getType() != self.clip_type():
                         # Child is not a clip - so this current clip is not empty.
                         # Recurse on the child, but do not alter the is_empty state of this clip, since
                         # we already know it is not empty.
@@ -917,21 +1135,20 @@ class VREDPy:
                             is_empty = False
 
             if is_empty:
-                if node_type == VREDPy.clip_type():
+                if node_type == self.clip_type():
                     # Only add the clip if it is an Animation Clip
                     empty_clips.append(clip)
                 return True
             return False
 
-        top_level_clips = vrAnimWidgets.getAnimClipNodes()
+        top_level_clips = self.vrAnimWidgets.getAnimClipNodes()
         empty_clips = []
         for clip in top_level_clips:
             _get_empty_clips(clip, empty_clips)
 
         return empty_clips
 
-    @staticmethod
-    def get_empty_variant_set_groups():
+    def get_empty_variant_set_groups(self):
         """
         Find all empty variant set groups.
 
@@ -952,8 +1169,8 @@ class VREDPy:
     # Settings
     # -------------------------------------------------------------------------------------------------------
 
-    @staticmethod
     def get_unfold_settings(
+        self,
         iterations=1,
         prevent_border_intersections=True,
         prevent_triangle_flips=True,
@@ -993,7 +1210,7 @@ class VREDPy:
         :type room_space: int
         """
 
-        settings = vrdUVUnfoldSettings()
+        settings = self.vrdUVUnfoldSettings()
 
         settings.setIterations(iterations)
         settings.setPreventBorderIntersections(prevent_border_intersections)
@@ -1003,8 +1220,8 @@ class VREDPy:
 
         return settings
 
-    @staticmethod
     def get_layout_settings(
+        self,
         resolution=256,
         iterations=1,
         pre_rotate_mode=None,
@@ -1090,12 +1307,12 @@ class VREDPy:
         :type post_scale_mode: vrUVTypes.PostScaleMode
         """
 
-        pre_rotate_mode = pre_rotate_mode or vrUVTypes.PreRotateMode.YAxisToV
-        pre_scale_mode = pre_scale_mode or vrUVTypes.PreScaleMode.Keep3DArea
-        tile_assign_mode = tile_assign_mode or vrUVTypes.TileAssignMode.Distribute
-        post_scale_mode = post_scale_mode or vrUVTypes.PostScaleMode.Uniform
+        pre_rotate_mode = pre_rotate_mode or self.vrUVTypes.PreRotateMode.YAxisToV
+        pre_scale_mode = pre_scale_mode or self.vrUVTypes.PreScaleMode.Keep3DArea
+        tile_assign_mode = tile_assign_mode or self.vrUVTypes.TileAssignMode.Distribute
+        post_scale_mode = post_scale_mode or self.vrUVTypes.PostScaleMode.Uniform
 
-        settings = vrdUVLayoutSettings()
+        settings = self.vrdUVLayoutSettings()
 
         settings.setBox(box)
         settings.setIslandPadding(island_padding)
@@ -1116,8 +1333,8 @@ class VREDPy:
 
         return settings
 
-    @staticmethod
     def get_texture_bake_settings(
+        self,
         hide_transparent_objects=True,
         external_reference_location=None,
         renderer=None,
@@ -1183,9 +1400,9 @@ class VREDPy:
         :type edge_dilation: int
         """
 
-        renderer = renderer or vrBakeTypes.Renderer.CPURayTracing
+        renderer = renderer or self.vrBakeTypes.Renderer.CPURayTracing
 
-        settings = vrdTextureBakeSettings()
+        settings = self.vrdTextureBakeSettings()
 
         settings.setEdgeDilation(edge_dilation)
         settings.setHideTransparentObjects(hide_transparent_objects)
@@ -1202,8 +1419,8 @@ class VREDPy:
 
         return settings
 
-    @staticmethod
     def get_illumination_bake_settings(
+        self,
         ambient_occlusion_max_dist=3000.00,
         ambient_occlusion_min_dist=1.00,
         ambient_occlusion_weight=None,
@@ -1268,13 +1485,13 @@ class VREDPy:
 
         direct_illumination_mode = (
             direct_illumination_mode
-            or vrBakeTypes.DirectIlluminationMode.AmbientOcclusion
+            or self.vrBakeTypes.DirectIlluminationMode.AmbientOcclusion
         )
         ambient_occlusion_weight = (
-            ambient_occlusion_weight or vrBakeTypes.AmbientOcclusionWeight.Uniform
+            ambient_occlusion_weight or self.vrBakeTypes.AmbientOcclusionWeight.Uniform
         )
 
-        settings = vrdIlluminationBakeSettings()
+        settings = self.vrdIlluminationBakeSettings()
 
         settings.setAmbientOcclusionMaximumDistance(ambient_occlusion_max_dist)
         settings.setAmbientOcclusionMinimumDistance(ambient_occlusion_min_dist)
@@ -1289,8 +1506,8 @@ class VREDPy:
 
         return settings
 
-    @staticmethod
     def get_decore_settings(
+        self,
         resolution=1024,
         quality_steps=8,
         correct_face_normals=False,
@@ -1333,16 +1550,16 @@ class VREDPy:
         :rtype: vrdDecoreSettings
         """
 
-        decore_mode = decore_mode or vrGeometryTypes.DecoreMode.Remove
+        decore_mode = decore_mode or self.vrGeometryTypes.DecoreMode.Remove
         sub_object_mode = (
-            sub_object_mode or vrGeometryTypes.DecoreSubObjectMode.Triangles
+            sub_object_mode or self.vrGeometryTypes.DecoreSubObjectMode.Triangles
         )
         transparent_object_mode = (
             transparent_object_mode
-            or vrGeometryTypes.DecoreTransparentObjectMode.Ignore
+            or self.vrGeometryTypes.DecoreTransparentObjectMode.Ignore
         )
 
-        settings = vrdDecoreSettings()
+        settings = self.vrdDecoreSettings()
 
         settings.setResolution(resolution)
         settings.setQualitySteps(quality_steps)

@@ -8,9 +8,39 @@
 # agreement to the ShotGrid Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
+from functools import wraps
 import sgtk
 
 HookBaseClass = sgtk.get_hook_baseclass()
+
+
+def check_vred_version_support(func):
+    """
+    Decorator function to check VRED version support before executing the API function.
+
+    If the current running VRED version does not support the API function, log the original
+    exception message and raise a specific exception with user friendly message (the data
+    validation app will display the exception message to the user).
+
+    :param func: The VRED API function to execute.
+    :type func: function
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        validation_hook_instance = args[0]
+        try:
+            return func(*args, **kwargs)
+        except validation_hook_instance.vredpy.VREDModuleNotSupported as vredpy_error:
+            validation_hook_instance.logger.error(vredpy_error)
+            raise VREDDataValidationHook.VREDDataValidationError(
+                """
+                This Validation Rule is not supported by the current running VRED version.
+                Please update to the latest version of VRED to use this functionality.
+            """
+            )
+
+    return wrapper
 
 
 class VREDDataValidationHook(HookBaseClass):
@@ -620,6 +650,7 @@ class VREDDataValidationHook(HookBaseClass):
     # Validation & Fix Methods (check and fix functions)
     # -------------------------------------------------------------------------------------------------------
 
+    @check_vred_version_support
     def _find_unused_materials(self):
         """
         Find all unused materials.
@@ -632,6 +663,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.vrMaterialService.findUnusedMaterials()
 
+    @check_vred_version_support
     def _remove_unused_materials(self, errors=None):
         """
         Remove all unused materials.
@@ -642,6 +674,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         self.vredpy.vrMaterialService.removeUnusedMaterials()
 
+    @check_vred_version_support
     def _find_hidden_nodes(self, node=None):
         """
         Find all hidden nodes in the scene graph.
@@ -658,6 +691,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.get_hidden_nodes(root_node=node)
 
+    @check_vred_version_support
     def _show_nodes(self, errors=None, node=None):
         """
         Show the given hidden nodes, or show all hidden nodes if nodes not specified.
@@ -680,6 +714,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         self.vredpy.show_nodes(hidden_nodes)
 
+    @check_vred_version_support
     def _delete_hidden_nodes(self, errors=None, node=None):
         """
         Delete the given hidden nodes, or delete all hidden nodes if nodes not specified.
@@ -702,6 +737,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         self.vredpy.delete_nodes(hidden_nodes)
 
+    @check_vred_version_support
     def _set_hidden_nodes_to_b_side(self, errors=None, node=None):
         """
         Set all given nodes to B-Side, or set all hidden nodes if nodes not sepcified.
@@ -724,6 +760,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         self.vredpy.set_to_b_side(hidden_nodes, b_side=True)
 
+    @check_vred_version_support
     def _find_references(self):
         """
         Find all references in the scene graph.
@@ -736,6 +773,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.vrReferenceService.getSceneReferences()
 
+    @check_vred_version_support
     def _delete_references(self, errors=None):
         """
         Find all references in the scene graph and delete the reference nodes.
@@ -754,6 +792,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         self.vredpy.vrNodeService.removeNodes(ref_nodes)
 
+    @check_vred_version_support
     def _find_loaded_references(self):
         """
         Find references that are loaded, in the scene graph.
@@ -770,6 +809,7 @@ class VREDDataValidationHook(HookBaseClass):
             if r.isLoaded()
         ]
 
+    @check_vred_version_support
     def _unload_reference(self, errors=None):
         """
         Unload the references.
@@ -790,6 +830,7 @@ class VREDDataValidationHook(HookBaseClass):
             if ref.isLoaded():
                 ref.unload()
 
+    @check_vred_version_support
     def _find_variant_sets(self):
         """
         Find all variant sets.
@@ -802,6 +843,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.vrVariantSets.getVariantSets()
 
+    @check_vred_version_support
     def _delete_variant_sets(self, errors=None):
         """
         Delete the given variant sets.
@@ -824,6 +866,7 @@ class VREDDataValidationHook(HookBaseClass):
         for vset in vsets:
             self.vredpy.vrVariantSets.deleteVariantSet(vset)
 
+    @check_vred_version_support
     def _find_animation_clips(self, top_level_only=False):
         """
         Find all animation clips.
@@ -840,6 +883,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.get_animation_clips(top_level_only=top_level_only)
 
+    @check_vred_version_support
     def _delete_animation_clips(self, errors=None, top_level_only=False):
         """
         Delete the animation clip nodes.
@@ -862,6 +906,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         self.vredpy.delete_nodes(clip_nodes)
 
+    @check_vred_version_support
     def _find_empty_animation_clips(self):
         """
         Find all empty animation clips nodes.
@@ -874,6 +919,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.get_empty_animation_clips()
 
+    @check_vred_version_support
     def _delete_empty_animation_clips(self, errors=None):
         """
         Delete empty animation clip nodes.
@@ -892,6 +938,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         self.vredpy.delete_nodes(clip_nodes)
 
+    @check_vred_version_support
     def _find_checked_animation_blocks(self, include_hidden=True):
         """
         Find all checked animation blocks nodes.
@@ -912,6 +959,7 @@ class VREDDataValidationHook(HookBaseClass):
             if block.getActive()
         ]
 
+    @check_vred_version_support
     def _uncheck_animation_blocks(self, errors=None, include_hidden=True):
         """
         Find all checked animation blocks and uncheck them.
@@ -938,6 +986,7 @@ class VREDDataValidationHook(HookBaseClass):
         for block in checked_blocks:
             block.setActive(False)
 
+    @check_vred_version_support
     def _find_geometries_without_material_uvs(self):
         """
         Find geometries without Material UV Sets.
@@ -950,6 +999,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.get_geometry_nodes(has_mat_uvs=False)
 
+    @check_vred_version_support
     def _create_material_uvs_for_geometries_without(
         self, errors=None, nodes=None, unfold_settings=None, layout_settings=None
     ):
@@ -1000,6 +1050,7 @@ class VREDDataValidationHook(HookBaseClass):
             uvSet=self.vredpy.vrUVTypes.MaterialUVSet,
         )
 
+    @check_vred_version_support
     def _find_geometries_with_material_uvs(self):
         """
         Find geometries with Material UV Sets.
@@ -1012,6 +1063,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.get_geometry_nodes(has_mat_uvs=True)
 
+    @check_vred_version_support
     def _find_geometries_without_light_uvs(self):
         """
         Find geometries without Light UV Sets.
@@ -1024,6 +1076,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.get_geometry_nodes(has_light_uvs=False)
 
+    @check_vred_version_support
     def _find_geometries_with_light_uvs(self):
         """
         Find geometries with Light UV Sets.
@@ -1036,6 +1089,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.get_geometry_nodes(has_light_uvs=True)
 
+    @check_vred_version_support
     def _create_light_uvs_for_geometries_without(
         self, errors=None, nodes=None, unfold_settings=None, layout_settings=None
     ):
@@ -1086,6 +1140,7 @@ class VREDDataValidationHook(HookBaseClass):
             uvSet=self.vredpy.vrUVTypes.LightmapUVSet,
         )
 
+    @check_vred_version_support
     def _find_materials_not_using_orange_peel(self):
         """
         Find all materials with the clearcoat property and using orange peel.
@@ -1098,6 +1153,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.find_materials(using_orange_peel=False)
 
+    @check_vred_version_support
     def _use_clearcoat_orange_peel(self, errors=None):
         """
         For materials with the clearcoat property, use orange peel.
@@ -1124,6 +1180,7 @@ class VREDDataValidationHook(HookBaseClass):
             if clearcoat:
                 clearcoat.setUseOrangePeel(True)
 
+    @check_vred_version_support
     def _find_materials_not_using_texture(self):
         """
         Find all materials with the bump map property and using texture.
@@ -1136,6 +1193,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.find_materials(using_texture=False)
 
+    @check_vred_version_support
     def _set_material_use_texture(self, errors=None):
         """
         For materials with the bump texture property, set the material to use texture.
@@ -1162,6 +1220,7 @@ class VREDDataValidationHook(HookBaseClass):
             if bump_texture:
                 bump_texture.setUseTexture(True)
 
+    @check_vred_version_support
     def _group_animation_blocks(self):
         """Group all animation block nodes."""
 
@@ -1169,6 +1228,7 @@ class VREDDataValidationHook(HookBaseClass):
         if block_nodes:
             self.vredpy.group_nodes(block_nodes)
 
+    @check_vred_version_support
     def _bake_to_texture(
         self,
         errors=None,
@@ -1226,6 +1286,7 @@ class VREDDataValidationHook(HookBaseClass):
             replace_texture_bake,
         )
 
+    @check_vred_version_support
     def _repath_lightmaps(self, errors=None, path=None):
         """
         Re-paths existing lightmaps from a list of geometry nodes.
@@ -1266,6 +1327,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         self.vredpy.vrBakeService.repathLightmaps(geometry_nodes, path)
 
+    @check_vred_version_support
     def _find_empty_variant_set_groups(self):
         """
         Find all empty variant set groups.
@@ -1278,6 +1340,7 @@ class VREDDataValidationHook(HookBaseClass):
 
         return self.vredpy.get_empty_variant_set_groups()
 
+    @check_vred_version_support
     def _delete_empty_variant_set_groups(self, errors=None):
         """
         Delete the empty variant set groups.
