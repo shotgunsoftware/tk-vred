@@ -8,7 +8,4 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from .menu_generation import VREDMenuGenerator
-from .dock_widget import DockWidget
-
 from .vredpy import VREDPy

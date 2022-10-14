@@ -64,6 +64,10 @@ configuration:
         type: dict
         default_value: {}
 
+    hook_load_framework_test:
+        type: hook
+        description: "Test load_framework"
+        default_value: "{self}/test_load_framework.py"
 
 # the ShotGrid fields that this engine needs in order to operate correctly
 requires_shotgun_fields:
