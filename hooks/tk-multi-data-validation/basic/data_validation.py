@@ -8,9 +8,39 @@
 # agreement to the ShotGrid Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
+from functools import wraps
 import sgtk
 
 HookBaseClass = sgtk.get_hook_baseclass()
+
+
+def check_vred_version_support(func):
+    """
+    Decorator function to check VRED version support before executing the API function.
+
+    If the current running VRED version does not support the API function, log the original
+    exception message and raise a specific exception with user friendly message (the data
+    validation app will display the exception message to the user).
+
+    :param func: The VRED API function to execute.
+    :type func: function
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        validation_hook_instance = args[0]
+        try:
+            return func(*args, **kwargs)
+        except validation_hook_instance.vredpy.VREDModuleNotSupported as vredpy_error:
+            validation_hook_instance.logger.error(vredpy_error)
+            raise VREDDataValidationHook.VREDDataValidationError(
+                """
+                This Validation Rule is not supported by the current running VRED version.
+                Please update to the latest version of VRED to use this functionality.
+            """
+            )
+
+    return wrapper
 
 
 class VREDDataValidationHook(HookBaseClass):
