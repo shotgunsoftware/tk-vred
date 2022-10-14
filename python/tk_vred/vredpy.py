@@ -55,7 +55,8 @@ class VREDPy:
     # -----------------------------------------------------------------------------------------
     # Set up properties for each VRED API module so that importing the modules can be done once
     # here in this module, and all other modules can access the modules through the VREDPy
-    # properties.
+    # properties. This handles importing modules when using different versions of VRED (e.g.
+    # handles exceptions when module is not supported by the current version of VRED).
 
     @property
     def vrUVService(self):
