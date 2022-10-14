@@ -73,7 +73,7 @@ class VREDPy:
             return vrSceneplateService
         except NameError:
             raise VREDPy.VREDModuleNotSupported(
-                "vrImageService requires VRED >= 2021.0.0"
+                "vrSceneplateService requires VRED >= 2021.0.0"
             )
 
     @property
