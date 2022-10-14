@@ -158,6 +158,12 @@ class VREDPy:
     @property
     def vrdDecoreSettings(self):
         """Return the VRED v2 API module vrdDecoreSettings."""
+        try:
+            # Attempt to return the module right away.
+            return vrdDecoreSettings
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
 
         try:
             from vrKernelServices import vrdDecoreSettings
@@ -172,6 +178,14 @@ class VREDPy:
     def vrGeometryTypes(self):
         """Return the VRED v2 API module vrGeometryTypes."""
         try:
+            # Attempt to return the module right away.
+            return vrGeometryTypes
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
+            # Attempt to import the module and return it.
             from vrKernelServices import vrGeometryTypes
 
             return vrGeometryTypes
@@ -183,6 +197,13 @@ class VREDPy:
     @property
     def vrdGeometryNode(self):
         """Return the VRED v2 API module vrdGeometryNode."""
+        try:
+            # Attempt to return the module right away.
+            return vrdGeometryNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
         try:
             from vrKernelServices import vrdGeometryNode
 
@@ -196,6 +217,13 @@ class VREDPy:
     def vrdNode(self):
         """Return the VRED v2 API module vrdNode."""
         try:
+            # Attempt to return the module right away.
+            return vrdNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
             from vrKernelServices import vrdNode
 
             return vrdNode
@@ -205,6 +233,13 @@ class VREDPy:
     @property
     def vrdSceneplateNode(self):
         """Return the VRED v2 API module vrdSceneplateNode."""
+        try:
+            # Attempt to return the module right away.
+            return vrdSceneplateNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
         try:
             from vrKernelServices import vrdSceneplateNode
 
@@ -218,6 +253,13 @@ class VREDPy:
     def vrdMaterialNode(self):
         """Return the VRED v2 API module vrdMaterialNode."""
         try:
+            # Attempt to return the module right away.
+            return vrdMaterialNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
             from vrKernelServices import vrdMaterialNode
 
             return vrdMaterialNode
@@ -229,6 +271,13 @@ class VREDPy:
     @property
     def vrdSurfaceNode(self):
         """Return the VRED v2 API module vrdSurfaceNode."""
+        try:
+            # Attempt to return the module right away.
+            return vrdSurfaceNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
         try:
             from vrKernelServices import vrdSurfaceNode
 
@@ -242,6 +291,13 @@ class VREDPy:
     def vrdReferenceNode(self):
         """Return the VRED v2 API module vrdReferenceNode."""
         try:
+            # Attempt to return the module right away.
+            return vrdReferenceNode
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
             from vrKernelServices import vrdReferenceNode
 
             return vrdReferenceNode
@@ -254,6 +310,13 @@ class VREDPy:
     def vrdObject(self):
         """Return the VRED v2 API module vrdObject."""
         try:
+            # Attempt to return the module right away.
+            return vrdObject
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
             from vrKernelServices import vrdObject
 
             return vrdObject
@@ -264,6 +327,13 @@ class VREDPy:
     def vrdMaterial(self):
         """Return the VRED v2 API module vrdMaterial."""
         try:
+            # Attempt to return the module right away.
+            return vrdMaterial
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
             from vrKernelServices import vrdMaterial
 
             return vrdMaterial
@@ -273,6 +343,13 @@ class VREDPy:
     @property
     def vrSceneplateTypes(self):
         """Return the VRED v2 API module vrSceneplateTypes."""
+        try:
+            # Attempt to return the module right away.
+            return vrSceneplateTypes
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
         try:
             from vrKernelServices import vrSceneplateTypes
 
@@ -286,6 +363,13 @@ class VREDPy:
     def vrUVTypes(self):
         """Return the VRED v2 API module vrUVTypes."""
         try:
+            # Attempt to return the module right away.
+            return vrUVTypes
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
             from vrKernelServices import vrUVTypes
 
             return vrUVTypes
@@ -296,6 +380,13 @@ class VREDPy:
     def vrBakeTypes(self):
         """Return the VRED v2 API module vrBakeTypes."""
         try:
+            # Attempt to return the module right away.
+            return vrBakeTypes
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
             from vrKernelServices import vrBakeTypes
 
             return vrBakeTypes
@@ -305,6 +396,13 @@ class VREDPy:
     @property
     def vrdUVUnfoldSettings(self):
         """Return the VRED v2 API module vrdUVUnfoldSettings."""
+        try:
+            # Attempt to return the module right away.
+            return vrdUVUnfoldSettings
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
         try:
             from vrKernelServices import vrdUVUnfoldSettings
 
@@ -318,6 +416,13 @@ class VREDPy:
     def vrdUVLayoutSettings(self):
         """Return the VRED v2 API module vrdUVLayoutSettings."""
         try:
+            # Attempt to return the module right away.
+            return vrdUVLayoutSettings
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
             from vrKernelServices import vrdUVLayoutSettings
 
             return vrdUVLayoutSettings
@@ -330,6 +435,13 @@ class VREDPy:
     def vrdIlluminationBakeSettings(self):
         """Return the VRED v2 API module vrdIlluminationBakeSettings."""
         try:
+            # Attempt to return the module right away.
+            return vrdIlluminationBakeSettings
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
+        try:
             from vrKernelServices import vrdIlluminationBakeSettings
 
             return vrdIlluminationBakeSettings
@@ -341,6 +453,13 @@ class VREDPy:
     @property
     def vrdTextureBakeSettings(self):
         """Return the VRED v2 API module vrdTextureBakeSettings."""
+        try:
+            # Attempt to return the module right away.
+            return vrdTextureBakeSettings
+        except UnboundLocalError:
+            # It has not been imported yet. Continue on to attempt import.
+            pass
+
         try:
             from vrKernelServices import vrdTextureBakeSettings
 
