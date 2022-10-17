@@ -1480,3 +1480,7 @@ class VREDDataValidationHook(HookBaseClass):
     def _merge_duplicate_materials(self):
         """Optimize the scene by merging duplicate materials."""
         self.vredpy.vrMaterialService.mergeDuplicateMaterials()
+
+    def get_optimization_data(self):
+        """Placeholder"""
+        return {}
