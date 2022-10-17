@@ -8,6 +8,9 @@
 # agreement to the ShotGrid Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
+import traceback
+
+import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
 # VRED API v1 imports. VRED API v2 modules are included in the builtins so no need to
@@ -42,8 +45,21 @@ class VREDPy:
     class VREDPyError(Exception):
         """Custom exception class for VRED API errors."""
 
-    class VREDModuleNotSupported(Exception):
+    class VREDModuleNotSupported(VREDPyError):
         """Custom exception class for reporting VRED API modules that are not supported."""
+
+    class VREDObjectTypeNotFound(VREDPyError):
+        """Custom exception class for reporting VRED object types that are not found."""
+
+    def __init__(self, logger=None):
+        """
+        Initialize.
+
+        :param logger: The logger object to report messages to.
+        :type logger: Standard python logger.
+        """
+
+        self.__logger = logger or sgtk.platform.get_logger(__name__)
 
     #########################################################################################################
     # Properties
@@ -62,7 +78,8 @@ class VREDPy:
         """Return the VRED v2 API module vrUVService."""
         try:
             return vrUVService
-        except NameError:
+        except (ImportError, NameError):
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported("vrUVService requires VRED >= 2021.2.0")
 
     @property
@@ -70,7 +87,8 @@ class VREDPy:
         """Return the VRED v2 API module vrSceneplateService."""
         try:
             return vrSceneplateService
-        except NameError:
+        except (ImportError, NameError):
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrSceneplateService requires VRED >= 2021.0.0"
             )
@@ -80,7 +98,8 @@ class VREDPy:
         """Return the VRED v2 API module vrImageService."""
         try:
             return vrImageService
-        except NameError:
+        except (ImportError, NameError):
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrImageService requires VRED >= 2021.0.0"
             )
@@ -90,7 +109,8 @@ class VREDPy:
         """Return the VRED v2 API module vrGUIService."""
         try:
             return vrGUIService
-        except NameError:
+        except (ImportError, NameError):
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrGUIService requires VRED >= 2022.2.0"
             )
@@ -100,7 +120,8 @@ class VREDPy:
         """Return the VRED v2 API module vrFileIOService."""
         try:
             return vrFileIOService
-        except NameError:
+        except (ImportError, NameError):
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrFileIOService requires VRED >= 2021.0.0"
             )
@@ -110,7 +131,8 @@ class VREDPy:
         """Return the VRED v2 API module vrNodeService."""
         try:
             return vrNodeService
-        except NameError:
+        except (ImportError, NameError):
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrNodeService requires VRED >= 2021.0.0"
             )
@@ -120,7 +142,8 @@ class VREDPy:
         """Return the VRED v2 API module vrMaterialService."""
         try:
             return vrMaterialService
-        except NameError:
+        except (ImportError, NameError):
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrMaterialService requires VRED >= 2023.0.0"
             )
@@ -130,7 +153,8 @@ class VREDPy:
         """Return the VRED v2 API module vrReferenceService."""
         try:
             return vrReferenceService
-        except NameError:
+        except (ImportError, NameError):
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrReferenceService requires VRED >= 2021.0.0"
             )
@@ -140,7 +164,8 @@ class VREDPy:
         """Return the VRED v2 API module vrBakeService."""
         try:
             return vrBakeService
-        except NameError:
+        except (ImportError, NameError):
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrBakeService requires VRED >= 2022.0.0"
             )
@@ -150,7 +175,8 @@ class VREDPy:
         """Return the VRED v2 API module vrDecoreService."""
         try:
             return vrDecoreService
-        except NameError:
+        except (ImportError, NameError):
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrDecoreService requires VRED >= 2023.0.0"
             )
@@ -158,18 +184,23 @@ class VREDPy:
     @property
     def vrdDecoreSettings(self):
         """Return the VRED v2 API module vrdDecoreSettings."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdDecoreSettings
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdDecoreSettings
 
             return vrdDecoreSettings
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdDecoreSettings requires VRED >= 2023.0.0"
             )
@@ -177,19 +208,24 @@ class VREDPy:
     @property
     def vrGeometryTypes(self):
         """Return the VRED v2 API module vrGeometryTypes."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrGeometryTypes
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             # Attempt to import the module and return it.
             from vrKernelServices import vrGeometryTypes
 
             return vrGeometryTypes
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrGeometryTypes requires VRED >= 2021.2.0"
             )
@@ -197,18 +233,23 @@ class VREDPy:
     @property
     def vrdGeometryNode(self):
         """Return the VRED v2 API module vrdGeometryNode."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdGeometryNode
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdGeometryNode
 
             return vrdGeometryNode
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdGeometryNode requires VRED >= 2021.2.0"
             )
@@ -216,35 +257,45 @@ class VREDPy:
     @property
     def vrdNode(self):
         """Return the VRED v2 API module vrdNode."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdNode
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdNode
 
             return vrdNode
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported("vrdNode requires VRED >= 2021.0.0")
 
     @property
     def vrdSceneplateNode(self):
         """Return the VRED v2 API module vrdSceneplateNode."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdSceneplateNode
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdSceneplateNode
 
             return vrdSceneplateNode
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdSceneplateNode requires VRED >= 2021.0.0"
             )
@@ -252,18 +303,23 @@ class VREDPy:
     @property
     def vrdMaterialNode(self):
         """Return the VRED v2 API module vrdMaterialNode."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdMaterialNode
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdMaterialNode
 
             return vrdMaterialNode
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdMaterialNode requires VRED >= 2023.0.0"
             )
@@ -271,18 +327,23 @@ class VREDPy:
     @property
     def vrdSurfaceNode(self):
         """Return the VRED v2 API module vrdSurfaceNode."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdSurfaceNode
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdSurfaceNode
 
             return vrdSurfaceNode
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdSurfaceNode requires VRED >= 2021.2.0"
             )
@@ -290,18 +351,23 @@ class VREDPy:
     @property
     def vrdReferenceNode(self):
         """Return the VRED v2 API module vrdReferenceNode."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdReferenceNode
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdReferenceNode
 
             return vrdReferenceNode
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdReferenceNode requires VRED >= 2021.0.0"
             )
@@ -309,52 +375,67 @@ class VREDPy:
     @property
     def vrdObject(self):
         """Return the VRED v2 API module vrdObject."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdObject
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdObject
 
             return vrdObject
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported("vrdObject requires VRED >= 2021.0.0")
 
     @property
     def vrdMaterial(self):
         """Return the VRED v2 API module vrdMaterial."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdMaterial
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdMaterial
 
             return vrdMaterial
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported("vrdMaterial requires VRED >= 2023.0.0")
 
     @property
     def vrSceneplateTypes(self):
         """Return the VRED v2 API module vrSceneplateTypes."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrSceneplateTypes
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrSceneplateTypes
 
             return vrSceneplateTypes
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrSceneplateTypes requires VRED >= 2021.0.0"
             )
@@ -362,52 +443,67 @@ class VREDPy:
     @property
     def vrUVTypes(self):
         """Return the VRED v2 API module vrUVTypes."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrUVTypes
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrUVTypes
 
             return vrUVTypes
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported("vrUVTypes requires VRED >= 2021.2.0")
 
     @property
     def vrBakeTypes(self):
         """Return the VRED v2 API module vrBakeTypes."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrBakeTypes
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrBakeTypes
 
             return vrBakeTypes
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported("vrBakeTypes requires VRED >= 2022.0.0")
 
     @property
     def vrdUVUnfoldSettings(self):
         """Return the VRED v2 API module vrdUVUnfoldSettings."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdUVUnfoldSettings
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdUVUnfoldSettings
 
             return vrdUVUnfoldSettings
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdUVUnfoldSettings requires VRED >= 2021.2.0"
             )
@@ -415,18 +511,23 @@ class VREDPy:
     @property
     def vrdUVLayoutSettings(self):
         """Return the VRED v2 API module vrdUVLayoutSettings."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdUVLayoutSettings
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdUVLayoutSettings
 
             return vrdUVLayoutSettings
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdUVLayoutSettings requires VRED >= 2021.2.0"
             )
@@ -434,18 +535,23 @@ class VREDPy:
     @property
     def vrdIlluminationBakeSettings(self):
         """Return the VRED v2 API module vrdIlluminationBakeSettings."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdIlluminationBakeSettings
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdIlluminationBakeSettings
 
             return vrdIlluminationBakeSettings
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdIlluminationBakeSettings requires VRED >= 2022.0.0"
             )
@@ -453,18 +559,23 @@ class VREDPy:
     @property
     def vrdTextureBakeSettings(self):
         """Return the VRED v2 API module vrdTextureBakeSettings."""
+        first_error = None
         try:
             # Attempt to return the module right away.
             return vrdTextureBakeSettings
-        except UnboundLocalError:
-            # It has not been imported yet. Continue on to attempt import.
-            pass
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
 
         try:
             from vrKernelServices import vrdTextureBakeSettings
 
             return vrdTextureBakeSettings
-        except NameError:
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdTextureBakeSettings requires VRED >= 2022.0.0"
             )
@@ -585,6 +696,10 @@ class VREDPy:
         """Return the Animation Wizard Clip type name."""
         return VRED_TYPE_ANIM
 
+    #########################################################################################################
+    # Public methods
+    #########################################################################################################
+
     # -------------------------------------------------------------------------------------------------------
     # Objects
     # -------------------------------------------------------------------------------------------------------
@@ -614,8 +729,6 @@ class VREDPy:
         """
         Determine the object type and return the string representation.
 
-        TODO: extend method to support all VRED object types.
-
         :param obj: The object to get the type as string for.
         :type obj: VRED object
         """
@@ -623,26 +736,57 @@ class VREDPy:
         if hasattr(obj, "getType"):
             return obj.getType()
 
-        if isinstance(obj, self.vrdObject):
-            if obj.isType(self.vrdMaterial):
-                return "Material"
+        try:
+            is_vrd_object = isinstance(obj, self.vrdObject)
+        except:
+            is_vrd_object = False
 
-            if obj.isType(self.vrdMaterialNode):
-                return "Material Node"
+        if is_vrd_object:
+            # Object is a VRED API v2 object, now find its exact type.
+            # Wrap each check in a try/except to handle different version of VRED - a specific
+            # VRED version may not include the module type, in this case, the object cannot be
+            # of this type, so just continue on.
+            # TODO: extend method to support all VRED object types.
+            try:
+                if obj.isType(self.vrdMaterial):
+                    return "Material"
+            except:
+                pass
 
-            if obj.isType(self.vrdReferenceNode):
-                return "Reference Node"
+            try:
+                if obj.isType(self.vrdMaterialNode):
+                    return "Material Node"
+            except:
+                pass
 
-            if obj.isType(self.vrdSurfaceNode):
-                return "Surface Node"
+            try:
+                if obj.isType(self.vrdReferenceNode):
+                    return "Reference Node"
+            except:
+                pass
 
-            if obj.isType(self.vrdTransformNode):
-                return "Transform Node"
+            try:
+                if obj.isType(self.vrdSurfaceNode):
+                    return "Surface Node"
+            except:
+                pass
 
-            if obj.isType(self.vrdGeometryNode):
-                return "Geometry Node"
+            try:
+                if obj.isType(self.vrdTransformNode):
+                    return "Transform Node"
+            except:
+                pass
 
-        raise TypeError("VRED object type {} not supported".format(type(obj)))
+            try:
+                if obj.isType(self.vrdGeometryNode):
+                    return "Geometry Node"
+            except:
+                pass
+
+        # Object type not found - raise an error.
+        raise self.VREDObjectTypeNotFound(
+            "Object type '{}' not found".format(type(obj))
+        )
 
     # -------------------------------------------------------------------------------------------------------
     # Nodes
