@@ -52,7 +52,12 @@ class VREDPy:
         """Custom exception class for reporting VRED object types that are not found."""
 
     def __init__(self, logger=None):
-        """Initialize"""
+        """
+        Initialize.
+
+        :param logger: The logger object to report messages to.
+        :type logger: Standard python logger.
+        """
 
         self.__logger = logger or sgtk.platform.get_logger(__name__)
 
