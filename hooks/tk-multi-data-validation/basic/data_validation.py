@@ -689,7 +689,6 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        self.vredpy.vrGeometryTypes
         return self.vredpy.get_hidden_nodes(root_node=node)
 
     @check_vred_version_support
