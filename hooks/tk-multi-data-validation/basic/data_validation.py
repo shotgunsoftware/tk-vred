@@ -112,7 +112,7 @@ class VREDDataValidationHook(HookBaseClass):
         return {
             "material_unused": {
                 "name": "Remove Unused Materials",
-                "description": "Remove Unused Materials",
+                "description": "Remove Unused Materials.",
                 "error_msg": "Found unused materials",
                 "check_func": self._find_unused_materials,
                 "fix_func": self._remove_unused_materials,
@@ -298,7 +298,7 @@ class VREDDataValidationHook(HookBaseClass):
             },
             "animation_block_uncheck": {
                 "name": "Uncheck Animation Blocks",
-                "description": "Find all checked animation blocks and uncheck them",
+                "description": "Find all checked animation blocks and uncheck them.",
                 "error_msg": "Found checked animations.",
                 "check_func": self._find_checked_animation_blocks,
                 "fix_func": self._uncheck_animation_blocks,
@@ -405,7 +405,7 @@ class VREDDataValidationHook(HookBaseClass):
             },
             "geometry_decore": {
                 "name": "Decore & Correct Wrong Normal",
-                "description": "Remove redundant geometry that is inside other geometry. This feature only works with OpenGL",
+                "description": "Remove redundant geometry that is inside other geometry. This feature only works with OpenGL.",
                 "fix_func": self._decore,
                 "fix_name": "Decore",
             },
