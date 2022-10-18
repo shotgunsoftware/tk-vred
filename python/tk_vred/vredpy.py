@@ -1186,16 +1186,30 @@ class VREDPy:
 
         result = []
         for mat in mats:
+            # Check clearcoat orange peel property, if specified.
             if using_orange_peel is not None:
                 try:
                     clearcoat = mat.getClearcoat()
                 except AttributeError:
-                    # This material does not support clearcoats
-                    clearcoat = None
-
-                if not clearcoat or using_orange_peel != clearcoat.getUseOrangePeel():
+                    # This material does not have the clearcoat property. Do not accept it.
                     continue
 
+                mat_supports_orange_peel = clearcoat.supportsOrangePeel()
+                if not mat_supports_orange_peel:
+                    # This material does not support the clearcoat property. Do not accept it.
+                    continue
+
+                clearcoat_off = clearcoat.getType() == self.vrdClearcoat.Type.Off
+                if clearcoat_off:
+                    # This material has clearcoat turned off. Do not accept it.
+                    continue
+
+                mat_using_orange_peel = clearcoat.getUseOrangePeel()
+                if using_orange_peel != mat_using_orange_peel:
+                    # This material clearcoat value does not match the desired value. Do not accept it.
+                    continue
+
+            # Check bump texture property, if specified.
             if using_texture is not None:
                 try:
                     bump_texture = mat.getBumpTexture()
