@@ -177,7 +177,6 @@ class VREDDataValidationHook(HookBaseClass):
                         "callback": self._select_materials,
                     },
                 ],
-                "warn_msg": "Test multiple warning messages.",
                 "dependency_ids": ["material_unused"],
             },
             "scene_graph_hidden_nodes": {
