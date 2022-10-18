@@ -1039,6 +1039,10 @@ class VREDPy:
         :param root_node: The node to check subtree only for hidden nodes. If None, then
             the scene graph root node will be used to check all nodes.
         :param root_node: vrNodePtr | vrdNode
+        :param ignore_node_types: A list of node types to exclude from the result. All children
+            of these types of nodes will also be ignored (regardless of the child node type).
+            This list of types must correspond to the `api_version`.
+        :type ignore_node_types: list<str> (for v1) | list<class> (for v2)
         :param api_version: The VRED API version used to retrieve and return hidden node.
         :type api_version: str
         """

@@ -694,6 +694,15 @@ class VREDDataValidationHook(HookBaseClass):
         :param node: (optional) If None all nodes will be checked, else only nodes in the node
             subtree will be checked.
         :type node: vrNodePtr | vrdNode
+        :param ignore_node_types: A list of node types to exclude from the result. All children
+            of these types of nodes will also be ignored (regardless of the child node type).
+            This list of types must correspond to the `api_version`.
+        :type ignore_node_types: list<str> (for v1) | list<class> (for v2)
+        :param ignore_nodes: A list of nodes by name to exclude from the result. Unlike the
+            `ignore_node_types` list, the children of these nodes will not be ignored.
+        :type ignore_nodes: list<str>
+        :param api_version: The VRED API version to use for finding hidden nodes. Defaults to v1.
+        :type api_version: str (v1|v2)
 
         :return: The hidden nodes.
         :rtype: dict
