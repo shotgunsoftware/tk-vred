@@ -581,6 +581,31 @@ class VREDPy:
             )
 
     @property
+    def vrdClearcoat(self):
+        """Return the VRED v2 API module vrdClearcoat."""
+        first_error = None
+        try:
+            # Attempt to return the module right away.
+            return vrdClearcoat
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
+
+        try:
+            from vrKernelServices import vrdClearcoat
+
+            return vrdClearcoat
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
+            # TODO report the exact version required
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdClearcoat not supported with current version of VRED"
+            )
+
+    @property
     def vrAnimWidgets(self):
         """Return the VRED v1 API module vrAnimWidgets."""
         return vrAnimWidgets
@@ -754,6 +779,12 @@ class VREDPy:
                 pass
 
             try:
+                if obj.isType(self.vrdGeometryNode):
+                    return "Geometry Node"
+            except:
+                pass
+
+            try:
                 if obj.isType(self.vrdMaterialNode):
                     return "Material Node"
             except:
@@ -778,8 +809,8 @@ class VREDPy:
                 pass
 
             try:
-                if obj.isType(self.vrdGeometryNode):
-                    return "Geometry Node"
+                if obj.isType(self.vrdClearcoat):
+                    return "Clearcoat"
             except:
                 pass
 
