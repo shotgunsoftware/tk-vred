@@ -1647,7 +1647,3 @@ class VREDDataValidationHook(HookBaseClass):
         input_data = input_data or {}
 
         self.vredpy.vrMaterialService.mergeDuplicateMaterials()
-
-    def get_optimization_data(self):
-        """Placeholder"""
-        return {}
