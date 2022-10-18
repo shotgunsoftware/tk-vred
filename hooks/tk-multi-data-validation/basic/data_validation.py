@@ -31,7 +31,10 @@ def check_vred_version_support(func):
         validation_hook_instance = args[0]
         try:
             return func(*args, **kwargs)
-        except validation_hook_instance.vredpy.VREDModuleNotSupported as vredpy_error:
+        except (
+            validation_hook_instance.vredpy.VREDModuleNotSupported,
+            validation_hook_instance.vredpy.VREDFunctionNotSupported,
+        ) as vredpy_error:
             validation_hook_instance.logger.error(vredpy_error)
             raise VREDDataValidationHook.VREDDataValidationError(
                 """
@@ -186,6 +189,12 @@ class VREDDataValidationHook(HookBaseClass):
                 "check_func": self._find_hidden_nodes,
                 "fix_func": self._delete_hidden_nodes,
                 "fix_name": "Delete All",
+                "get_kwargs": lambda: {
+                    "api_version": self.vredpy.v1(),
+                    "ignore_node_types": [
+                        self.vredpy.switch_node_type(self.vredpy.v1())
+                    ],
+                },
                 "actions": [
                     {
                         "name": "Show All",
@@ -674,7 +683,9 @@ class VREDDataValidationHook(HookBaseClass):
         self.vredpy.vrMaterialService.removeUnusedMaterials()
 
     @check_vred_version_support
-    def _find_hidden_nodes(self, node=None):
+    def _find_hidden_nodes(
+        self, node=None, ignore_node_types=None, ignore_nodes=None, api_version=None
+    ):
         """
         Find all hidden nodes in the scene graph.
 
@@ -688,7 +699,16 @@ class VREDDataValidationHook(HookBaseClass):
         :rtype: dict
         """
 
-        return self.vredpy.get_hidden_nodes(root_node=node)
+        api_version = api_version or self.vredpy.v1()
+        ignore_node_types = ignore_node_types or []
+        hidden_nodes = self.vredpy.get_hidden_nodes(
+            root_node=node, ignore_node_types=ignore_node_types, api_version=api_version
+        )
+
+        if ignore_nodes:
+            return [node for node in hidden_nodes if node.getName() not in ignore_nodes]
+
+        return hidden_nodes
 
     @check_vred_version_support
     def _show_nodes(self, errors=None, node=None):

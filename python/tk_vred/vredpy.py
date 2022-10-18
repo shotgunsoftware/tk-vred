@@ -38,6 +38,9 @@ SUPPORTED_VRED_API_VERSIONS = (VRED_API_V1, VRED_API_V2)
 VRED_TYPE_CLIP = "AnimClip"
 VRED_TYPE_ANIM = "AnimWizClip"
 
+# Node Types for v1
+NODE_TYPE_V1_SWITCH = "Switch"
+
 
 class VREDPy:
     """A helper class for interacting with the VRED API."""
@@ -48,8 +51,8 @@ class VREDPy:
     class VREDModuleNotSupported(Exception):
         """Custom exception class for reporting VRED API modules that are not supported."""
 
-    class VREDObjectTypeNotFound(Exception):
-        """Custom exception class for reporting VRED object types that are not found."""
+    class VREDFunctionNotSupported(Exception):
+        """Custom exception class for reporting VRED API modules that are not supported."""
 
     def __init__(self, logger=None):
         """
@@ -252,6 +255,54 @@ class VREDPy:
             self.__logger.debug(traceback.format_exc())
             raise VREDPy.VREDModuleNotSupported(
                 "vrdGeometryNode requires VRED >= 2021.2.0"
+            )
+
+    @property
+    def vrdTransformNode(self):
+        """Return the VRED v2 API module vrdTransformNode."""
+        first_error = None
+        try:
+            # Attempt to return the module right away.
+            return vrdTransformNode
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
+
+        try:
+            from vrKernelServices import vrdTransformNode
+
+            return vrdTransformNode
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdTransformNode not supported with current version of VRED"
+            )
+
+    @property
+    def vrdSwitchNode(self):
+        """Return the VRED v2 API module vrdSwitchNode."""
+        first_error = None
+        try:
+            # Attempt to return the module right away.
+            return vrdSwitchNode
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
+
+        try:
+            from vrKernelServices import vrdSwitchNode
+
+            return vrdSwitchNode
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
+            raise VREDPy.VREDModuleNotSupported(
+                "vrdSwitchNode not supported with current version of VRED"
             )
 
     @property
@@ -600,7 +651,6 @@ class VREDPy:
                 # Log the first error as well, if there was one.
                 self.__logger.debug(first_error)
             self.__logger.debug(traceback.format_exc())
-            # TODO report the exact version required
             raise VREDPy.VREDModuleNotSupported(
                 "vrdClearcoat not supported with current version of VRED"
             )
@@ -693,6 +743,8 @@ class VREDPy:
         """
         Check if the given VRED APi version is supported.
 
+        TODO change this to be a decorator function.
+
         :param version: The VRED API version to check.
         :type version: str
 
@@ -724,6 +776,26 @@ class VREDPy:
     #########################################################################################################
     # Public methods
     #########################################################################################################
+
+    # -------------------------------------------------------------------------------------------------------
+    # VRED API Node Types
+    # -------------------------------------------------------------------------------------------------------
+    def switch_node_type(self, api_version=VRED_API_V1):
+        """
+        Return the Switch node type for the specified api version.
+
+        :param api_version: The VRED API version to get the type from.
+        :type api_version: str (v1|v2)
+
+        :return: The switch node type.
+        :rtype: str (for v1) or class (for v2)
+        """
+
+        VREDPy.check_api_version(api_version)
+
+        if api_version == VRED_API_V1:
+            return NODE_TYPE_V1_SWITCH
+        return self.vrdSwitchNode
 
     # -------------------------------------------------------------------------------------------------------
     # Objects
@@ -758,6 +830,9 @@ class VREDPy:
         :type obj: VRED object
         """
 
+        if not obj:
+            return None
+
         if hasattr(obj, "getType"):
             return obj.getType()
 
@@ -767,61 +842,44 @@ class VREDPy:
             is_vrd_object = False
 
         if is_vrd_object:
-            # Object is a VRED API v2 object, now find its exact type.
-            # Wrap each check in a try/except to handle different version of VRED - a specific
-            # VRED version may not include the module type, in this case, the object cannot be
-            # of this type, so just continue on.
-            # TODO: extend method to support all VRED object types.
-            try:
-                if obj.isType(self.vrdMaterial):
-                    return "Material"
-            except:
-                pass
+            # Object is a VRED API v2 object.
+            return type(obj).__name__
 
-            try:
-                if obj.isType(self.vrdGeometryNode):
-                    return "Geometry Node"
-            except:
-                pass
+        # Object type not found. Log an error and just return None to not interrupt the user.
+        try:
+            obj_type = type(obj).__name__
+            error_msg = "Object type '{}' not found.".format(obj_type)
+        except:
+            error_msg = "Object type not found."
+        self.__logger.error(error_msg)
 
-            try:
-                if obj.isType(self.vrdMaterialNode):
-                    return "Material Node"
-            except:
-                pass
-
-            try:
-                if obj.isType(self.vrdReferenceNode):
-                    return "Reference Node"
-            except:
-                pass
-
-            try:
-                if obj.isType(self.vrdSurfaceNode):
-                    return "Surface Node"
-            except:
-                pass
-
-            try:
-                if obj.isType(self.vrdTransformNode):
-                    return "Transform Node"
-            except:
-                pass
-
-            try:
-                if obj.isType(self.vrdClearcoat):
-                    return "Clearcoat"
-            except:
-                pass
-
-        # Object type not found - raise an error.
-        raise self.VREDObjectTypeNotFound(
-            "Object type '{}' not found".format(type(obj))
-        )
+        return None
 
     # -------------------------------------------------------------------------------------------------------
     # Nodes
     # -------------------------------------------------------------------------------------------------------
+
+    def get_root_node(self, api_version=VRED_API_V1):
+        """
+        Return the root node.
+
+        Use the specified api version to get the root node.
+
+        :param api_version: The VRED API version used to get the root node.
+        :type api_version: str (v1|v2)
+        """
+
+        VREDPy.check_api_version(api_version)
+
+        if api_version == VREDPy.v1():
+            return self.vrScenegraph.getRootNode()
+        else:
+            try:
+                return self.vrNodeService.getRootNode()
+            except AttributeError:
+                raise VREDPy.VREDFunctionNotSupported(
+                    "vrNodeService.getRootNode() function not supported in current version of VRED."
+                )
 
     def is_geometry_node(self, node):
         """
@@ -962,14 +1020,16 @@ class VREDPy:
                     child, result, has_mat_uvs=has_mat_uvs, has_light_uvs=has_light_uvs
                 )
 
-        root_node = root_node or self.vrNodeService.getRootNode()
+        root_node = root_node or self.get_root_node(api_version=VREDPy.v2())
         nodes = []
         _get_geometry_nodes(
             root_node, nodes, has_mat_uvs=has_mat_uvs, has_light_uvs=has_light_uvs
         )
         return nodes
 
-    def get_hidden_nodes(self, root_node=None, api_version=VRED_API_V1):
+    def get_hidden_nodes(
+        self, root_node=None, ignore_node_types=None, api_version=VRED_API_V1
+    ):
         """
         Return a list of the hidden nodes in the scene graph.
 
@@ -985,12 +1045,10 @@ class VREDPy:
 
         VREDPy.check_api_version(api_version)
 
+        ignore_node_types = ignore_node_types or []
+
         if root_node is None:
-            if api_version == VREDPy.v1():
-                nodes = [self.vrScenegraph.getRootNode()]
-            else:
-                # v2
-                nodes = [self.vrNodeService.getRootNode()]
+            nodes = [self.get_root_node(api_version=api_version)]
         else:
             nodes = [root_node]
 
@@ -999,6 +1057,10 @@ class VREDPy:
             node = nodes.pop()
 
             if isinstance(node, self.vrNodePtr.vrNodePtr):
+                # v1
+                if node.getType() in ignore_node_types:
+                    continue
+
                 if not node.getActive():
                     hidden.append(node)
                 else:
@@ -1007,6 +1069,9 @@ class VREDPy:
                         nodes.append(node.getChild(i))
             else:
                 # v2
+                if type(node) in ignore_node_types:
+                    continue
+
                 if not node.isVisible():
                     hidden.append(node)
                 else:
