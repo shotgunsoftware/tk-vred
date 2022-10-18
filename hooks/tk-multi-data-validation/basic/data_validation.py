@@ -720,7 +720,14 @@ class VREDDataValidationHook(HookBaseClass):
         return hidden_nodes
 
     @check_vred_version_support
-    def _show_nodes(self, errors=None, node=None):
+    def _show_nodes(
+        self,
+        errors=None,
+        node=None,
+        ignore_node_types=None,
+        ignore_nodes=None,
+        api_version=None,
+    ):
         """
         Show the given hidden nodes, or show all hidden nodes if nodes not specified.
 
@@ -733,17 +740,38 @@ class VREDDataValidationHook(HookBaseClass):
             subtree will be checked. This param is ignored if the errors param is not None.
             This param is ignored if the errors param is specified.
         :type node: vrNodePtr | vrdNode
+        :param ignore_node_types: A list of node types to exclude from the result. All children
+            of these types of nodes will also be ignored (regardless of the child node type).
+            This list of types must correspond to the `api_version`. If errors specified, this
+            param is itself ignored.
+        :type ignore_node_types: list<str> (for v1) | list<class> (for v2)
+        :param ignore_nodes: A list of nodes by name to exclude from the result. Unlike the
+            `ignore_node_types` list, the children of these nodes will not be ignored. If
+            errors specified, this param itself is ignored.
+        :type ignore_nodes: list<str>
+        :param api_version: The VRED API version to use for finding hidden nodes. Defaults to
+            v1. If errors specified, this param itself is ignored.
+        :type api_version: str (v1|v2)
         """
 
         if errors is None:
-            hidden_nodes = self.vredpy.get_hidden_nodes(root_node=node)
+            hidden_nodes = self._find_hidden_nodes(
+                node, ignore_node_types, ignore_nodes, api_version
+            )
         else:
             hidden_nodes = self.vredpy.get_nodes(errors)
 
         self.vredpy.show_nodes(hidden_nodes)
 
     @check_vred_version_support
-    def _delete_hidden_nodes(self, errors=None, node=None):
+    def _delete_hidden_nodes(
+        self,
+        errors=None,
+        node=None,
+        ignore_node_types=None,
+        ignore_nodes=None,
+        api_version=None,
+    ):
         """
         Delete the given hidden nodes, or delete all hidden nodes if nodes not specified.
 
@@ -756,17 +784,38 @@ class VREDDataValidationHook(HookBaseClass):
             subtree will be checked. This param is ignored if the errors param is not None.
             This param is ignored if the errors param is specified.
         :type node: vrNodePtr | vrdNode
+        :param ignore_node_types: A list of node types to exclude from the result. All children
+            of these types of nodes will also be ignored (regardless of the child node type).
+            This list of types must correspond to the `api_version`. If errors specified, this
+            param is itself ignored.
+        :type ignore_node_types: list<str> (for v1) | list<class> (for v2)
+        :param ignore_nodes: A list of nodes by name to exclude from the result. Unlike the
+            `ignore_node_types` list, the children of these nodes will not be ignored. If
+            errors specified, this param itself is ignored.
+        :type ignore_nodes: list<str>
+        :param api_version: The VRED API version to use for finding hidden nodes. Defaults to
+            v1. If errors specified, this param itself is ignored.
+        :type api_version: str (v1|v2)
         """
 
         if errors is None:
-            hidden_nodes = self.vredpy.get_hidden_nodes(root_node=node)
+            hidden_nodes = self._find_hidden_nodes(
+                node, ignore_node_types, ignore_nodes, api_version
+            )
         else:
             hidden_nodes = self.vredpy.get_nodes(errors)
 
         self.vredpy.delete_nodes(hidden_nodes)
 
     @check_vred_version_support
-    def _set_hidden_nodes_to_b_side(self, errors=None, node=None):
+    def _set_hidden_nodes_to_b_side(
+        self,
+        errors=None,
+        node=None,
+        ignore_node_types=None,
+        ignore_nodes=None,
+        api_version=None,
+    ):
         """
         Set all given nodes to B-Side, or set all hidden nodes if nodes not sepcified.
 
@@ -779,10 +828,24 @@ class VREDDataValidationHook(HookBaseClass):
             subtree will be checked. This param is ignored if the errors param is not None.
             This param is ignored if the errors param is specified.
         :type node: vrNodePtr | vrdNode
+        :param ignore_node_types: A list of node types to exclude from the result. All children
+            of these types of nodes will also be ignored (regardless of the child node type).
+            This list of types must correspond to the `api_version`. If errors specified, this
+            param is itself ignored.
+        :type ignore_node_types: list<str> (for v1) | list<class> (for v2)
+        :param ignore_nodes: A list of nodes by name to exclude from the result. Unlike the
+            `ignore_node_types` list, the children of these nodes will not be ignored. If
+            errors specified, this param itself is ignored.
+        :type ignore_nodes: list<str>
+        :param api_version: The VRED API version to use for finding hidden nodes. Defaults to
+            v1. If errors specified, this param itself is ignored.
+        :type api_version: str (v1|v2)
         """
 
         if errors is None:
-            hidden_nodes = self.vredpy.get_hidden_nodes(root_node=node)
+            hidden_nodes = self._find_hidden_nodes(
+                node, ignore_node_types, ignore_nodes, api_version
+            )
         else:
             hidden_nodes = self.vredpy.get_nodes(errors)
 
