@@ -73,6 +73,13 @@ class VREDEngine(sgtk.platform.Engine):
         """
 
         self.logger.debug("{}: Initializing...".format(self))
+        import sys
+
+        sys.path.append("Z:\\python_libs")
+        import ptvsd
+
+        ptvsd.enable_attach(address=("192.168.56.105", 2222), redirect_output=True)
+        ptvsd.wait_for_attach()
 
         import sys
 
