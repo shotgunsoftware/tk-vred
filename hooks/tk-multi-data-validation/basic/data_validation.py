@@ -197,14 +197,6 @@ class VREDDataValidationHook(HookBaseClass):
                 },
                 "actions": [
                     {
-                        "name": "Show All",
-                        "callback": self._show_nodes,
-                    },
-                    {
-                        "name": "Set All To B Side",
-                        "callback": self._set_hidden_nodes_to_b_side,
-                    },
-                    {
                         "name": "Select All",
                         "callback": self._select_nodes,
                     },
@@ -213,14 +205,6 @@ class VREDDataValidationHook(HookBaseClass):
                     {
                         "name": "Select",
                         "callback": self._select_nodes,
-                    },
-                    {
-                        "name": "Show",
-                        "callback": self._show_nodes,
-                    },
-                    {
-                        "name": "Set To B Side",
-                        "callback": self._set_hidden_nodes_to_b_side,
                     },
                     {
                         "name": "Delete",
