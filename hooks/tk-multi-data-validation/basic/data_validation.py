@@ -1468,6 +1468,28 @@ class VREDDataValidationHook(HookBaseClass):
                 "description": "Optimizes the geometry structure.",
                 "outputs": ["geometry_tessellate"],
                 "exec_func": self._optimize_geometry,
+                "settings": {
+                    # "node": {
+                    #     "name": "Node",
+                    #     "type": str,
+                    #     "default": "Root",
+                    # },
+                    "strips": {
+                        "name": "Strips",
+                        "type": bool,
+                        "default": True,
+                    },
+                    "fans": {
+                        "name": "Fans",
+                        "type": bool,
+                        "default": True,
+                    },
+                    "stitches": {
+                        "name": "Stitches",
+                        "type": bool,
+                        "default": False,
+                    },
+                },
             },
             "optimize_share_geometries": {
                 "name": "Optimize/Share Geometries",
@@ -1486,28 +1508,6 @@ class VREDDataValidationHook(HookBaseClass):
                 "description": "Tessellate the geometry.",
                 "outputs": ["geometry_decore"],
                 "exec_func": self._tessellate,
-                "settings": {
-                    "node": {
-                        "name": "Node",
-                        "type": str,
-                        "default": "Root",
-                    },
-                    "strips": {
-                        "name": "Strips",
-                        "type": bool,
-                        "default": True,
-                    },
-                    "fans": {
-                        "name": "Fans",
-                        "type": bool,
-                        "default": True,
-                    },
-                    "stitches": {
-                        "name": "Stitches",
-                        "type": bool,
-                        "default": False,
-                    },
-                },
             },
             "geometry_decore": {
                 "name": "Decore",
@@ -1523,6 +1523,19 @@ class VREDDataValidationHook(HookBaseClass):
             },
         }
 
+    @staticmethod
+    def get_settings_value(settings, name, default_value):
+        """Return the value for the sepcified settings."""
+
+        if name not in settings:
+            return default_value
+
+        settings_data = settings[name]
+        if "value" in settings_data:
+            return settings_data["value"]
+
+        return settings_data.get("default", default_value)
+
     def _optimize_geometry(self, input_data, settings):
         """
         Optimize geometry to speed up rendering.
@@ -1533,16 +1546,21 @@ class VREDDataValidationHook(HookBaseClass):
         :type settings: dict
         """
 
+        # This should be a list of nodes or contain a list of nodes to act on
         input_data = input_data or {}
 
+        # TODO input should be nodes not from the settings
         # The root node of the subgraph to be optimized. Defaults to the scene graph root node
-        node = settings.get("node", self.vredpy.vrNodeService.getRootNode())
+        node = self.get_settings_value(
+            settings, "node", self.vredpy.vrNodeService.getRootNode()
+        )
+
         # Turn strips on or off in optimization. Default is True.
-        strips = settings.get("strips", True)
+        strips = self.get_settings_value(settings, "strips", True)
         # Turn fans on or off in optimization. Default is True.
-        fans = settings.get("fans", True)
+        fans = self.get_settings_value(settings, "fans", True)
         # Turn stitches on or off in optimization. Default is False.
-        stitches = settings.get("stitches", False)
+        stitches = self.get_settings_value(settings, "stitches", False)
 
         self.vredpy.vrOptimize.optimizeGeometry(node, strips, fans, stitches)
 
@@ -1606,12 +1624,19 @@ class VREDDataValidationHook(HookBaseClass):
         nodes = settings.get("nodes", {}).get(
             "value", [self.vredpy.vrNodeService.getRootNode()]
         )
-        chordal_deviation = settings.get("chordal_deviation", 0.075)
-        normal_tolerance = settings.get("normal_tolerance", 10.0)
-        max_chord_len = settings.get("max_chord_len", 200.0)
-        enable_stitching = settings.get("enable_stitching", True)
-        stitching_tolerance = settings.get("stitching_tolerance", 0.1)
-        preserve_uvs = input_data.get("preserve_uvs", False)
+        nodes = self.get_settings_value(settings, "nodes") or [
+            self.vredpy.vrNodeService.getRootNode()
+        ]
+        chordal_deviation = self.get_settings_value(
+            settings, "chordal_deviation", 0.075
+        )
+        normal_tolerance = self.get_settings_value(settings, "normal_tolerance", 10.0)
+        max_chord_len = self.get_settings_value(settings, "max_chord_len", 200)
+        enable_stitching = self.get_settings_value(settings, "enable_stitching", True)
+        stitching_tolerance = self.get_settings_value(
+            settings, "stitching_tolerance", 0.1
+        )
+        preserve_uvs = self.get_settings_value(settings, "preserve_uvs", False)
 
         self.vredpy.vrGeometryEditor.tessellateSurfaces(
             nodes,
