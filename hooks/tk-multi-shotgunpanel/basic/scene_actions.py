@@ -8,18 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-"""
-Hook that loads defines all the available actions, broken down by publish type.
-"""
 import os
-
-try:
-    import builtins
-except ImportError:
-    try:
-        import __builtins__ as builtins
-    except ImportError:
-        import __builtin__ as builtins
 
 import sgtk
 from sgtk import util
@@ -27,17 +16,20 @@ from sgtk.platform.qt import QtCore, QtGui
 from tank.util import sgre as re
 from tank_vendor.six.moves import urllib
 
-from vrKernelServices import vrSceneplateTypes
-from vrKernelServices import vrdSceneplateNode
-import vrFileIO
-import vrScenegraph
-
-builtins.vrReferenceService = vrReferenceService
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class VREDActions(HookBaseClass):
+    """Hook that loads defines all the available actions, broken down by publish type."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the hook."""
+
+        super(VREDActions, self).__init__(*args, **kwargs)
+
+        self.vredpy = self.parent.engine.vredpy
+
     def generate_actions(self, sg_data, actions, ui_area):
         """
         Returns a list of action instances for a particular publish.
@@ -156,7 +148,7 @@ class VREDActions(HookBaseClass):
 
         if name == "import":
             path = self.get_publish_path(sg_data)
-            vrFileIO.loadGeometry(path)
+            self.vredpy.vrFileIO.loadGeometry(path)
 
         elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_data)
@@ -240,7 +232,7 @@ class VREDActions(HookBaseClass):
         ref_name = os.path.splitext(os.path.basename(path))[0]
 
         # create the smart ref, load it and finally change the node name to reflect the ref path
-        ref_node = vrReferenceService.createSmart()
+        ref_node = self.vred_p.yvrReferenceService.createSmart()
         ref_node.setSmartPath(path)
         ref_node.load()
         ref_node.setName(ref_name)
@@ -258,18 +250,20 @@ class VREDActions(HookBaseClass):
         )
 
         # Get the Sceneplate Root object
-        vredSceneplateRoot = vrSceneplateService.getRootNode()  # noqa
+        vredSceneplateRoot = self.vredpy.vrSceneplateService.getRootNode()  # noqa
         # Extract the filename for the name of the Sceneplate
         nodeName = os.path.basename(image_path)
         # Load in the image
-        imageObject = vrImageService.loadImage(image_path)  # noqa
+        imageObject = self.vredpy.vrImageService.loadImage(image_path)  # noqa
         # Create the actual Sceneplate node
-        newSceneplateNode = vrSceneplateService.createNode(  # noqa
-            vredSceneplateRoot, vrSceneplateTypes.NodeType.Frontplate, nodeName
+        newSceneplateNode = self.vredpy.vrSceneplateService.createNode(  # noqa
+            vredSceneplateRoot,
+            self.vredpy.vrSceneplateTypes.NodeType.Frontplate,
+            nodeName,
         )
-        newSceneplate = vrdSceneplateNode(newSceneplateNode)
+        newSceneplate = self.vredpy.vrdSceneplateNode(newSceneplateNode)
         # Set the type to image
-        newSceneplate.setContentType(vrSceneplateTypes.ContentType.Image)
+        newSceneplate.setContentType(self.vredpy.vrSceneplateTypes.ContentType.Image)
         # Assign the image to the Sceneplate
         newSceneplate.setImage(imageObject)
 
@@ -357,9 +351,9 @@ class VREDActions(HookBaseClass):
                 )
 
             QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-            vrFileIO.load(
+            self.vredpy.vrFileIO.load(
                 [path],
-                vrScenegraph.getRootNode(),
+                self.vredpy.vrScenegraph.getRootNode(),
                 newFile=True,
                 showImportOptions=False,
             )

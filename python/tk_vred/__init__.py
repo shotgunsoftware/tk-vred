@@ -10,3 +10,4 @@
 
 from .menu_generation import VREDMenuGenerator
 from .dock_widget import DockWidget
+from .vredpy import VREDPy

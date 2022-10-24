@@ -8,32 +8,22 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
-"""
-Hook that loads defines all the available actions, broken down by publish type.
-"""
 import os
-
-try:
-    import builtins
-except ImportError:
-    try:
-        import __builtins__ as builtins
-    except ImportError:
-        import __builtin__ as builtins
-
 import sgtk
 
-from vrKernelServices import vrSceneplateTypes
-from vrKernelServices import vrdSceneplateNode
-import vrScenegraph
-
-builtins.vrReferenceService = vrReferenceService
-builtins.vrFileIOService = vrFileIOService
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class VredActions(HookBaseClass):
+    """Hook that loads defines all the available actions, broken down by publish type."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the hook."""
+
+        super(VredActions, self).__init__(*args, **kwargs)
+
+        self.vredpy = self.parent.engine.vredpy
 
     ##############################################################################################################
     # public interface - to be overridden by deriving classes
@@ -225,18 +215,25 @@ class VredActions(HookBaseClass):
         )
 
         # Get the Sceneplate Root object
-        vredSceneplateRoot = vrSceneplateService.getRootNode()
+        vredSceneplateRoot = self.vredpy.vrSceneplateService.getRootNode()
+
         # Extract the filename for the name of the Sceneplate
         nodeName = os.path.basename(image_path)
+
         # Load in the image
-        imageObject = vrImageService.loadImage(image_path)
+        imageObject = self.vredpy.vrImageService.loadImage(image_path)
+
         # Create the actual Sceneplate node
-        newSceneplateNode = vrSceneplateService.createNode(
-            vredSceneplateRoot, vrSceneplateTypes.NodeType.Frontplate, nodeName
+        newSceneplateNode = self.vredpy.vrSceneplateService.createNode(
+            vredSceneplateRoot,
+            self.vredpy.vrSceneplateTypes.NodeType.Frontplate,
+            nodeName,
         )
-        newSceneplate = vrdSceneplateNode(newSceneplateNode)
+        newSceneplate = self.vredpy.vrdSceneplateNode(newSceneplateNode)
+
         # Set the type to image
-        newSceneplate.setContentType(vrSceneplateTypes.ContentType.Image)
+        newSceneplate.setContentType(self.vredpy.vrSceneplateTypes.ContentType.Image)
+
         # Assign the image to the Sceneplate
         newSceneplate.setImage(imageObject)
 
@@ -253,7 +250,7 @@ class VredActions(HookBaseClass):
         ref_name = os.path.splitext(os.path.basename(path))[0]
 
         # create the smart ref, load it and finally change the node name to reflect the ref path
-        ref_node = vrReferenceService.createSmart()
+        ref_node = self.vredpy.vrReferenceService.createSmart()
         ref_node.setSmartPath(path)
         ref_node.load()
         ref_node.setName(ref_name)
@@ -262,12 +259,13 @@ class VredActions(HookBaseClass):
         """
         :param path: Path of file to import
         """
-        parent = vrScenegraph.getRootNode()
-        vrFileIOService.importFiles([path], parent)
+
+        parent = self.vredpy.vrScenegraph.getRootNode()
+        self.vredpy.vrFileIOService.importFiles([path], parent)
 
     def open_import_dialog(self, path):
         """
         :param path: Path to the file to display import options for
         """
-        builtins.vrGUIService = vrGUIService
-        vrGUIService.openImportDialog([path])
+
+        self.vredpy.vrGUIService.openImportDialog([path])
