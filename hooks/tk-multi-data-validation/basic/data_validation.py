@@ -8,6 +8,7 @@
 # agreement to the ShotGrid Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
+from email.policy import default
 from functools import wraps
 import sgtk
 
@@ -84,6 +85,9 @@ class VREDDataValidationHook(HookBaseClass):
     """
 
     class VREDDataValidationError(Exception):
+        """Custom exception class to report VRED Data Validation specific errors."""
+
+    class VREDOptimizationError(Exception):
         """Custom exception class to report VRED Data Validation specific errors."""
 
     def __init__(self, *args, **kwargs):
@@ -1463,9 +1467,29 @@ class VREDDataValidationHook(HookBaseClass):
         """Return the optimization data."""
 
         return {
+            "root_node": {
+                "outputs": [
+                    "optimize_geometries",
+                    "optimize_share_geometries",
+                    "optimize_merge",
+                ],
+                "name": "Input Node",
+                "description": "An input node to optimization node",
+                "settings": {
+                    "node_name": {
+                        "name": "Name",
+                        "type": str,
+                        "default": "Root",
+                    },
+                },
+                "exec_func": self._get_node,
+            },
             "optimize_geometries": {
                 "name": "Optimize Geometries",
                 "description": "Optimizes the geometry structure.",
+                # "inputs": [
+                #     {"type": "node", "value": "Root"},
+                # ],
                 "outputs": ["geometry_tessellate"],
                 "exec_func": self._optimize_geometry,
                 "settings": {
@@ -1524,7 +1548,7 @@ class VREDDataValidationHook(HookBaseClass):
         }
 
     @staticmethod
-    def get_settings_value(settings, name, default_value):
+    def get_settings_value(settings, name, default_value=None):
         """Return the value for the sepcified settings."""
 
         if name not in settings:
@@ -1536,24 +1560,42 @@ class VREDDataValidationHook(HookBaseClass):
 
         return settings_data.get("default", default_value)
 
-    def _optimize_geometry(self, input_data, settings):
+    def _get_node(self, input_data, settings):
+        """Return the node based on the settings data."""
+
+        node_name = self.get_settings_value(settings, "node_name")
+
+        if not node_name:
+            return  # or raise an exception?
+
+        return self.vredpy.get_nodes(node_name)
+
+    def _optimize_geometry(self, input_node, settings):
         """
         Optimize geometry to speed up rendering.
 
-        :param input_data: Data to use for this optimization function.
-        :type input_data: dict
+        :param input_node: Data to use for this optimization function.
+        :type input_node: vrNodePtr
         :param settings: Settings option values to apply to the optimization function.
         :type settings: dict
         """
 
-        # This should be a list of nodes or contain a list of nodes to act on
-        input_data = input_data or {}
+        # This should be the input node
+        if not input_node:
+            raise VREDDataValidationHook.VREDOptimizationError(
+                "Missing required input node."
+            )
 
-        # TODO input should be nodes not from the settings
-        # The root node of the subgraph to be optimized. Defaults to the scene graph root node
-        node = self.get_settings_value(
-            settings, "node", self.vredpy.vrNodeService.getRootNode()
-        )
+        if not isinstance(input_node, self.vredpy.vrNodePtr.vrNodePtr):
+            raise VREDDataValidationHook.VREDOptimizationError(
+                "Input node must be of type vrNodePtr."
+            )
+
+        # # TODO input should be nodes not from the settings
+        # # The root node of the subgraph to be optimized. Defaults to the scene graph root node
+        # node = self.get_settings_value(
+        #     settings, "node", self.vredpy.vrNodeService.getRootNode()
+        # )
 
         # Turn strips on or off in optimization. Default is True.
         strips = self.get_settings_value(settings, "strips", True)
@@ -1562,7 +1604,7 @@ class VREDDataValidationHook(HookBaseClass):
         # Turn stitches on or off in optimization. Default is False.
         stitches = self.get_settings_value(settings, "stitches", False)
 
-        self.vredpy.vrOptimize.optimizeGeometry(node, strips, fans, stitches)
+        self.vredpy.vrOptimize.optimizeGeometry(input_node, strips, fans, stitches)
 
     def _share_geometries(self, input_data, settings):
         """
