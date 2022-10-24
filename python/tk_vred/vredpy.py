@@ -234,6 +234,31 @@ class VREDPy:
             )
 
     @property
+    def vrMaterialTypes(self):
+        """Return the VRED v2 API module vrMaterialTypes."""
+        first_error = None
+        try:
+            # Attempt to return the module right away.
+            return vrMaterialTypes
+        except (ModuleNotFoundError, UnboundLocalError):
+            # Module not found. Continue on to try to import.
+            first_error = traceback.format_exc()
+
+        try:
+            # Attempt to import the module and return it.
+            from vrKernelServices import vrMaterialTypes
+
+            return vrMaterialTypes
+        except (ImportError, NameError):
+            if first_error:
+                # Log the first error as well, if there was one.
+                self.__logger.debug(first_error)
+            self.__logger.debug(traceback.format_exc())
+            raise VREDPy.VREDModuleNotSupported(
+                "vrMaterialTypes not supported with current version of VRED"
+            )
+
+    @property
     def vrdGeometryNode(self):
         """Return the VRED v2 API module vrdGeometryNode."""
         first_error = None

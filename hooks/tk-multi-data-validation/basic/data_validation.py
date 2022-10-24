@@ -1484,20 +1484,25 @@ class VREDDataValidationHook(HookBaseClass):
                 },
                 "exec_func": self._get_node,
             },
+            "write": {
+                "name": "Save File",
+                "description": "Save current VRED file to disk.",
+                "exec_func": self._save_file,
+                # TODO turn on option to set file path / default to save as current file path
+                # "settings": {
+                #     "filepath": {
+                #         "name": "Path",
+                #         "type": str,
+                #         "default": "",
+                #     },
+                # },
+            },
             "optimize_geometries": {
                 "name": "Optimize Geometries",
                 "description": "Optimizes the geometry structure.",
-                # "inputs": [
-                #     {"type": "node", "value": "Root"},
-                # ],
                 "outputs": ["geometry_tessellate"],
                 "exec_func": self._optimize_geometry,
                 "settings": {
-                    # "node": {
-                    #     "name": "Node",
-                    #     "type": str,
-                    #     "default": "Root",
-                    # },
                     "strips": {
                         "name": "Strips",
                         "type": bool,
@@ -1518,8 +1523,15 @@ class VREDDataValidationHook(HookBaseClass):
             "optimize_share_geometries": {
                 "name": "Optimize/Share Geometries",
                 "description": "Optimizes the geometry structure and tries to share duplicated geometries.",
-                "outputs": ["geometry_decore", "material_remove_duplicates"],
+                "outputs": ["material_remove_duplicates"],
                 "exec_func": self._share_geometries,
+                "settings": {
+                    "check_world_matrix": {
+                        "name": "Check World Matrix",
+                        "type": bool,
+                        "default": False,
+                    },
+                },
             },
             "optimize_merge": {
                 "name": "Merge/Optimize/Share Geometries",
@@ -1532,18 +1544,105 @@ class VREDDataValidationHook(HookBaseClass):
                 "description": "Tessellate the geometry.",
                 "outputs": ["geometry_decore"],
                 "exec_func": self._tessellate,
+                "settings": {
+                    "chordal_deviation": {
+                        "name": "Chordal Deviation",
+                        "type": bool,
+                        "default": False,
+                    },
+                    "normal_tolerance": {
+                        "name": "Normal Tolerance",
+                        "type": float,
+                        "default": 10.0,
+                    },
+                    "max_chord_len": {
+                        "name": "Max Chord Length",
+                        "type": int,
+                        "default": 200,
+                    },
+                    "enable_stitching": {
+                        "name": "Stitching",
+                        "type": bool,
+                        "default": True,
+                    },
+                    "stitching_tolerance": {
+                        "name": "Stitching Tolerance",
+                        "type": float,
+                        "default": 0.1,
+                    },
+                    "preserve_uvs": {
+                        "name": "Preserve UVs",
+                        "type": bool,
+                        "default": False,
+                    },
+                },
             },
             "geometry_decore": {
                 "name": "Decore",
                 "description": "Decore the geometry.",
-                "outputs": [],
+                "outputs": [
+                    "write",
+                ],
                 "exec_func": self._decore,
+                "settings": {
+                    "resolution": {
+                        "name": "Resolution",
+                        "type": int,
+                        "default": 1024,
+                    },
+                    "quality_steps": {
+                        "name": "Quality Steps",
+                        "type": int,
+                        "default": 8,
+                    },
+                    "correct_face_normals": {
+                        "name": "Correct Face Normals",
+                        "type": bool,
+                        "default": False,
+                    },
+                    "decore_enabled": {
+                        "name": "Enable Decore",
+                        "type": bool,
+                        "default": False,
+                    },
+                    # FIXME handle enum type settings
+                    "decore_mode": {
+                        "name": "Decore Mode",
+                        "type": str,
+                        "default": "Remove",
+                    },
+                    "sub_object_mode": {
+                        "name": "Sub Object Mode",
+                        "type": str,
+                        "default": "Triangles",
+                    },
+                    "transparent_object_mode": {
+                        "name": "Transparent Object Mode",
+                        "type": str,
+                        "default": "Ignore",
+                    },
+                    "treat_as_combine_object": {
+                        "name": "Treat as Combine Object",
+                        "type": bool,
+                        "default": True,
+                    },
+                },
             },
             "material_remove_duplicates": {
                 "name": "Remove Duplicate Materials",
                 "description": "Share materials and remove duplicate",
-                "outputs": [],
+                "outputs": [
+                    "geometry_decore",
+                ],
                 "exec_func": self._merge_duplicate_materials,
+                "settings": {
+                    # TODO handle enum type
+                    "merge_options": {
+                        "name": "Merge Options",
+                        "type": str,
+                        "default": "Default",
+                    },
+                },
             },
         }
 
@@ -1568,9 +1667,12 @@ class VREDDataValidationHook(HookBaseClass):
         if not node_name:
             return  # or raise an exception?
 
-        return self.vredpy.get_nodes(node_name)
+        result = self.vredpy.get_nodes(node_name)
 
-    def _optimize_geometry(self, input_node, settings):
+        # TODO standardize the node exec function return value
+        return {"nodes": result}
+
+    def _optimize_geometry(self, input_data, settings):
         """
         Optimize geometry to speed up rendering.
 
@@ -1580,7 +1682,16 @@ class VREDDataValidationHook(HookBaseClass):
         :type settings: dict
         """
 
-        # This should be the input node
+        input_data = input_data or {}
+        input_nodes = input_data.get("nodes")
+        if not input_nodes:
+            raise VREDDataValidationHook.VREDOptimizationError(
+                "Missing required input node."
+            )
+
+        # This optimize method only expect a single node
+        input_node = input_nodes[0]
+
         if not input_node:
             raise VREDDataValidationHook.VREDOptimizationError(
                 "Missing required input node."
@@ -1591,12 +1702,6 @@ class VREDDataValidationHook(HookBaseClass):
                 "Input node must be of type vrNodePtr."
             )
 
-        # # TODO input should be nodes not from the settings
-        # # The root node of the subgraph to be optimized. Defaults to the scene graph root node
-        # node = self.get_settings_value(
-        #     settings, "node", self.vredpy.vrNodeService.getRootNode()
-        # )
-
         # Turn strips on or off in optimization. Default is True.
         strips = self.get_settings_value(settings, "strips", True)
         # Turn fans on or off in optimization. Default is True.
@@ -1604,41 +1709,89 @@ class VREDDataValidationHook(HookBaseClass):
         # Turn stitches on or off in optimization. Default is False.
         stitches = self.get_settings_value(settings, "stitches", False)
 
-        self.vredpy.vrOptimize.optimizeGeometry(input_node, strips, fans, stitches)
+        result = self.vredpy.vrOptimize.optimizeGeometry(
+            input_node, strips, fans, stitches
+        )
+
+        # Return the list of nodes to continue working on
+        return {"nodes": [input_node], "result": result}
 
     def _share_geometries(self, input_data, settings):
         """
         Share equal geometry nodes.
 
-        :param root_node: The root node of the subgraph to be optimized. Defaults to the scene
+        :param input_node: The root node of the subgraph to be optimized. Defaults to the scene
             graph root node.
-        :type root_node: vrNodePtr
+        :type input_node: vrNodePtr
         :param check_world_matrix: If True, only share the geometry when the world matrix of
         both nodes is equal.
         :type check_world_matrix: bool
         """
 
         input_data = input_data or {}
+        input_nodes = input_data.get("nodes")
+        if not input_nodes:
+            raise VREDDataValidationHook.VREDOptimizationError(
+                "Missing required input node."
+            )
 
-        root_node = settings.get("root_node", self.vredpy.vrNodeService.getRootNode())
-        check_world_matrix = settings.get("check_world_matrix", False)
+        # This optimize method only expect a single node
+        input_node = input_nodes[0]
 
-        self.vredpy.vrOptimize.shareGeometries(root_node, check_world_matrix)
+        if not input_node:
+            raise VREDDataValidationHook.VREDOptimizationError(
+                "Missing required input node."
+            )
+
+        if not isinstance(input_node, self.vredpy.vrNodePtr.vrNodePtr):
+            raise VREDDataValidationHook.VREDOptimizationError(
+                "Input node must be of type vrNodePtr."
+            )
+
+        check_world_matrix = self.get_settings_value(
+            settings, "check_world_matrix", False
+        )
+
+        result = self.vredpy.vrOptimize.shareGeometries(input_node, check_world_matrix)
+
+        # Return the list of nodes to continue working on
+        # return [input_node]
+        return {"nodes": [input_node], "result": result}
 
     def _merge_geometries(self, input_data, settings):
         """
         Merges geometry nodes.
 
-        :param root_node: The root node of the subgraph to be optimized. Defaults to the scene
+        :param input_node: The root node of the subgraph to be optimized. Defaults to the scene
             graph root node.
-        :type root_node: vrNodePtr
+        :type input_node: vrNodePtr
         """
 
         input_data = input_data or {}
+        input_nodes = input_data.get("nodes")
+        if not input_nodes:
+            raise VREDDataValidationHook.VREDOptimizationError(
+                "Missing required input node."
+            )
 
-        root_node = settings.get("root_node", self.vredpy.vrNodeService.getRootNode())
+        # This optimize method only expect a single node
+        input_node = input_nodes[0]
 
-        self.vredpy.vrOptimize.mergeGeometry(root_node)
+        if not input_node:
+            raise VREDDataValidationHook.VREDOptimizationError(
+                "Missing required input node."
+            )
+
+        if not isinstance(input_node, self.vredpy.vrNodePtr.vrNodePtr):
+            raise VREDDataValidationHook.VREDOptimizationError(
+                "Input node must be of type vrNodePtr."
+            )
+
+        result = self.vredpy.vrOptimize.mergeGeometry(input_node)
+
+        # Return the list of nodes to continue working on
+        # return [input_node]
+        return {"nodes": [input_node], "result": result}
 
     def _tessellate(self, input_data, settings):
         """
@@ -1662,13 +1815,8 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         input_data = input_data or {}
+        input_nodes = input_data.get("nodes")
 
-        nodes = settings.get("nodes", {}).get(
-            "value", [self.vredpy.vrNodeService.getRootNode()]
-        )
-        nodes = self.get_settings_value(settings, "nodes") or [
-            self.vredpy.vrNodeService.getRootNode()
-        ]
         chordal_deviation = self.get_settings_value(
             settings, "chordal_deviation", 0.075
         )
@@ -1680,8 +1828,8 @@ class VREDDataValidationHook(HookBaseClass):
         )
         preserve_uvs = self.get_settings_value(settings, "preserve_uvs", False)
 
-        self.vredpy.vrGeometryEditor.tessellateSurfaces(
-            nodes,
+        result = self.vredpy.vrGeometryEditor.tessellateSurfaces(
+            input_nodes,
             chordal_deviation,
             normal_tolerance,
             max_chord_len,
@@ -1689,6 +1837,8 @@ class VREDDataValidationHook(HookBaseClass):
             stitching_tolerance,
             preserve_uvs,
         )
+
+        return {"nodes": input_nodes, "result": result}
 
     def _decore(self, input_data, settings):
         """
@@ -1703,16 +1853,89 @@ class VREDDataValidationHook(HookBaseClass):
         """
 
         input_data = input_data or {}
+        input_nodes = input_data.get("nodes")
 
-        nodes = settings.get("nodes", [self.vredpy.vrNodeService.getRootNode()])
-        settings = settings.get("settings", self.vredpy.get_decore_settings())
-        treat_as_combine_object = settings.get("treat_as_combine_object", True)
+        decore_settings = self.vredpy.get_decore_settings()
+        # TODO update default settings with user settings
+        decore_settings.setResolution(
+            self.get_settings_value(
+                settings, "resolution", decore_settings.getResolution()
+            )
+        )
+        decore_settings.setQualitySteps(
+            self.get_settings_value(
+                settings, "quality_steps", decore_settings.getQualitySteps()
+            )
+        )
+        decore_settings.setCorrectFaceNormals(
+            self.get_settings_value(
+                settings,
+                "correct_face_normals",
+                decore_settings.getCorrectFaceNormals(),
+            )
+        )
+        decore_settings.setDecoreEnabled(
+            self.get_settings_value(
+                settings, "decore_enabled", decore_settings.getDecoreEnabled()
+            )
+        )
 
-        self.vredpy.vrDecoreService.decore(nodes, treat_as_combine_object, settings)
+        decore_mode = self.get_settings_value(
+            settings, "decore_mode", decore_settings.getDecoreMode()
+        )
+        if isinstance(decore_mode, str):
+            decore_mode = getattr(self.vredpy.vrGeometryTypes.DecoreMode, decore_mode)
+        decore_settings.setDecoreMode(decore_mode)
+
+        sub_object_mode = self.get_settings_value(
+            settings, "sub_object_mode", decore_settings.getSubObjectMode()
+        )
+        if isinstance(sub_object_mode, str):
+            sub_object_mode = getattr(
+                self.vredpy.vrGeometryTypes.DecoreSubObjectMode, sub_object_mode
+            )
+        decore_settings.setSubObjectMode(sub_object_mode)
+
+        transparent_object_mode = self.get_settings_value(
+            settings,
+            "transparent_object_mode",
+            decore_settings.getTransparentObjectMode(),
+        )
+        if isinstance(transparent_object_mode, str):
+            transparent_object_mode = getattr(
+                self.vredpy.vrGeometryTypes.DecoreTransparentObjectMode,
+                transparent_object_mode,
+            )
+        decore_settings.setTransparentObjectMode(transparent_object_mode)
+
+        treat_as_combine_object = self.get_settings_value(
+            settings, "treat_as_combine_object", True
+        )
+
+        result = self.vredpy.vrDecoreService.decore(
+            input_nodes, treat_as_combine_object, decore_settings
+        )
+
+        return {"nodes": input_nodes, "result": result}
 
     def _merge_duplicate_materials(self, input_data, settings):
         """Optimize the scene by merging duplicate materials."""
 
-        input_data = input_data or {}
+        merge_options = self.get_settings_value(
+            settings, "merge_options", self.vredpy.vrMaterialTypes.MergeOptions.Default
+        )
 
-        self.vredpy.vrMaterialService.mergeDuplicateMaterials()
+        # TODO handle enum types from settings
+        if isinstance(merge_options, str):
+            merge_options = getattr(
+                self.vredpy.vrMaterialTypes.MergeOptions, merge_options
+            )
+
+        result = self.vredpy.vrMaterialService.mergeDuplicateMaterials(merge_options)
+
+        return {"result": result}
+
+    def _save_file(self, input_data, settings):
+        """Save the current VRED file to disk."""
+
+        print("Not implemented")
