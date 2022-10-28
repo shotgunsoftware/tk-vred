@@ -404,7 +404,7 @@ class VREDDataValidationHook(HookBaseClass):
                 "get_kwargs": lambda: {"check_world_geometries": False},
             },
             "optimize_merge_geometries": {
-                "name": "Merge/Optimmize/Share Geometries",
+                "name": "Merge/Optimize/Share Geometries",
                 "description": "This is much more aggressive and changes the scenegraph structure.",
                 "fix_func": self._merge_geometries,
                 "fix_name": "Optimize",
@@ -1463,9 +1463,10 @@ class VREDDataValidationHook(HookBaseClass):
     #   TODO
     # -------------------------------------------------------------------------------------------------------
 
-    def get_optimization_data(self):
+    def get_optimization_presets(self):
         """Return the optimization data."""
 
+        # TODO define config as nested dicts instead of having to list out the outputs by name?
         return {
             "root_node": {
                 "outputs": [
@@ -1488,14 +1489,13 @@ class VREDDataValidationHook(HookBaseClass):
                 "name": "Save File",
                 "description": "Save current VRED file to disk.",
                 "exec_func": self._save_file,
-                # TODO turn on option to set file path / default to save as current file path
-                # "settings": {
-                #     "filepath": {
-                #         "name": "Path",
-                #         "type": str,
-                #         "default": "",
-                #     },
-                # },
+                "settings": {
+                    "filepath": {
+                        "name": "Path",
+                        "type": str,
+                        "default": self.vredpy.vrFileIO.getFileIOFilePath(),
+                    },
+                },
             },
             "optimize_geometries": {
                 "name": "Optimize Geometries",
