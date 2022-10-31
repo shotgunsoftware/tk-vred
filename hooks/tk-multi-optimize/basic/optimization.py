@@ -69,20 +69,18 @@ class VREDOptimizationHook(HookBaseClass):
     # Override base hook methods
     # -------------------------------------------------------------------------------------------------------
 
-    def get_optimization_presets(self):
-        """Return the optimization data."""
+    def get_optimization_nodes(self):
+        """Return the list of available nodes to add to an optimization graph."""
 
-        # TODO define config as nested dicts instead of having to list out the outputs by name?
+        # TODO add input/output restrictions/limits
 
-        preset_option1 = {
-            "root_node": {
-                "outputs": [
-                    "optimize_geometries",
-                    "optimize_share_geometries",
-                    "optimize_merge",
-                ],
-                "name": "Input",
-                "description": "An input node to optimization node",
+        return {
+            #
+            # Input nodes
+            #
+            "scene_graph_node": {
+                "name": "Scene Graph Node",
+                "description": "This node will get the VRED node from the scene graph and pass it to its output nodes.",
                 "settings": {
                     "node_name": {
                         "name": "Node",
@@ -90,72 +88,68 @@ class VREDOptimizationHook(HookBaseClass):
                         "default": "Root",
                     },
                 },
-                "exec_func": self._save_temp_file,
+                "exec_func": self._get_node_name,
+                "pre_output_exec_func": self._save_temp_file,
+                "post_output_exec_func": self._remove_temp_file,
+                "allowed_inputs": False,  # No inputs accepted
+                "allowed_outputs": True,  # Accepts any number of outputs
             },
-            "optimize_geometries": {
-                "name": "Optimize Geometries",
-                "description": "Optimizes the geometry structure.",
-                "outputs": ["publish_optimize_geometries"],
-                "exec_func": self._optimize_geometry,
+            "current_file": {
+                "name": "Current File",
+                "type": "input",
+                "description": "This node will get a handle to the current file in VRED and pass it to its output nodes.",
+                "pre_output_exec_func": self._save_temp_file,
+                "post_output_exec_func": self._remove_temp_file,
+                "allowed_inputs": False,  # No inputs accepted
+                "allowed_outputs": True,  # Accepts any number of outputs
+            },
+            "file": {
+                "name": "File",
+                "type": "input",
+                "description": "This node will get a handle to the specified file and pass it to its output nodes.",
                 "settings": {
-                    "strips": {
-                        "name": "Strips",
-                        "type": bool,
-                        "default": True,
-                    },
-                    "fans": {
-                        "name": "Fans",
-                        "type": bool,
-                        "default": True,
-                    },
-                    "stitches": {
-                        "name": "Stitches",
-                        "type": bool,
-                        "default": False,
+                    "file_path": {
+                        "name": "File Path",
+                        "type": str,
                     },
                 },
+                "exec_func": self._load_file,
+                "post_exec_func": self._load_file,
+                "pre_output_exec_func": self._save_temp_file,
+                "post_output_exec_func": self._remove_temp_file,
+                "allowed_inputs": False,  # No inputs accepted
+                "allowed_outputs": True,  # Accepts any number of outputs
             },
-            "optimize_share_geometries": {
-                "name": "Optimize/Share Geometries",
-                "description": "Optimizes the geometry structure and tries to share duplicated geometries.",
-                "outputs": ["publish_optimize_share_geometries"],
-                "exec_func": self._share_geometries,
-                "settings": {
-                    "check_world_matrix": {
-                        "name": "Check World Matrix",
-                        "type": bool,
-                        "default": False,
-                    },
-                },
-            },
-            "optimize_merge": {
-                "name": "Merge/Optimize/Share Geometries",
-                "description": "This is much more aggressive and changes the scenegraph structure.",
-                "outputs": ["publish_optimize_merge"],
-                "exec_func": self._merge_geometries,
-            },
-            "publish_optimize_geometries": {
+            #
+            # (Final?) Output nodes
+            #
+            "publish_file": {
                 "name": "Publish File",
-                "description": "Publish the current file.",
-                "exec_func": self._publish_file,
+                "type": "output",
+                "description": "Publish the file using ShotGrid.",
                 "settings": {
                     "file_name": {
                         "name": "File Name",
                         "type": str,
-                        "default": "output_1.vpb",
+                        "default": "publish_output.vpb",
                     },
                     "file_path": {
                         "name": "File Path",
                         "type": str,
-                        "default": self.vredpy.vrFileIO.getFileIOFilePath()
+                        "default": os.path.dirname(
+                            self.vredpy.vrFileIO.getFileIOFilePath()
+                        )
                         or "C:\\Users\\oues",
                     },
                 },
-            },
-            "publish_optimize_share_geometries": {
-                "name": "Publish File",
-                "description": "Publish the current file.",
                 "exec_func": self._publish_file,
+                "allowed_inputs": 1,  # Accepts exactly 1 input (NOTE could it accept multiple input nodes to merge/save into one file?)
+                "allowed_outputs": False,
+            },
+            "save_file": {
+                "name": "Save File",
+                "type": "output",
+                "description": "Save the file to local disk.",
                 "settings": {
                     "file_name": {
                         "name": "File Name",
@@ -165,77 +159,23 @@ class VREDOptimizationHook(HookBaseClass):
                     "file_path": {
                         "name": "File Path",
                         "type": str,
-                        "default": self.vredpy.vrFileIO.getFileIOFilePath()
+                        "default": os.path.dirname(
+                            self.vredpy.vrFileIO.getFileIOFilePath()
+                        )
                         or "C:\\Users\\oues",
                     },
                 },
+                "exec_func": self._save_file,
+                "allowed_inputs": 1,
+                "allowed_outputs": False,
             },
-            "publish_optimize_merge": {
-                "name": "Publish File",
-                "description": "Publish the current file.",
-                "exec_func": self._publish_file,
-                "settings": {
-                    "file_name": {
-                        "name": "File Name",
-                        "type": str,
-                        "default": "output_3.vpb",
-                    },
-                    "file_path": {
-                        "name": "File Path",
-                        "type": str,
-                        "default": self.vredpy.vrFileIO.getFileIOFilePath()
-                        or "C:\\Users\\oues",
-                    },
-                },
-            },
-        }
-        preset_option2 = {
-            "root_node": {
-                "outputs": [
-                    "optimize_geometries",
-                    "optimize_share_geometries",
-                    "optimize_merge",
-                ],
-                "name": "Input Node",
-                "description": "An input node to optimization node",
-                "settings": {
-                    "node_name": {
-                        "name": "Name",
-                        "type": str,
-                        "default": "Root",
-                    },
-                },
-                "exec_func": self._get_node,
-            },
-            # "write": {
-            #     "name": "Save File",
-            #     "description": "Save current VRED file to disk.",
-            #     "exec_func": self._save_file,
-            #     "settings": {
-            #         "file_path": {
-            #             "name": "Path",
-            #             "type": str,
-            #             "default": self.vredpy.vrFileIO.getFileIOFilePath(),
-            #         },
-            #     },
-            # },
-            "publish": {
-                "name": "Publish File",
-                "description": "Publish the current file.",
-                "exec_func": self._publish_file,
-                "settings": {
-                    "file_path": {
-                        "name": "Path",
-                        "type": str,
-                        "default": self.vredpy.vrFileIO.getFileIOFilePath(),
-                    },
-                },
-            },
+            #
+            # Optimization nodes
+            #
             "optimize_geometries": {
                 "name": "Optimize Geometries",
+                "type": "optimize",
                 "description": "Optimizes the geometry structure.",
-                "outputs": ["geometry_tessellate"],
-                "exec_func": self._optimize_geometry,
                 "settings": {
                     "strips": {
                         "name": "Strips",
@@ -253,12 +193,13 @@ class VREDOptimizationHook(HookBaseClass):
                         "default": False,
                     },
                 },
+                "exec_func": self._optimize_geometry,
+                "allowed_inputs": 1,  # Accepts exactly 1 input (NOTE could it accept multiple input nodes to merge/save into one file?)
+                "allowed_outputs": True,  # No outputs
             },
             "optimize_share_geometries": {
                 "name": "Optimize/Share Geometries",
                 "description": "Optimizes the geometry structure and tries to share duplicated geometries.",
-                "outputs": ["material_remove_duplicates"],
-                "exec_func": self._share_geometries,
                 "settings": {
                     "check_world_matrix": {
                         "name": "Check World Matrix",
@@ -266,18 +207,16 @@ class VREDOptimizationHook(HookBaseClass):
                         "default": False,
                     },
                 },
+                "exec_func": self._share_geometries,
             },
             "optimize_merge": {
                 "name": "Merge/Optimize/Share Geometries",
                 "description": "This is much more aggressive and changes the scenegraph structure.",
-                "outputs": [],
                 "exec_func": self._merge_geometries,
             },
             "geometry_tessellate": {
                 "name": "Tessellate",
                 "description": "Tessellate the geometry.",
-                "outputs": ["geometry_decore"],
-                "exec_func": self._tessellate,
                 "settings": {
                     "chordal_deviation": {
                         "name": "Chordal Deviation",
@@ -311,15 +250,11 @@ class VREDOptimizationHook(HookBaseClass):
                         "default": False,
                     },
                 },
+                "exec_func": self._tessellate,
             },
             "geometry_decore": {
                 "name": "Decore",
                 "description": "Decore the geometry.",
-                "outputs": [
-                    # "write",
-                    "publish",
-                ],
-                "exec_func": self._decore,
                 "settings": {
                     "resolution": {
                         "name": "Resolution",
@@ -402,14 +337,11 @@ class VREDOptimizationHook(HookBaseClass):
                         "default": True,
                     },
                 },
+                "exec_func": self._decore,
             },
             "material_remove_duplicates": {
                 "name": "Remove Duplicate Materials",
                 "description": "Share materials and remove duplicate",
-                "outputs": [
-                    "geometry_decore",
-                ],
-                "exec_func": self._merge_duplicate_materials,
                 "settings": {
                     "merge_options": {
                         "name": "Merge Options",
@@ -431,13 +363,108 @@ class VREDOptimizationHook(HookBaseClass):
                         ],
                     },
                 },
+                "exec_func": self._merge_duplicate_materials,
             },
         }
 
-        return {
-            "Optimize Preset #1": preset_option1,
-            "Optimize Preset #2": preset_option2,
-        }
+    def get_optimization_presets(self):
+        """Return the optimization preset graph data."""
+
+        return [
+            {
+                "name": "Optimize Preset #1",
+                "data": {
+                    "root": {
+                        "node_id": "scene_graph_node",
+                        "output_node_ids": [
+                            "optimize_node1",
+                            "optimize_node2",
+                            "optimize_node3",
+                        ],
+                    },
+                    "optimize_node1": {
+                        "node_id": "optimize_geometries",
+                        "output_node_ids": ["publish_node1"],
+                    },
+                    "optimize_node2": {
+                        "node_id": "optimize_share_geometries",
+                        "output_node_ids": ["publish_node2"],
+                    },
+                    "optimize_node3": {
+                        "node_id": "optimize_merge",
+                        "output_node_ids": ["publish_node3"],
+                    },
+                    "publish_node1": {
+                        "node_id": "publish_file",
+                    },
+                    "publish_node2": {
+                        "node_id": "publish_file",
+                    },
+                    "publish_node3": {
+                        "node_id": "publish_file",
+                    },
+                },
+            },
+            {
+                "name": "Optimize Preset #2",
+                "data": {
+                    "root": {
+                        "node_id": "scene_graph_node",
+                        "output_node_ids": [
+                            "optimize_node1",
+                            "optimize_node2",
+                            "optimize_node3",
+                        ],
+                    },
+                    "optimize_node1": {
+                        "node_id": "optimize_geometries",
+                        "output_node_ids": ["optimize_node5"],
+                    },
+                    "optimize_node2": {
+                        "node_id": "optimize_share_geometries",
+                        "output_node_ids": ["optimize_node4"],
+                    },
+                    "optimize_node3": {
+                        "node_id": "optimize_merge",
+                    },
+                    "optimize_node4": {
+                        "node_id": "material_remove_duplicates",
+                        "output_node_ids": ["optimize_node6"],
+                    },
+                    "optimize_node5": {
+                        "node_id": "geometry_tessellate",
+                        "output_node_ids": ["optimize_node6"],
+                    },
+                    "optimize_node6": {
+                        "node_id": "geometry_decore",
+                        "output_node_ids": ["publish_node1"],
+                    },
+                    "publish_node1": {
+                        "node_id": "publish_file",
+                    },
+                },
+            },
+            {
+                "name": "Optimize Preset #3",
+                "data": {
+                    "root": {
+                        "node_id": "file",
+                        "output_node_ids": [
+                            "o1",
+                        ],
+                    },
+                    "o1": {
+                        "node_id": "optimize_geometries",
+                        "output_node_ids": [
+                            "p1",
+                        ],
+                    },
+                    "p1": {
+                        "node_id": "publish_file",
+                    },
+                },
+            },
+        ]
 
     @staticmethod
     def get_settings_value(settings, name, default_value=None):
@@ -452,43 +479,119 @@ class VREDOptimizationHook(HookBaseClass):
 
         return settings_data.get("default", default_value)
 
-    def _get_node(self, input_data, settings):
+    def _get_node_name(self, input_data, settings):
         """Return the node based on the settings data."""
 
         node_name = self.get_settings_value(settings, "node_name")
-
-        if not node_name:
-            return  # or raise an exception?
-
-        result = self.vredpy.get_nodes(node_name)
 
         # TODO standardize the node exec function return value
-        return {"nodes": result}
 
-    def _save_temp_file(self, input_data, settings):
+        return {"node_name": node_name}
+
+    def _load_file(self, input_data, settings):
+        """Load the file."""
+
+        result = {}
+
+        # First check if the file path is in the input data to restore
+        file_path = input_data.get("_load_file_restore_file_path")
+
+        # If not found, check the settings for user input
+        if not file_path:
+            file_path = self.get_settings_value(settings, "file_path")
+
+            # Get the current file path (if there is one) to restore at a later point
+            current_file_path = self.vredpy.vrFileIO.getFileIOFilePath()
+            if current_file_path:
+                result["_load_file_restore_file_path"] = current_file_path
+
+        if not file_path:
+            raise self.VREDOptimizationError("Missing required file path to load.")
+
+        # Load the file
+        success = self.vredpy.vrFileIO.load(
+            [file_path],
+            self.vredpy.vrScenegraph.getRootNode(),
+            newFile=True,
+            showImportOptions=False,
+        )
+        if not success:
+            raise self.VREDOptimizationError(f"Failed to load file '{file_path}.")
+
+        # result["node_name"] = self.vredpy.vrScenegraph.getRootNode().getName()
+        return result
+
+    def _save_temp_file(self, input_data, output_node):
         """Return the node based on the settings data."""
 
-        node_name = self.get_settings_value(settings, "node_name")
+        node_name = input_data.get("node_name")
 
-        if not node_name:
-            return  # or raise an exception?
+        if node_name:
+            try:
+                node = self.vredpy.get_nodes(node_name)[0]
+            except IndexError:
+                raise self.VREDOptimizationError(f"Failed to find node '{node_name}'")
+        else:
+            node = self.vredpy.vrScenegraph.getRootNode()
 
-        node = self.vredpy.get_nodes(node_name)[0]
-        node_file_name = "{}.vpb".format(node_name)
-        node_tempfile_path = os.path.join(tempfile.gettempdir(), node_file_name)
+        # Get the current file path
         current_file_path = self.vredpy.vrFileIO.getFileIOFilePath()
+        # If the current file has not been saved yet, raise an exception, or prompt user? Should this be checked before optimze steps even begin?
+        if not current_file_path:
+            raise VREDOptimizationHook.VREDOptimizationError(
+                "Current file must be saved before proceeding."
+            )
+
+        node_name = node.getName()
+        tempfile_name = f"{output_node.id}_{node_name}.vpb"
+        tempfile_path = os.path.join(tempfile.gettempdir(), tempfile_name)
 
         # Save a copy of the data (to not modify the current)
-        # result = self.vredpy.vrFileIO.saveGeometry(node, node_tempfile_path)
+        save_success = self.vredpy.vrFileIO.saveGeometry(node, tempfile_path)
+        if not save_success:
+            raise self.VREDOptimizationError("Failed to save temporary working file.")
 
-        # TODO standardize the node exec function return value
-        # return {"nodes": result}
+        # Load the copy to work on
+        load_success = self.vredpy.vrFileIO.load(
+            [tempfile_path],
+            self.vredpy.vrScenegraph.getRootNode(),
+            newFile=True,
+            showImportOptions=False,
+        )
+        if not load_success:
+            raise self.VREDOptimizationError("Failed to load temporary working file.")
+
+        # Get the new root node from the file just loaded
+        root_node = self.vredpy.vrScenegraph.getRootNode()
+
         return {
-            "working_file_path": node_tempfile_path,
-            "current_file_path": current_file_path,
-            "node": node,
-            # "result": result
+            "temp_file_path": tempfile_path,
+            "_save_temp_file_restore_file_path": current_file_path,
+            "nodes": [root_node],
         }
+
+    def _remove_temp_file(self, input_data, output_node):
+        """Clean up function for save temp file."""
+
+        success = True
+
+        # Restore (load back) the original file
+        if "_save_temp_file_restore_file_path" in input_data:
+            file_path = input_data["_save_temp_file_restore_file_path"]
+            success = self.vredpy.vrFileIO.load(
+                [file_path],
+                self.vredpy.vrScenegraph.getRootNode(),
+                newFile=True,
+                showImportOptions=False,
+            )
+
+        # Remove (temp) file
+        if "temp_file_path" in input_data:
+            file_path = input_data["temp_file_path"]
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        return success
 
     def _optimize_geometry(self, input_data, settings):
         """
@@ -524,25 +627,6 @@ class VREDOptimizationHook(HookBaseClass):
                     "Input node must be of type vrNodePtr."
                 )
 
-        elif "working_file_path" in input_data:
-            # Load our data in from a file
-
-            file_path = input_data["working_file_path"]
-            node = input_data["node"]
-            if not os.path.exists(file_path):
-                # Save a copy of the data (to not modify the current)
-                result = self.vredpy.vrFileIO.saveGeometry(node, file_path)
-                # raise Exception("Bad file path")
-
-            self.vredpy.vrFileIO.load(
-                [file_path],
-                self.vredpy.vrScenegraph.getRootNode(),
-                newFile=True,
-                showImportOptions=False,
-            )
-            # Now get our loaded file root node
-            input_node = self.vredpy.vrScenegraph.getRootNode()
-
         # Turn strips on or off in optimization. Default is True.
         strips = self.get_settings_value(settings, "strips", True)
         # Turn fans on or off in optimization. Default is True.
@@ -556,10 +640,6 @@ class VREDOptimizationHook(HookBaseClass):
 
         # Return the list of nodes to continue working on
         result = {"nodes": [input_node], "result": success}
-
-        # Forward the current path to restore at some point
-        if "current_file_path" in input_data:
-            result["current_file_path"] = input_data["current_file_path"]
 
         return result
 
@@ -599,24 +679,24 @@ class VREDOptimizationHook(HookBaseClass):
                     "Input node must be of type vrNodePtr."
                 )
 
-        elif "working_file_path" in input_data:
-            # Load our data in from a file
+        # elif "working_file_path" in input_data:
+        #     # Load our data in from a file
 
-            file_path = input_data["working_file_path"]
-            node = input_data["node"]
-            if not os.path.exists(file_path):
-                # Save a copy of the data (to not modify the current)
-                result = self.vredpy.vrFileIO.saveGeometry(node, file_path)
-                # raise Exception("Bad file path")
+        #     file_path = input_data["working_file_path"]
+        #     node = input_data["node"]
+        #     if not os.path.exists(file_path):
+        #         # Save a copy of the data (to not modify the current)
+        #         result = self.vredpy.vrFileIO.saveGeometry(node, file_path)
+        #         # raise Exception("Bad file path")
 
-            self.vredpy.vrFileIO.load(
-                [file_path],
-                self.vredpy.vrScenegraph.getRootNode(),
-                newFile=True,
-                showImportOptions=False,
-            )
-            # Now get our loaded file root node
-            input_node = self.vredpy.vrScenegraph.getRootNode()
+        #     self.vredpy.vrFileIO.load(
+        #         [file_path],
+        #         self.vredpy.vrScenegraph.getRootNode(),
+        #         newFile=True,
+        #         showImportOptions=False,
+        #     )
+        #     # Now get our loaded file root node
+        #     input_node = self.vredpy.vrScenegraph.getRootNode()
 
         check_world_matrix = self.get_settings_value(
             settings, "check_world_matrix", False
@@ -626,10 +706,6 @@ class VREDOptimizationHook(HookBaseClass):
 
         # Return the list of nodes to continue working on
         result = {"nodes": [input_node], "result": result}
-
-        # Forward the current path to restore at some point
-        if "current_file_path" in input_data:
-            result["current_file_path"] = input_data["current_file_path"]
 
         return result
 
@@ -666,33 +742,29 @@ class VREDOptimizationHook(HookBaseClass):
                     "Input node must be of type vrNodePtr."
                 )
 
-        elif "working_file_path" in input_data:
-            # Load our data in from a file
+        # elif "working_file_path" in input_data:
+        #     # Load our data in from a file
 
-            file_path = input_data["working_file_path"]
-            node = input_data["node"]
-            if not os.path.exists(file_path):
-                # Save a copy of the data (to not modify the current)
-                result = self.vredpy.vrFileIO.saveGeometry(node, file_path)
-                # raise Exception("Bad file path")
+        #     file_path = input_data["working_file_path"]
+        #     node = input_data["node"]
+        #     if not os.path.exists(file_path):
+        #         # Save a copy of the data (to not modify the current)
+        #         result = self.vredpy.vrFileIO.saveGeometry(node, file_path)
+        #         # raise Exception("Bad file path")
 
-            self.vredpy.vrFileIO.load(
-                [file_path],
-                self.vredpy.vrScenegraph.getRootNode(),
-                newFile=True,
-                showImportOptions=False,
-            )
-            # Now get our loaded file root node
-            input_node = self.vredpy.vrScenegraph.getRootNode()
+        #     self.vredpy.vrFileIO.load(
+        #         [file_path],
+        #         self.vredpy.vrScenegraph.getRootNode(),
+        #         newFile=True,
+        #         showImportOptions=False,
+        #     )
+        #     # Now get our loaded file root node
+        #     input_node = self.vredpy.vrScenegraph.getRootNode()
 
         result = self.vredpy.vrOptimize.mergeGeometry(input_node)
 
         # Return the list of nodes to continue working on
         result = {"nodes": [input_node], "result": result}
-
-        # Forward the current path to restore at some point
-        if "current_file_path" in input_data:
-            result["current_file_path"] = input_data["current_file_path"]
 
         return result
 
@@ -840,7 +912,10 @@ class VREDOptimizationHook(HookBaseClass):
 
         input_data = input_data or {}
         input_nodes = input_data.get("nodes", [])
+
         root_node = input_nodes[0] if input_nodes else None
+        # NOTE debug - save geoemtry for specific node sometimes fails..?
+        root_node = None
 
         file_path = self.get_settings_value(settings, "file_path")
         if file_path is None:
@@ -852,31 +927,19 @@ class VREDOptimizationHook(HookBaseClass):
         if root_node:
             # Saves the geometry from the root node to the filepath
             # TODO check the root node is vrNodePtr?
-            self.vredpy.vrFileIO.saveGeometry(root_node, full_path)
+            success = self.vredpy.vrFileIO.saveGeometry(root_node, full_path)
         else:
             # Save the file
-            self.vredpy.vrFileIO.save(full_path)
+            success = self.vredpy.vrFileIO.save(full_path)
 
-        # Check if our current working file is a temp file - if so, delete it.
-        # NOTE should we forward the "working path" as we do wtih the current path?
-        current_file_path = self.vredpy.vrFileIO.getFileIOFilePath()
-        if current_file_path.startswith(tempfile.gettempdir()):
-            os.remove(current_file_path)
+        if not success:
+            raise self.VREDOptimizationError(f"Failed to save output file {full_path}")
 
-        # NOTE a node may want a clean up op (since it would be easier maintenance for the creator to then delete it)
-        if "current_file_path" in input_data:
-            # Restore the original path now that we're done
-
-            success = self.vredpy.vrFileIO.load(
-                [input_data["current_file_path"]],
-                self.vredpy.vrScenegraph.getRootNode(),
-                newFile=True,
-                showImportOptions=False,
-            )
+        return success
 
     def _publish_file(self, input_data, settings):
         """Save the current VRED file to disk."""
 
         # TODO get publish app api to do the publish - for now just save it
 
-        self._save_file(input_data, settings)
+        return self._save_file(input_data, settings)
