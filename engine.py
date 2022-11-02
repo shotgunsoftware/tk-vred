@@ -81,14 +81,6 @@ class VREDEngine(sgtk.platform.Engine):
         ptvsd.enable_attach(address=("192.168.56.105", 2222), redirect_output=True)
         ptvsd.wait_for_attach()
 
-        import sys
-
-        sys.path.append("Z:\\python_libs")
-        import ptvsd
-
-        ptvsd.enable_attach(address=("192.168.56.105", 2222), redirect_output=True)
-        ptvsd.wait_for_attach()
-
         # self.execute_hook_method("hook_load_framework_test", "test_load")
 
         # unicode characters returned by the ShotGrid api need to be converted
