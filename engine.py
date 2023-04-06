@@ -195,7 +195,10 @@ class VREDEngine(sgtk.platform.Engine):
     def _get_dialog_parent(self):
         """Get the QWidget parent for all dialogs created through show_dialog & show_modal."""
         from sgtk.platform.qt import QtGui
-        from shiboken2 import wrapInstance
+        try:
+            from shiboken2 import wrapInstance
+        except ModuleNotFoundError:
+            from shiboken6 import wrapInstance
 
         if self.vredpy:
             vrVredUi = self.vredpy.vrVredUi
