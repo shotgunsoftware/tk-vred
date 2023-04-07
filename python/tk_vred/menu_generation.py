@@ -10,7 +10,7 @@
 
 import os
 
-from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt6 import QtCore, QtGui, QtWidgets
 from sgtk.util import is_windows, is_linux, is_macos
 from tank_vendor import six
 
@@ -483,6 +483,6 @@ def create_qt_menu(name):
     :rtype: QtGui.QMenu
     """
 
-    menu = QtGui.QMenu()
+    menu = QtWidgets.QMenu()
     menu.setTitle(name)
     return menu

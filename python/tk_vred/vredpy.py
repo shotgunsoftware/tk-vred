@@ -11,7 +11,7 @@
 import traceback
 
 import sgtk
-from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt6 import QtCore, QtGui
 
 # VRED API v1 imports. VRED API v2 modules are included in the builtins so no need to
 # explicitly import them.

@@ -77,17 +77,17 @@ class VREDEngine(sgtk.platform.Engine):
         # unicode characters returned by the ShotGrid api need to be converted
         # to display correctly in all of the app windows
         # tell QT to interpret C strings as utf-8
-        from sgtk.platform.qt import QtCore, QtGui
-
-        utf8 = QtCore.QTextCodec.codecForName("utf-8")
-        QtCore.QTextCodec.setCodecForCStrings(utf8)
-        self.logger.debug("set utf-8 codec for widget text")
+        # from sgtk.platform.qt import QtCore, QtGui
+        #
+        # utf8 = QtCore.QTextCodec.codecForName("utf-8")
+        # QtCore.QTextCodec.setCodecForCStrings(utf8)
+        # self.logger.debug("set utf-8 codec for widget text")
 
         # Temporarily monkey patch QToolButton and QMenu to resolve a Qt 5.15.0 bug (seems that it will fixed in 5.15.1)
         # where QToolButton menu will open only on primary screen.
-        if self.has_ui:
-            self._monkey_patch_qtoolbutton()
-            self._monkey_patch_qmenu()
+        # if self.has_ui:
+        #     self._monkey_patch_qtoolbutton()
+        #     self._monkey_patch_qmenu()
 
         # import python/tk_vred module
         self._tk_vred = self.import_module("tk_vred")
@@ -199,6 +199,10 @@ class VREDEngine(sgtk.platform.Engine):
             from shiboken2 import wrapInstance
         except ModuleNotFoundError:
             from shiboken6 import wrapInstance
+        try:
+            from sgtk.platform.qt6 import QtWidgets
+        except:
+            pass
 
         if self.vredpy:
             vrVredUi = self.vredpy.vrVredUi
@@ -210,7 +214,10 @@ class VREDEngine(sgtk.platform.Engine):
                 long(vrVredUi.getMainWindow()), QtGui.QMainWindow  # noqa
             )
         else:
-            window = wrapInstance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
+            try:
+                window = wrapInstance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
+            except AttributeError:
+                window = wrapInstance(int(vrVredUi.getMainWindow()), QtWidgets.QMainWindow)
 
         return window
 

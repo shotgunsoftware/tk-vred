@@ -8,11 +8,11 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
-from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt6 import QtCore, QtGui, QtWidgets
 from tank_vendor import six
 
 
-class DockWidget(QtGui.QDockWidget):
+class DockWidget(QtWidgets.QDockWidget):
     """
     Subclass :class:`sgtk.platform.qt.QtGui.QDockWidget` to customize functionality
     for docking widgets within VRED.
