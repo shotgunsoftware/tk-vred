@@ -135,7 +135,7 @@ class VREDStartVersionControlPlugin(HookBaseClass):
             # validation will succeed.
             self.logger.warn(
                 "The VRED session has not been saved.",
-                extra=sgtk.platform.current_engine().open_save_as_dialog,
+                extra=_get_save_as_action(),
             )
 
         self.logger.info(
@@ -168,9 +168,7 @@ class VREDStartVersionControlPlugin(HookBaseClass):
             # the session still requires saving. provide a save button.
             # validation fails
             error_msg = "The VRED session has not been saved."
-            self.logger.error(
-                error_msg, extra=sgtk.platform.current_engine().open_save_as_dialog
-            )
+            self.logger.error(error_msg, extra=_get_save_as_action())
             raise Exception(error_msg)
 
         # NOTE: If the plugin is attached to an item, that means no version
@@ -186,9 +184,7 @@ class VREDStartVersionControlPlugin(HookBaseClass):
                 "A file already exists with a version number. Please "
                 "choose another name."
             )
-            self.logger.error(
-                error_msg, extra=sgtk.platform.current_engine().open_save_as_dialog
-            )
+            self.logger.error(error_msg, extra=_get_save_as_action())
             raise Exception(error_msg)
 
         return True
@@ -270,6 +266,17 @@ class VREDStartVersionControlPlugin(HookBaseClass):
             version_number = publisher.util.get_version_number(path)
 
         return version_number
+
+
+def _get_save_as_action():
+    """Simple helper for returning a log action to show the "File Save As" dialog"""
+    return {
+        "action_button": {
+            "label": "Save As...",
+            "tooltip": "Save the current session",
+            "callback": sgtk.platform.current_engine().open_save_as_dialog,
+        }
+    }
 
 
 def _get_version_docs_action():
