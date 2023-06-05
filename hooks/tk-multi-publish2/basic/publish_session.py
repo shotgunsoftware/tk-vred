@@ -177,7 +177,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
             # validation will succeed.
             self.logger.warn(
                 "The VRED session has not been saved.",
-                extra=sgtk.platform.current_engine().open_save_as_dialog,
+                extra=_get_save_as_action(),
             )
 
         self.logger.info(
@@ -205,9 +205,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
             # the session still requires saving. provide a save button.
             # validation fails.
             error_msg = "The VRED session has not been saved."
-            self.logger.error(
-                error_msg, extra=sgtk.platform.current_engine().open_save_as_dialog
-            )
+            self.logger.error(error_msg, extra=_get_save_as_action())
             raise Exception(error_msg)
 
         # ---- check the session against any attached work template
@@ -364,3 +362,14 @@ class VREDSessionPublishPlugin(HookBaseClass):
         """
 
         self.parent.engine.save_current_file(path)
+
+
+def _get_save_as_action():
+    """Simple helper for returning a log action to show the "File Save As" dialog"""
+    return {
+        "action_button": {
+            "label": "Save As...",
+            "tooltip": "Save the current session",
+            "callback": sgtk.platform.current_engine().open_save_as_dialog,
+        }
+    }
