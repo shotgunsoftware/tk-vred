@@ -310,7 +310,9 @@ class VREDSessionPublishPlugin(HookBaseClass):
         # ensure the session is saved
         if not bg_processing or (bg_processing and not in_bg_process):
             self.save_file(path)
-            if "session_path" not in item.parent.properties:
+
+            # only store the session name if we are using the background publish mode
+            if bg_processing and "session_path" not in item.parent.properties:
                 item.parent.properties["session_path"] = path
                 item.parent.properties[
                     "session_name"
