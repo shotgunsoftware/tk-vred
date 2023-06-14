@@ -911,7 +911,7 @@ class VREDEngine(sgtk.platform.Engine):
             1. PySide / shiboken
             2. PySide2 / shiboken2
             3. PySide6 / shiboken6
-        
+
         This method is currently only necessary to get the VRED main window. If more cases
         arise such that the correct shiboken module is found for the current Qt version, this
         should be provided by the tk-core QtImporter.
@@ -919,20 +919,23 @@ class VREDEngine(sgtk.platform.Engine):
 
         try:
             from shiboken import wrapInstance
+
             return wrapInstance
         except:
             pass
 
         try:
             from shiboken2 import wrapInstance
+
             return wrapInstance
         except:
             pass
 
         try:
             from shiboken6 import wrapInstance
+
             return wrapInstance
         except:
             pass
-        
+
         raise Exception("shiboken method wrapInstance not found")
