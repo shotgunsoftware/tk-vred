@@ -10,6 +10,7 @@
 import logging
 import os
 import re
+import sys
 
 import sgtk
 from tank_vendor import six
@@ -37,6 +38,11 @@ class VREDEngine(sgtk.platform.Engine):
         """
         # for now, we don't have a method in VRED to get the execution mode
         # so, we're assuming that if we can't access to the menubar, we're running VRED in non-ui mode
+        # in ase we're running VRED presenter, assume we are using a UI
+
+        if "Presenter" in os.path.basename(sys.executable):
+            return True
+
         menubar = self._get_dialog_parent().menuBar()
         if menubar and menubar.isVisible() and menubar.isEnabled():
             return True
