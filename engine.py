@@ -85,7 +85,7 @@ class VREDEngine(sgtk.platform.Engine):
 
         # Temporarily monkey patch QToolButton and QMenu to resolve a Qt 5.15.0 bug (seems that it will fixed in 5.15.1)
         # where QToolButton menu will open only on primary screen.
-        if self.has_ui:
+        if self.has_ui and self._version_check(QtCore.__version__, "5.15.1") < 0:
             self._monkey_patch_qtoolbutton()
             self._monkey_patch_qmenu()
 
@@ -194,20 +194,21 @@ class VREDEngine(sgtk.platform.Engine):
 
     def _get_dialog_parent(self):
         """Get the QWidget parent for all dialogs created through show_dialog & show_modal."""
+
         from sgtk.platform.qt import QtGui
-        from shiboken2 import wrapInstance
 
         if self.vredpy:
             vrVredUi = self.vredpy.vrVredUi
         else:
             import vrVredUi
 
+        wrap_instance = self.__get_wrap_instance_method()
         if six.PY2:
-            window = wrapInstance(
+            window = wrap_instance(
                 long(vrVredUi.getMainWindow()), QtGui.QMainWindow  # noqa
             )
         else:
-            window = wrapInstance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
+            window = wrap_instance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
 
         return window
 
@@ -894,3 +895,38 @@ class VREDEngine(sgtk.platform.Engine):
         )
 
         self.vredpy.vrRenderSettings.setRenderFilename(render_path)
+
+    def __get_wrap_instance_method(self):
+        """
+        Return the wrapInstance method from the shiboken module.
+
+        This checks Qt versions in order of:
+
+            1. PySide / shiboken
+            2. PySide2 / shiboken2
+            3. PySide6 / shiboken6
+        
+        This method is currently only necessary to get the VRED main window. If more cases
+        arise such that the correct shiboken module is found for the current Qt version, this
+        should be provided by the tk-core QtImporter.
+        """
+
+        try:
+            from shiboken import wrapInstance
+            return wrapInstance
+        except:
+            pass
+
+        try:
+            from shiboken2 import wrapInstance
+            return wrapInstance
+        except:
+            pass
+
+        try:
+            from shiboken6 import wrapInstance
+            return wrapInstance
+        except:
+            pass
+        
+        raise Exception("shiboken method wrapInstance not found")
