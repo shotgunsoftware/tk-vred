@@ -628,9 +628,12 @@ class VREDEngine(sgtk.platform.Engine):
                 break
 
         if not dialog_widget:
-            dialog_widget, widget = self._create_dialog_with_widget(
+            dialog_widget, widget_intance = self._create_dialog_with_widget(
                 title, bundle, widget_class, *args, **kwargs
             )
+            dialog_widget.setObjectName(panel_id)
+        else:
+            widget_intance = dialog_widget._widget
 
         dock_properties = self.get_setting("docked_apps", {}).get(bundle.name, {})
         dock_area = dock_properties.get("pos", QtCore.Qt.RightDockWidgetArea)
@@ -642,8 +645,7 @@ class VREDEngine(sgtk.platform.Engine):
         # Return the widget created by the method, _create_dialog_with_widget, since this will
         # have the widget_class type expected by the caller. This widget represents the panel
         # so it should have the object name set to the panel_id
-        dialog_widget.setObjectName(panel_id)
-        return dialog_widget
+        return widget_intance
 
     def show_dock_widget(self, panel_id, title, widget, dock_area=None, tabbed=False):
         """
