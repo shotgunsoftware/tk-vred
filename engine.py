@@ -91,7 +91,7 @@ class VREDEngine(sgtk.platform.Engine):
 
         # Temporarily monkey patch QToolButton and QMenu to resolve a Qt 5.15.0 bug (seems that it will fixed in 5.15.1)
         # where QToolButton menu will open only on primary screen.
-        if self.has_ui:
+        if self.has_ui and self._version_check(QtCore.__version__, "5.15.1") < 0:
             self._monkey_patch_qtoolbutton()
             self._monkey_patch_qmenu()
 
@@ -200,20 +200,21 @@ class VREDEngine(sgtk.platform.Engine):
 
     def _get_dialog_parent(self):
         """Get the QWidget parent for all dialogs created through show_dialog & show_modal."""
+
         from sgtk.platform.qt import QtGui
-        from shiboken2 import wrapInstance
 
         if self.vredpy:
             vrVredUi = self.vredpy.vrVredUi
         else:
             import vrVredUi
 
+        wrap_instance = self.__get_wrap_instance_method()
         if six.PY2:
-            window = wrapInstance(
+            window = wrap_instance(
                 long(vrVredUi.getMainWindow()), QtGui.QMainWindow  # noqa
             )
         else:
-            window = wrapInstance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
+            window = wrap_instance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
 
         return window
 
@@ -618,31 +619,33 @@ class VREDEngine(sgtk.platform.Engine):
         # traversing all the application widgets may point to stale widgets and
         # attempting to reuse them may cause errors (e.g. there have been issues
         # with reusing Shotgun Panel App by finding it from QApplication.allWidgets())
-        widget_instance = None
+        dialog_widget = None
         for dock_widget_panel_id, dock_widget in self._dock_widgets.items():
             if dock_widget_panel_id == panel_id:
-                widget_instance = dock_widget.widget()
+                dialog_widget = dock_widget.widget()
                 parent = self._get_dialog_parent()
-                widget_instance.setParent(parent)
+                dialog_widget.setParent(parent)
                 break
 
-        if not widget_instance:
-            _, widget_instance = self._create_dialog_with_widget(
+        if not dialog_widget:
+            dialog_widget, widget_intance = self._create_dialog_with_widget(
                 title, bundle, widget_class, *args, **kwargs
             )
+            dialog_widget.setObjectName(panel_id)
+        else:
+            widget_intance = dialog_widget._widget
 
         dock_properties = self.get_setting("docked_apps", {}).get(bundle.name, {})
         dock_area = dock_properties.get("pos", QtCore.Qt.RightDockWidgetArea)
         tabbed = dock_properties.get("tabbed", True)
         self.show_dock_widget(
-            panel_id, title, widget_instance, dock_area=dock_area, tabbed=tabbed
+            panel_id, title, dialog_widget, dock_area=dock_area, tabbed=tabbed
         )
 
         # Return the widget created by the method, _create_dialog_with_widget, since this will
         # have the widget_class type expected by the caller. This widget represents the panel
         # so it should have the object name set to the panel_id
-        widget_instance.setObjectName(panel_id)
-        return widget_instance
+        return widget_intance
 
     def show_dock_widget(self, panel_id, title, widget, dock_area=None, tabbed=False):
         """
@@ -900,3 +903,41 @@ class VREDEngine(sgtk.platform.Engine):
         )
 
         self.vredpy.vrRenderSettings.setRenderFilename(render_path)
+
+    def __get_wrap_instance_method(self):
+        """
+        Return the wrapInstance method from the shiboken module.
+
+        This checks Qt versions in order of:
+
+            1. PySide / shiboken
+            2. PySide2 / shiboken2
+            3. PySide6 / shiboken6
+
+        This method is currently only necessary to get the VRED main window. If more cases
+        arise such that the correct shiboken module is found for the current Qt version, this
+        should be provided by the tk-core QtImporter.
+        """
+
+        try:
+            from shiboken import wrapInstance
+
+            return wrapInstance
+        except:
+            pass
+
+        try:
+            from shiboken2 import wrapInstance
+
+            return wrapInstance
+        except:
+            pass
+
+        try:
+            from shiboken6 import wrapInstance
+
+            return wrapInstance
+        except:
+            pass
+
+        raise Exception("shiboken method wrapInstance not found")
