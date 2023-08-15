@@ -20,7 +20,6 @@ class VREDPySetting(VREDPyBase):
         """Initialize"""
         super(VREDPySetting, self).__init__(vred_py)
 
-
     def get_unfold_settings(
         self,
         iterations=1,
@@ -159,10 +158,18 @@ class VREDPySetting(VREDPyBase):
         :type post_scale_mode: vrUVTypes.PostScaleMode
         """
 
-        pre_rotate_mode = pre_rotate_mode or self.vred_py.vrUVTypes.PreRotateMode.YAxisToV
-        pre_scale_mode = pre_scale_mode or self.vred_py.vrUVTypes.PreScaleMode.Keep3DArea
-        tile_assign_mode = tile_assign_mode or self.vred_py.vrUVTypes.TileAssignMode.Distribute
-        post_scale_mode = post_scale_mode or self.vred_py.vrUVTypes.PostScaleMode.Uniform
+        pre_rotate_mode = (
+            pre_rotate_mode or self.vred_py.vrUVTypes.PreRotateMode.YAxisToV
+        )
+        pre_scale_mode = (
+            pre_scale_mode or self.vred_py.vrUVTypes.PreScaleMode.Keep3DArea
+        )
+        tile_assign_mode = (
+            tile_assign_mode or self.vred_py.vrUVTypes.TileAssignMode.Distribute
+        )
+        post_scale_mode = (
+            post_scale_mode or self.vred_py.vrUVTypes.PostScaleMode.Uniform
+        )
 
         settings = self.vred_py.vrdUVLayoutSettings()
 
@@ -340,7 +347,8 @@ class VREDPySetting(VREDPyBase):
             or self.vred_py.vrBakeTypes.DirectIlluminationMode.AmbientOcclusion
         )
         ambient_occlusion_weight = (
-            ambient_occlusion_weight or self.vred_py.vrBakeTypes.AmbientOcclusionWeight.Uniform
+            ambient_occlusion_weight
+            or self.vred_py.vrBakeTypes.AmbientOcclusionWeight.Uniform
         )
 
         settings = self.vred_py.vrdIlluminationBakeSettings()
@@ -404,7 +412,8 @@ class VREDPySetting(VREDPyBase):
 
         decore_mode = decore_mode or self.vred_py.vrGeometryTypes.DecoreMode.Remove
         sub_object_mode = (
-            sub_object_mode or self.vred_py.vrGeometryTypes.DecoreSubObjectMode.Triangles
+            sub_object_mode
+            or self.vred_py.vrGeometryTypes.DecoreSubObjectMode.Triangles
         )
         transparent_object_mode = (
             transparent_object_mode

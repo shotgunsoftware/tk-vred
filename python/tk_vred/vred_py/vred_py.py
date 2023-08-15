@@ -30,6 +30,7 @@ class VREDPy:
     # ----------------------------------------------------------------------------------------
     class VREDPyError(Exception):
         """Base VREDPy exception class."""
+
     class VREDPyNotSupportedError(VREDPyError):
         """Exception class to report unsupported VRED API functionality."""
 
@@ -96,7 +97,6 @@ class VREDPy:
                 )
 
             return patched_attr
-        
 
     # Private methods
     # ----------------------------------------------------------------------------------------

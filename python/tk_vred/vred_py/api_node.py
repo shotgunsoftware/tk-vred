@@ -123,7 +123,9 @@ class VREDPyNode(VREDPyBase):
             if node:
                 nodes.append(node)
             else:
-                raise self.vred_py.VREDPyError("Failed to convert {} to node".format(item))
+                raise self.vred_py.VREDPyError(
+                    "Failed to convert {} to node".format(item)
+                )
 
         return nodes
 
@@ -163,17 +165,25 @@ class VREDPyNode(VREDPyBase):
                 elif has_mat_uvs is None and has_light_uvs is None:
                     # Add geometry based on both material/light UVs
                     if (
-                        node.hasUVSet(self.vred_py.vrUVTypes.MaterialUVSet) == has_mat_uvs
-                        and node.hasUVSet(self.vred_py.vrUVTypes.LightmapUVSet) == has_light_uvs
+                        node.hasUVSet(self.vred_py.vrUVTypes.MaterialUVSet)
+                        == has_mat_uvs
+                        and node.hasUVSet(self.vred_py.vrUVTypes.LightmapUVSet)
+                        == has_light_uvs
                     ):
                         result.append(node)
                 elif has_mat_uvs is None:
                     # Add only geometry based on light UVs, ignore material UVs
-                    if node.hasUVSet(self.vred_py.vrUVTypes.LightmapUVSet) == has_light_uvs:
+                    if (
+                        node.hasUVSet(self.vred_py.vrUVTypes.LightmapUVSet)
+                        == has_light_uvs
+                    ):
                         result.append(node)
                 elif has_light_uvs is None:
                     # Add only geometry based on material UVs, ignore light UVs
-                    if node.hasUVSet(self.vred_py.vrUVTypes.MaterialUVSet) == has_mat_uvs:
+                    if (
+                        node.hasUVSet(self.vred_py.vrUVTypes.MaterialUVSet)
+                        == has_mat_uvs
+                    ):
                         result.append(node)
 
             for child in node.getChildren():

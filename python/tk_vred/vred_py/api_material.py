@@ -104,7 +104,9 @@ class VREDPyMaterial(VREDPyBase):
                     # This material does not support the clearcoat property. Do not accept it.
                     continue
 
-                clearcoat_off = clearcoat.getType() == self.vred_py.vrdClearcoat.Type.Off
+                clearcoat_off = (
+                    clearcoat.getType() == self.vred_py.vrdClearcoat.Type.Off
+                )
                 if clearcoat_off:
                     # This material has clearcoat turned off. Do not accept it.
                     continue
