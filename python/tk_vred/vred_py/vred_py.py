@@ -33,7 +33,6 @@ class VREDPy:
     class VREDPyNotSupportedError(VREDPyError):
         """Exception class to report unsupported VRED API functionality."""
 
-
     def __init__(self):
         """
         Initialize.
@@ -45,10 +44,8 @@ class VREDPy:
         # The VRED API module. Initialize with class since this is not specific to each instance.
         self.__vred_api = self.__get_vred_api_module()
 
-        # Define patch functiosn for VRED api attributes
+        # Define patch functiosn for VRED api attributes.
         self.__patch_attributes = {}
-
-        # TODO manually create mapping of attributes to version to provide better error message?
 
     def __getattr__(self, name):
         """
@@ -62,13 +59,11 @@ class VREDPy:
             property raises AttributeError). Note that if the attribute is found through the
             normal mechanism, __getattr__() is not called.
 
-        The VREDPy class is a wrapper for the VRED api module. Accessing an attribute
-        through the VREDPy class will return attribute from the VRED api module, unless the
-        attribute is defined on the VREDPy class. For this reason, the VREDPy class should
-        not define any other functionality, with the exception to methods that are used to
-        provide patches for VRED api attributes (for version handling), or properties that
-        return objects that contain VRED api helper functionality. To avoid attribute name
-        collisions, prefix all VREDPy attributes with `py_`.
+        The VREDPy class is a wrapper for the VRED api module. Accessing an attribute through
+        the VREDPy class will return attribute from the VRED api module, unless the attribute
+        is defined on the VREDPy class. For this reason, the VREDPy class should not define any
+        other functionality, with the exception to methods that are used to provide patches for
+        VRED api attributes (for version handling).
 
         :param name: The name of the attribute to get.
         :type name: str
@@ -85,7 +80,6 @@ class VREDPy:
             # NOTE if attributes exist in multiple api versions, but require different
             # handling (e.g. function signature changed), then a patch function will need
             # to be run before returning the attribute immediately if it exists.
-
             return getattr(self.__vred_api, name)
 
         except AttributeError:
@@ -97,7 +91,6 @@ class VREDPy:
                 patched_attr = None
 
             if patched_attr is None:
-                # FIXME we lose specific error message when implemented in this more generic way
                 raise self.VREDPyNotSupportedError(
                     f"This VRED version does not support the API attribute: {name}"
                 )
@@ -109,7 +102,22 @@ class VREDPy:
     # ----------------------------------------------------------------------------------------
 
     def __get_vred_api_module(self):
-        """Return a module with VRED API modules as attributes."""
+        """
+        Return an object that wraps the VRED API functionality.
+
+        The module created will be named `vred_py`.
+
+        VRED API functionality search method:
+
+            - v1 functionality is found in `sys.builtin_module_names`
+            - v2  functionality is found in the `builtins` module
+            - The module is decided as a VRED module if the module name starts with `vr` (this
+              is not guaranteed to ONLY get VRED modules, but more importantly it should at
+              least get all VRED modules. TODO investigate better way to determine VRED module)
+
+        :return: The VRED API wrapper object, called `vred_py`.
+        :rtype: module
+        """
 
         # Create a Python module for the VRED API
         vred_py = types.ModuleType("vred_py")
@@ -120,31 +128,31 @@ class VREDPy:
         for module_name in module_names:
             if not module_name.startswith("vr"):
                 continue  # Not a VRED module
-
-            # Are we sure its a VRED module?
-            
             # First the module must be imported
             module = importlib.import_module(module_name)
-
+            # Add the VRED module as an attribute on the vred_py wrapper
+            setattr(vred_py, module_name, module)
+            existing_attribute_names.add(module_name)
+            # For vrKernelServices, add its members as vred_py attributes; e.g. vrdNode is
+            # defined as a built-in, which means it can be directly accessible without import,
+            # so make sure our wrapper also has direct acces to it.
             if module_name == "vrKernelServices":
                 kernel_members = inspect.getmembers(module)
                 for kernel_member_name, kernel_member in kernel_members:
                     if kernel_member_name.startswith("_"):
                         continue  # Skip protected and private members
                     setattr(vred_py, kernel_member_name, kernel_member)
-
-            setattr(vred_py, module_name, module)
-            existing_attribute_names.add(module_name)
+                    existing_attribute_names.add(kernel_member_name)
 
         # Get the v2 modules
         builtin_members = inspect.getmembers(builtins)
         for module_name, module in builtin_members:
             if not module_name.startswith("vr"):
                 continue  # Not a VRED module
-
-            # Are we sure its a VRED module?
             setattr(vred_py, module_name, module)
 
+        # Add the api helper modules to the wrapper. Make sure there are no attribute naming
+        # conflicts.
         api_modules = [
             api_animation.VREDPyAnimation(self),
             api_material.VREDPyMaterial(self),
