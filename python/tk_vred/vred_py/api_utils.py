@@ -93,7 +93,7 @@ class VREDPyUtils(VREDPyBase):
         Return the ID for the given object.
 
         :param obj: The object to get the ID for.
-        :typeo obj: VRED object
+        :type obj: VRED object
 
         :return: The object ID.
         :rtype: int
