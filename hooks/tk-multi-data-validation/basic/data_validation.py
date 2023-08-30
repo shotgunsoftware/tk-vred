@@ -31,10 +31,7 @@ def check_vred_version_support(func):
         validation_hook_instance = args[0]
         try:
             return func(*args, **kwargs)
-        except (
-            validation_hook_instance.vredpy.VREDModuleNotSupported,
-            validation_hook_instance.vredpy.VREDFunctionNotSupported,
-        ) as vredpy_error:
+        except validation_hook_instance.vredpy.VREDPyError as vredpy_error:
             validation_hook_instance.logger.error(vredpy_error)
             raise VREDDataValidationHook.VREDDataValidationError(
                 """
