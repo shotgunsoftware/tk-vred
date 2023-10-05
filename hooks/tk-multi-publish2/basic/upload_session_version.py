@@ -209,10 +209,14 @@ class UploadVersionPlugin(HookBaseClass):
 
             version_type = item.properties["sg_version_data"]["type"]
             version_id = item.properties["sg_version_data"]["id"]
+            thumbnail_path = item.get_thumbnail_as_path()
+            media_package_path = None
+            media_type = settings.get("Version Type").value
+            if media_type == self.VERSION_TYPE_3D:
+                # Pass the thumbnail retrieved to override the LMV thumbnail, and ignore the
+                # LMV thumbnail output
+                media_package_path, _, _ = self._translate_file_to_lmv(item, thumbnail_path=thumbnail_path)
 
-            media_package_path, thumbnail_path = self._get_media_content(
-                settings, item
-            )
             if media_package_path:
                 # For 3D media, a media package path will be generated. Set the translation
                 # type on the Version in order to view 3D media in ShotGrid Web.
@@ -262,7 +266,6 @@ class UploadVersionPlugin(HookBaseClass):
 
             # Remove the temporary directory or files created to generate media content
             self._cleanup_temp_files(media_package_path)
-            self._cleanup_temp_files(thumbnail_path)
 
     def finalize(self, settings, item):
         """
@@ -531,81 +534,6 @@ class UploadVersionPlugin(HookBaseClass):
 
     ############################################################################
     # Protected functions
-
-    def _get_media_content(self, settings, item):
-        """
-        Generate media content for the item.
-
-        For both 2D and 3D version media types, a thumbnail will be generated. For 3D only,
-        the item content will be translated to LMV.
-
-        The return value is a tuple containing the file path to the LMV translated files, and
-        the file path to the generated thumbnail. These files are created in the user's local
-        temporary directory, it is on the caller of this function to clean up the temp files.
-
-        :param settings: Dictionary of Settings. The keys are strings, matching
-            the keys returned in the settings property. The values are `Setting`
-            instances.
-        :type settings: dict
-        :param item: Item to process
-        :type item: PublishItem
-
-        :return: A tuple containing the file path to 3D media content and a thumbnail.
-        :rtype: Tuple[str,str]
-        """
-
-        media_type = settings.get("Version Type").value
-        media_package_path = None
-
-        # Get the thumbnail to use in either 2D or 3D version type case
-        thumbnail_path = self._get_thumbnail(item)
-
-        if media_type == self.VERSION_TYPE_3D:
-            # Pass the thumbnail retrieved to override the LMV thumbnail, and ignore the LMV
-            # thumbnail output
-            (media_package_path, _, _) = self._translate_file_to_lmv(item, thumbnail_path=thumbnail_path)
-
-        return media_package_path, thumbnail_path
-
-    def _get_thumbnail(self, item):
-        """
-        Generate a thumbnail for the item and return the file path to it.
-
-        If the user created a thumbnail using the publisher interface, use this thumbnail, else
-        generate a thumbnail of the VRED viewport. If both methods fail, use a default blank
-        thumbnail.
-
-        :param item: Item to process
-        :type item: PublishItem
-
-        :return: The file path to the thumbnail.
-        :rtype: str
-        """
-
-        # First check if the user created a thumbnail
-        thumbnail_path = item.get_thumbnail_as_path()
-
-        if not thumbnail_path:
-            # Next, try to generate a thumbnail using the VRED API
-            try:
-                thumbnail_path = tempfile.NamedTemporaryFile(
-                    suffix=".jpg", prefix="sgtk_thumb", delete=False
-                ).name
-                vrMovieExport.createSnapshotFastInit(800, 600)
-                vrMovieExport.createSnapshotFast(thumbnail_path)
-                vrMovieExport.createSnapshotFastTerminate()
-                if thumbnail_path:
-                    return thumbnail_path
-            except:
-                pass
-
-        if not thumbnail_path:
-            # Could not find a thumbnail, get default thumbnail
-            thumbnail_path = os.path.join(
-                self.disk_location, os.pardir, "icons", "no_preview_vred.png"
-            )
-
-        return thumbnail_path
 
     def _cleanup_temp_files(self, path, remove_from_root=True):
         """
