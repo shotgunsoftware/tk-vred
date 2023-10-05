@@ -10,8 +10,10 @@
 
 import os
 import re
+import tempfile
 
 import sgtk
+from sgtk.platform.qt import QtGui
 
 import vrFileIO
 import vrRenderSettings
@@ -70,6 +72,11 @@ class VREDSessionCollector(HookBaseClass):
         collector_settings.update(vred_session_settings)
 
         return collector_settings
+
+    @property
+    def vredpy(self):
+        """Get the VREDPy api module."""
+        return self.parent.engine.vredpy
 
     def process_current_session(self, settings, parent_item):
         """
@@ -142,6 +149,9 @@ class VREDSessionCollector(HookBaseClass):
         # Need to store the path on properties to backward compatibility
         # TODO: clean LMV plugin to remove the path query
         session_item.properties["path"] = path
+
+        # Set a default thumbnail as the current VRED viewport
+        session_item.thumbnail = self._get_thumbnail_pixmap()
 
         return session_item
 
@@ -227,3 +237,30 @@ class VREDSessionCollector(HookBaseClass):
 
             if rd["render_pass"]:
                 item.name = "%s (Render Pass: %s)" % (item.name, rd["render_pass"])
+
+    def _get_thumbnail_pixmap(self):
+        """
+        Generate a thumbnail from the VRED viewport as the default thumbnail.
+
+        :return: The file path to the thumbnail.
+        :rtype: str
+        """
+
+        pixmap = None
+        thumbnail_path = None
+
+        try:
+            thumbnail_path = tempfile.NamedTemporaryFile(
+                suffix=".jpg", prefix="sgtk_thumb", delete=False
+            ).name
+            self.vredpy.vrMovieExport.createSnapshotFastInit(800, 600)
+            self.vredpy.vrMovieExport.createSnapshotFast(thumbnail_path)
+            self.vredpy.vrMovieExport.createSnapshotFastTerminate()
+            pixmap = QtGui.QPixmap(thumbnail_path)
+        except Exception as e:
+            self.logger.error(f"Failed to set default thumbnail: {e}")
+        finally:
+            if thumbnail_path and os.path.exists(thumbnail_path):
+                os.remove(thumbnail_path)
+
+        return pixmap
