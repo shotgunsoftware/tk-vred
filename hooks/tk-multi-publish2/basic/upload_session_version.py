@@ -207,65 +207,62 @@ class UploadVersionPlugin(HookBaseClass):
             # create the Version in Shotgun
             super(UploadVersionPlugin, self).publish(settings, item)
 
-            # Get the version type to create
-            version_type = settings.get("Version Type").value
+            version_type = item.properties["sg_version_data"]["type"]
+            version_id = item.properties["sg_version_data"]["id"]
 
-            # generate the Version content: LMV file (for 3D) or simple 2D thumbnail
-            if version_type == self.VERSION_TYPE_3D:
-                self.logger.debug("Creating LMV files from source file")
-                # translate the file to lmv and upload the corresponding package to the Version
-                (
-                    package_path,
-                    thumbnail_path,
-                    output_directory,
-                ) = self._translate_file_to_lmv(item)
-                self.logger.debug("Uploading LMV file to ShotGrid")
+            media_package_path, thumbnail_path = self._get_media_content(
+                settings, item
+            )
+            if media_package_path:
+                # For 3D media, a media package path will be generated. Set the translation
+                # type on the Version in order to view 3D media in ShotGrid Web.
                 self.parent.shotgun.update(
-                    entity_type="Version",
-                    entity_id=item.properties["sg_version_data"]["id"],
+                    entity_type=version_type,
+                    entity_id=version_id,
                     data={"sg_translation_type": "LMV"},
                 )
-                self.parent.shotgun.upload(
-                    entity_type="Version",
-                    entity_id=item.properties["sg_version_data"]["id"],
-                    path=package_path,
-                    field_name="sg_uploaded_movie",
-                )
-                # if the Version thumbnail is empty, update it with the newly created thumbnail
-                if not item.get_thumbnail_as_path() and thumbnail_path:
-                    self.parent.shotgun.upload_thumbnail(
-                        entity_type="Version",
-                        entity_id=item.properties["sg_version_data"]["id"],
-                        path=thumbnail_path,
-                    )
-                # delete the temporary folder on disk
-                self.logger.debug("Deleting temporary folder")
-                shutil.rmtree(output_directory)
+                self.logger.info(f"Set Version translation type to LMV")
 
-            elif version_type == self.VERSION_TYPE_2D:
-                thumbnail_path = item.get_thumbnail_as_path()
-                if not thumbnail_path:
-                    self.logger.debug(
-                        "Using VRED api to take a thumbnail for the current scene."
-                    )
-                    thumbnail_path = tempfile.NamedTemporaryFile(
-                        suffix=".jpg", prefix="sgtk_thumb", delete=False
-                    ).name
-                    vrMovieExport.createSnapshotFastInit(800, 600)
-                    vrMovieExport.createSnapshotFast(thumbnail_path)
-                    vrMovieExport.createSnapshotFastTerminate()
+            uploaded_movie_path = media_package_path or thumbnail_path
+            if uploaded_movie_path:
                 self.parent.shotgun.upload(
-                    entity_type="Version",
-                    entity_id=item.properties["sg_version_data"]["id"],
-                    path=thumbnail_path,
+                    entity_type=version_type,
+                    entity_id=version_id,
+                    path=uploaded_movie_path,
                     field_name="sg_uploaded_movie",
                 )
-            else:
-                raise NotImplementedError(
-                    "Failed to generate thumbnail for Version Type '{}'".format(
-                        version_type
-                    )
+                self.logger.info(
+                    f"Uploaded Version media from path {uploaded_movie_path}"
                 )
+
+            if thumbnail_path:
+                # Always upload the generated thumbnail to the Version (this will override any
+                # thumbnail captured from the Publish screen capture tool)
+                self.parent.shotgun.upload_thumbnail(
+                    entity_type=version_type,
+                    entity_id=version_id,
+                    path=thumbnail_path,
+                )
+                self.logger.info(
+                    f"Uploaded Version thumbnail from path {thumbnail_path}"
+                )
+
+                if not item.get_thumbnail_as_path():
+                    # Upload the thumbnail to the associated Published File, if one has not
+                    # already been uploaded
+                    publish_file_type = item.properties.get("sg_publish_data", {}).get("type")
+                    publish_file_id = item.properties.get("sg_publish_data", {}).get("id")
+                    if publish_file_type and publish_file_id:
+                        self.parent.shotgun.upload_thumbnail(
+                            entity_type=publish_file_type,
+                            entity_id=publish_file_id,
+                            path=thumbnail_path,
+                        )
+                    self.logger.info(f"Uploaded Published File thumbnail from path {thumbnail_path}")
+
+            # Remove the temporary directory or files created to generate media content
+            self._cleanup_temp_files(media_package_path)
+            self._cleanup_temp_files(thumbnail_path)
 
     def finalize(self, settings, item):
         """
@@ -535,7 +532,119 @@ class UploadVersionPlugin(HookBaseClass):
     ############################################################################
     # Protected functions
 
-    def _translate_file_to_lmv(self, item):
+    def _get_media_content(self, settings, item):
+        """
+        Generate media content for the item.
+
+        For both 2D and 3D version media types, a thumbnail will be generated. For 3D only,
+        the item content will be translated to LMV.
+
+        The return value is a tuple containing the file path to the LMV translated files, and
+        the file path to the generated thumbnail. These files are created in the user's local
+        temporary directory, it is on the caller of this function to clean up the temp files.
+
+        :param settings: Dictionary of Settings. The keys are strings, matching
+            the keys returned in the settings property. The values are `Setting`
+            instances.
+        :type settings: dict
+        :param item: Item to process
+        :type item: PublishItem
+
+        :return: A tuple containing the file path to 3D media content and a thumbnail.
+        :rtype: Tuple[str,str]
+        """
+
+        media_type = settings.get("Version Type").value
+        media_package_path = None
+
+        # Get the thumbnail to use in either 2D or 3D version type case
+        thumbnail_path = self._get_thumbnail(item)
+
+        if media_type == self.VERSION_TYPE_3D:
+            # Pass the thumbnail retrieved to override the LMV thumbnail, and ignore the LMV
+            # thumbnail output
+            (media_package_path, _, _) = self._translate_file_to_lmv(item, thumbnail_path=thumbnail_path)
+
+        return media_package_path, thumbnail_path
+
+    def _get_thumbnail(self, item):
+        """
+        Generate a thumbnail for the item and return the file path to it.
+
+        If the user created a thumbnail using the publisher interface, use this thumbnail, else
+        generate a thumbnail of the VRED viewport. If both methods fail, use a default blank
+        thumbnail.
+
+        :param item: Item to process
+        :type item: PublishItem
+
+        :return: The file path to the thumbnail.
+        :rtype: str
+        """
+
+        # First check if the user created a thumbnail
+        thumbnail_path = item.get_thumbnail_as_path()
+
+        if not thumbnail_path:
+            # Next, try to generate a thumbnail using the VRED API
+            try:
+                thumbnail_path = tempfile.NamedTemporaryFile(
+                    suffix=".jpg", prefix="sgtk_thumb", delete=False
+                ).name
+                vrMovieExport.createSnapshotFastInit(800, 600)
+                vrMovieExport.createSnapshotFast(thumbnail_path)
+                vrMovieExport.createSnapshotFastTerminate()
+                if thumbnail_path:
+                    return thumbnail_path
+            except:
+                pass
+
+        if not thumbnail_path:
+            # Could not find a thumbnail, get default thumbnail
+            thumbnail_path = os.path.join(
+                self.disk_location, os.pardir, "icons", "no_preview_vred.png"
+            )
+
+        return thumbnail_path
+
+    def _cleanup_temp_files(self, path, remove_from_root=True):
+        """
+        Remove any temporary directories or files from the given path.
+
+        If `remove_from_root` is True, the top most level directory of the given path is
+        used to remove all sub directories and files.        
+        
+        :param path: The file path to remove temporary files and/or directories from.
+        :type path: str
+        :param remove_from_root: True will remove directories and files from the top most level
+            directory within the root temporary directory, else False will remove the single
+            file or directory (and its children). Default is True.
+        :type remove_from_root: bool
+        """
+
+        if path is None or not os.path.exists(path):
+            return  # Cannot clean up a path that does not exist
+
+        tempdir = tempfile.gettempdir()
+        if os.path.commonpath([path, tempdir]) != tempdir:
+            return  # Not a temporary directory or file
+
+        if remove_from_root:
+            # Get the top most level of the path that is inside the root temp dir
+            relative_path = os.path.relpath(path, tempdir)
+            path = os.path.normpath(
+                os.path.join(
+                    tempdir,
+                    relative_path.split(os.path.sep)[0]
+                )
+            )
+
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+        elif os.path.isfile(path):
+            os.remove(path)
+        
+    def _translate_file_to_lmv(self, item, thumbnail_path=None):
         """
         Translate the current Alias file as an LMV package in order to upload it to ShotGrid as a 3D Version
 
@@ -549,35 +658,18 @@ class UploadVersionPlugin(HookBaseClass):
         framework_lmv = self.load_framework("tk-framework-lmv_v0.x.x")
         translator = framework_lmv.import_module("translator")
 
-        # translate the file to lmv
+        # Translate the file to LMV
         lmv_translator = translator.LMVTranslator(item.properties.path)
-        self.logger.info("Converting file to LMV")
         lmv_translator.translate()
 
-        # if the user hasn't taken a screenshot of the current VRED scene, use the API to take one
-        thumbnail_path = item.get_thumbnail_as_path()
-        if not thumbnail_path:
-            self.logger.debug("Use VRED API to get the current scene thumbnail")
-            thumbnail_path = tempfile.NamedTemporaryFile(
-                suffix=".jpg", prefix="sgtk_thumb", delete=False
-            ).name
-            vrMovieExport.createSnapshotFastInit(640, 320)
-            vrMovieExport.createSnapshotFast(thumbnail_path)
-            vrMovieExport.createSnapshotFastTerminate()
-
-        # package it up
-        self.logger.info("Packaging LMV files")
-        package_path, thumbnail_path = lmv_translator.package(
-            svf_file_name=str(item.properties["sg_version_data"]["id"]),
+        # Package up the LMV files to upload to ShotGrid
+        file_name = str(item.properties["sg_version_data"]["id"])
+        package_path, lmv_thumbnail_path = lmv_translator.package(
+            svf_file_name=file_name,
             thumbnail_path=thumbnail_path,
         )
 
-        if not thumbnail_path:
-            thumbnail_path = os.path.join(
-                self.disk_location, os.pardir, "icons", "no_preview_vred.png"
-            )
-
-        return package_path, thumbnail_path, lmv_translator.output_directory
+        return package_path, lmv_thumbnail_path, lmv_translator.output_directory
 
     def _is_3d_viewer_enabled(self):
         """
