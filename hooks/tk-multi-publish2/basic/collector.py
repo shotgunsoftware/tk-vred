@@ -15,7 +15,6 @@ import tempfile
 import sgtk
 from sgtk.platform.qt import QtGui
 
-import vrFileIO
 import vrRenderSettings
 
 HookBaseClass = sgtk.get_hook_baseclass()
@@ -110,7 +109,7 @@ class VREDSessionCollector(HookBaseClass):
             parent_item.properties["bg_processing"] = bg_processing.value
 
         # get the path to the current file
-        path = vrFileIO.getFileIOFilePath()
+        path = self.vredpy.vrFileIO.getFileIOFilePath()
 
         # determine the display name for the item
         if path:
@@ -164,7 +163,7 @@ class VREDSessionCollector(HookBaseClass):
         :return:
         """
 
-        render_path = vrRenderSettings.getRenderFilename()
+        render_path = self.vredpy.vrRenderSettings.getRenderFilename()
         render_folder = os.path.dirname(render_path)
 
         if not os.path.isdir(render_folder):
