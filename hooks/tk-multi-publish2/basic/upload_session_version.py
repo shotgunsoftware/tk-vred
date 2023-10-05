@@ -381,7 +381,6 @@ class UploadVersionPlugin(HookBaseClass):
         version_type_combobox = widget.property("version_type_combobox")
         if version_type_combobox:
             version_type_index = version_type_combobox.currentIndex()
-            # if version_type_index >= 0 and version_type_index < len(self.VERSION_TYPE_OPTIONS):
             if 0 <= version_type_index < len(self.VERSION_TYPE_OPTIONS):
                 self.VERSION_TYPE_OPTIONS[version_type_index]
                 ui_settings["Version Type"] = self.VERSION_TYPE_OPTIONS[
