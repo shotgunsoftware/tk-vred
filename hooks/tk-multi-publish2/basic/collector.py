@@ -259,7 +259,9 @@ class VREDSessionCollector(HookBaseClass):
         except Exception as e:
             self.logger.error(f"Failed to set default thumbnail: {e}")
         finally:
-            if thumbnail_path and os.path.exists(thumbnail_path):
+            try:
                 os.remove(thumbnail_path)
+            except:
+                pass
 
         return pixmap
