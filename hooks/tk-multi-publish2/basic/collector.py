@@ -74,7 +74,7 @@ class VREDSessionCollector(HookBaseClass):
 
     @property
     def vredpy(self):
-        """Get the VREDPy api module."""
+        """Get the VRED api module."""
         return self.parent.engine.vredpy
 
     def process_current_session(self, settings, parent_item):
@@ -239,10 +239,10 @@ class VREDSessionCollector(HookBaseClass):
 
     def _get_thumbnail_pixmap(self):
         """
-        Generate a thumbnail from the VRED viewport as the default thumbnail.
+        Generate a thumbnail from the current VRED viewport.
 
-        :return: The file path to the thumbnail.
-        :rtype: str
+        :return: A thumbnail of the current VRED viewport.
+        :rtype: QtGui.QPixmap
         """
 
         pixmap = None
