@@ -189,7 +189,7 @@ class UploadVersionPlugin(HookBaseClass):
         :param item: Item to process
         """
 
-        # get the publish "mode" stored inside of the root item properties
+        # Get the publish "mode" stored inside of the root item properties
         bg_processing = item.parent.properties.get("bg_processing", False)
         in_bg_process = item.parent.properties.get("in_bg_process", False)
 
@@ -204,18 +204,20 @@ class UploadVersionPlugin(HookBaseClass):
             (publish_name, _) = os.path.splitext(filename)
             item.properties["publish_name"] = publish_name
 
-            # create the Version in Shotgun
+            # Create the Version in Shotgun
             super(UploadVersionPlugin, self).publish(settings, item)
 
+            # Generate media content and upload to ShotGrid
             version_type = item.properties["sg_version_data"]["type"]
             version_id = item.properties["sg_version_data"]["id"]
             thumbnail_path = item.get_thumbnail_as_path()
             media_package_path = None
-            media_type = settings.get("Version Type").value
-            if media_type == self.VERSION_TYPE_3D:
+            version_media_type = settings.get("Version Type").value
+            if version_media_type == self.VERSION_TYPE_3D:
                 # Pass the thumbnail retrieved to override the LMV thumbnail, and ignore the
                 # LMV thumbnail output
                 media_package_path, _, _ = self._translate_file_to_lmv(item, thumbnail_path=thumbnail_path)
+                self.logger.info("Translated file to LMV")
 
             if media_package_path:
                 # For 3D media, a media package path will be generated. Set the translation
@@ -225,7 +227,7 @@ class UploadVersionPlugin(HookBaseClass):
                     entity_id=version_id,
                     data={"sg_translation_type": "LMV"},
                 )
-                self.logger.info(f"Set Version translation type to LMV")
+                self.logger.info("Set Version translation type to LMV")
 
             uploaded_movie_path = media_package_path or thumbnail_path
             if uploaded_movie_path:
@@ -240,8 +242,6 @@ class UploadVersionPlugin(HookBaseClass):
                 )
 
             if thumbnail_path:
-                # Always upload the generated thumbnail to the Version (this will override any
-                # thumbnail captured from the Publish screen capture tool)
                 self.parent.shotgun.upload_thumbnail(
                     entity_type=version_type,
                     entity_id=version_id,
@@ -250,19 +250,6 @@ class UploadVersionPlugin(HookBaseClass):
                 self.logger.info(
                     f"Uploaded Version thumbnail from path {thumbnail_path}"
                 )
-
-                if not item.get_thumbnail_as_path():
-                    # Upload the thumbnail to the associated Published File, if one has not
-                    # already been uploaded
-                    publish_file_type = item.properties.get("sg_publish_data", {}).get("type")
-                    publish_file_id = item.properties.get("sg_publish_data", {}).get("id")
-                    if publish_file_type and publish_file_id:
-                        self.parent.shotgun.upload_thumbnail(
-                            entity_type=publish_file_type,
-                            entity_id=publish_file_id,
-                            path=thumbnail_path,
-                        )
-                    self.logger.info(f"Uploaded Published File thumbnail from path {thumbnail_path}")
 
             # Remove the temporary directory or files created to generate media content
             self._cleanup_temp_files(media_package_path)
@@ -577,6 +564,10 @@ class UploadVersionPlugin(HookBaseClass):
         Translate the current Alias file as an LMV package in order to upload it to ShotGrid as a 3D Version
 
         :param item: Item to process
+        :type item: PublishItem
+        :param thumbnail_path: Optionally pass a thumbnail file path to override the LMV
+            thumbnail (this thumbnail will be included in the LMV packaged zip file).
+
         :returns:
             - The path to the LMV zip file
             - The path to the LMV thumbnail
@@ -590,7 +581,7 @@ class UploadVersionPlugin(HookBaseClass):
         lmv_translator = translator.LMVTranslator(item.properties.path)
         lmv_translator.translate()
 
-        # Package up the LMV files to upload to ShotGrid
+        # Package up the LMV files into a zip file
         file_name = str(item.properties["sg_version_data"]["id"])
         package_path, lmv_thumbnail_path = lmv_translator.package(
             svf_file_name=file_name,
