@@ -216,7 +216,9 @@ class UploadVersionPlugin(HookBaseClass):
             if version_media_type == self.VERSION_TYPE_3D:
                 # Pass the thumbnail retrieved to override the LMV thumbnail, and ignore the
                 # LMV thumbnail output
-                media_package_path, _, _ = self._translate_file_to_lmv(item, thumbnail_path=thumbnail_path)
+                media_package_path, _, _ = self._translate_file_to_lmv(
+                    item, thumbnail_path=thumbnail_path
+                )
                 self.logger.info("Translated file to LMV")
 
             if media_package_path:
@@ -527,8 +529,8 @@ class UploadVersionPlugin(HookBaseClass):
         Remove any temporary directories or files from the given path.
 
         If `remove_from_root` is True, the top most level directory of the given path is
-        used to remove all sub directories and files.        
-        
+        used to remove all sub directories and files.
+
         :param path: The file path to remove temporary files and/or directories from.
         :type path: str
         :param remove_from_root: True will remove directories and files from the top most level
@@ -548,17 +550,14 @@ class UploadVersionPlugin(HookBaseClass):
             # Get the top most level of the path that is inside the root temp dir
             relative_path = os.path.relpath(path, tempdir)
             path = os.path.normpath(
-                os.path.join(
-                    tempdir,
-                    relative_path.split(os.path.sep)[0]
-                )
+                os.path.join(tempdir, relative_path.split(os.path.sep)[0])
             )
 
         if os.path.isdir(path):
             shutil.rmtree(path)
         elif os.path.isfile(path):
             os.remove(path)
-        
+
     def _translate_file_to_lmv(self, item, thumbnail_path=None):
         """
         Translate the current Alias file as an LMV package in order to upload it to ShotGrid as a 3D Version
