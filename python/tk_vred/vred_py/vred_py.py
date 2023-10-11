@@ -92,7 +92,9 @@ class VREDPy:
                 patched_attr = None
 
             if patched_attr is None:
-                raise self.VREDPyNotSupportedError(
+                # hasattr call this method and expects AttributeError to be raised when the
+                # attribute is not found.
+                raise AttributeError(
                     f"This VRED version does not support the API attribute: {name}"
                 )
 
