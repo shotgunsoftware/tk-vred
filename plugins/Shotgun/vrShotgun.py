@@ -1,6 +1,10 @@
 import os
 
-from PySide2 import QtCore, QtGui
+try:
+    from PySide2 import QtCore, QtGui
+except ModuleNotFoundError:
+    from PySide6 import QtCore, QtGui
+
 import uiTools
 
 import sgtk
