@@ -183,6 +183,18 @@ class UploadVersionPlugin(HookBaseClass):
             self.logger.error("Could not run LMV translation: missing ATF framework")
             return False
 
+        translator = framework_lmv.import_module("translator")
+        lmv_translator = translator.LMVTranslator(path, self.parent.sgtk, item.context)
+        lmv_translator_path = lmv_translator.get_translator_path()
+        if not lmv_translator_path:
+            self.logger.error(
+                "Missing translator for VRED. VRED must be installed locally to run LMV translation."
+            )
+            return False
+
+        # Store the translator in the item properties so it can be used later
+        item.properties["lmv_translator"] = lmv_translator
+
         return True
 
     def publish(self, settings, item):
