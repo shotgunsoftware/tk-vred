@@ -29,10 +29,16 @@ class VREDEngine(sgtk.platform.Engine):
         self._tabbed_dock_widgets = {}
         self._vredpy = None
 
-        self.vred_execpath = os.getenv("TK_VRED_EXECPATH", None)
-        self.vred_bindir = os.path.dirname(self.vred_execpath)
+        self.__vred_execpath = os.getenv("TK_VRED_EXECPATH", None)
 
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
+
+    # -------------------------------------------------------------------------------------------------------
+    # Properties
+    # -------------------------------------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------------------------------------
+    # Base Engine properties
 
     @property
     def has_ui(self):
@@ -52,6 +58,9 @@ class VREDEngine(sgtk.platform.Engine):
         else:
             return False
 
+    # -------------------------------------------------------------------------------------------------------
+    # VRED Engine properties
+
     @property
     def vredpy(self):
         """Return the VRED Python API helper module."""
@@ -60,6 +69,15 @@ class VREDEngine(sgtk.platform.Engine):
             if self._tk_vred:
                 self._vredpy = self._tk_vred.VREDPy()
         return self._vredpy
+
+    @property
+    def executable_path(self):
+        """Get the path to the currently running VRED executable."""
+        return self.__vred_execpath
+    
+    # -------------------------------------------------------------------------------------------------------
+    # Override base Engine class methods
+    # -------------------------------------------------------------------------------------------------------
 
     def post_context_change(self, old_context, new_context):
         """
