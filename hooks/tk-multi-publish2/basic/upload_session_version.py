@@ -564,12 +564,7 @@ class UploadVersionPlugin(HookBaseClass):
             - The path to the temporary folder where the LMV files have been processed
         """
 
-        framework_lmv = self.load_framework("tk-framework-lmv_v0.x.x")
-        translator = framework_lmv.import_module("translator")
-
-        # translate the file to lmv
-        lmv_translator = translator.LMVTranslator(item.properties.path)
-        self.logger.info("Converting file to LMV")
+        lmv_translator = item.properties["lmv_translator"]
         lmv_translator.translate()
 
         # if the user hasn't taken a screenshot of the current VRED scene, use the API to take one
