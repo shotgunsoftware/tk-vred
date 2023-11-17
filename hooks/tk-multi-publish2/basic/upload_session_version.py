@@ -149,6 +149,11 @@ class UploadVersionPlugin(HookBaseClass):
         :returns: True if item is valid, False otherwise.
         """
 
+        path = item.get_property("path")
+        if not path:
+            self.logger.error("No path found for item")
+            return False
+
         # Validate fails if the Version Type is not supported
         version_type = settings.get("Version Type").value
         if version_type not in self.VERSION_TYPE_OPTIONS:
