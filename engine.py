@@ -29,6 +29,9 @@ class VREDEngine(sgtk.platform.Engine):
         self._tabbed_dock_widgets = {}
         self._vredpy = None
 
+        self.vred_execpath = os.getenv("TK_VRED_EXECPATH", None)
+        self.vred_bindir = os.path.dirname(self.vred_execpath)
+
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
 
     @property
