@@ -74,7 +74,7 @@ class VREDEngine(sgtk.platform.Engine):
     def executable_path(self):
         """Get the path to the currently running VRED executable."""
         return self.__vred_execpath
-    
+
     # -------------------------------------------------------------------------------------------------------
     # Override base Engine class methods
     # -------------------------------------------------------------------------------------------------------

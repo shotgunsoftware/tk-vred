@@ -266,7 +266,9 @@ class UploadVersionPlugin(HookBaseClass):
                     entity_id=version_id,
                     path=thumbnail_path,
                 )
-                self.logger.info(f"Uploaded Version thumbnail from path {thumbnail_path}")
+                self.logger.info(
+                    f"Uploaded Version thumbnail from path {thumbnail_path}"
+                )
 
             # Remove the temporary directory or files created to generate media content
             self._cleanup_temp_files(media_package_path)
@@ -593,7 +595,9 @@ class UploadVersionPlugin(HookBaseClass):
 
         # Package up the LMV files into a zip file
         file_name = str(item.properties["sg_version_data"]["id"])
-        package_path, lmv_thumbnail_path = lmv_translator.package(svf_file_name=file_name)
+        package_path, lmv_thumbnail_path = lmv_translator.package(
+            svf_file_name=file_name
+        )
 
         return package_path, lmv_thumbnail_path, lmv_translator.output_directory
 
