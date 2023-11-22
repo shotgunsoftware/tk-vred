@@ -18,8 +18,6 @@ class VREDPyMaterial(VREDPyBase):
 
     # Constants
     # ----------------------------------------------------------------------------------------
-    # The name of the Material group node to store ShotGrid materiasl
-    SHOTGRID_MATERIAL_GROUP_NAME = "ShotGrid Materials"
     # This is the prefix given to VRED Material Assets
     VRED_MATERIAL_ASSET_NAME_PREFIX = "MAT_"
 
@@ -301,48 +299,8 @@ class VREDPyMaterial(VREDPyBase):
     # ShotGrid material handling
     # ----------------------------------------------------------------------------------------
 
-    # def get_or_create_shotgrid_materials_group(self, create=True):
-    #     """Create a group in the VRED Material Editor to add materials specific to ShotGrid."""
-
-    #     group_node = self.vred_py.vrNodeService.findNode(
-    #         self.SHOTGRID_MATERIAL_GROUP_NAME,
-    #         root=self.vred_py.vrMaterialService.getMaterialRoot()
-    #     )
-
-    #     if not group_node.isValid() and create:
-    #         group_node = self.vred_py.vrMaterialService.createMaterialGroup()
-    #         group_node.setName(self.SHOTGRID_MATERIAL_GROUP_NAME)
-        
-    #     return group_node
-        
-    # def add_shotgrid_material(self, material):
-    #     """Convenience function to add a material node to the ShotGrid Material Group."""
-
-    #     self.add_shotgrid_materials([material])
-
-    # def add_shotgrid_materials(self, materials):
-    #     """Convenience function to add materials node to the ShotGrid Material Group."""
-
-    #     shotgrid_group = self.get_or_create_shotgrid_materials_group()
-    #     for material in materials:
-    #         material_node = self.find_material_node_by_material(material)
-    #         if not material_node:
-    #             raise self.vred_py.VREDPyError("Failed to find material node")
-    #         shotgrid_group.children.append(material_node)
-
-    # def add_shotgrid_materials_from_file(self, file_path):
-    #     """Load in the materials from the given file path and add them to the ShotGrid Mateial Group."""
-
-    #     materials = self.vred_py.vrMaterialService.loadMaterials([file_path])
-    #     self.add_shotgrid_materials(materials)
-
     def get_shotgrid_material_nodes(self):
         """Return the list of vrdMaterialNode objects under the ShotGrid Materials Group."""
-
-        # shotgrid_group = self.get_or_create_shotgrid_materials_group(create=False)
-        # if shotgrid_group:
-        #     return self.vred_py.vrMaterialService.getMaterialNodes(shotgrid_group)
-        # return []
 
         def __has_shotgrid_metadata(node):
             """Return True if the node holds the material, else False."""
