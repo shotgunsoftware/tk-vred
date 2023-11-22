@@ -8,7 +8,9 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk, Inc.
 
+import json
 import os
+
 import sgtk
 
 
@@ -135,6 +137,87 @@ class VredActions(HookBaseClass):
                 }
             )
 
+        if "import_metadata" in actions:
+            action_instances.append(
+                {
+                    "name": "import_metadata",
+                    "params": None,
+                    "caption": "Load Metadata",
+                    "description": "Load the metadata into VRED from the file.",
+                }
+            )
+
+        if "import_metadata_set" in actions:
+            action_instances.append(
+                {
+                    "name": "import_metadata_set",
+                    "params": None,
+                    "caption": "Apply Metadata Set",
+                    "description": "Load the Metdata Set into VRED from the file.",
+                }
+            )
+
+        if "import_material" in actions:
+            action_instances.append(
+                {
+                    "name": "import_material",
+                    "params": None,
+                    "caption": "Load Material",
+                    "description": "Load the material into VRED from the file.",
+                }
+            )
+
+        if "import_material_asset" in actions:
+            action_instances.append(
+                {
+                    "name": "import_material_asset",
+                    "params": None,
+                    "caption": "Load Material Asset",
+                    "description": "Load the VRED Material Asset.",
+                }
+            )
+
+        if "apply_to_nodes" in actions:
+            action_instances.append(
+                {
+                    "name": "apply_to_nodes",
+                    "params": None,
+                    "caption": "Apply to Selected Nodes",
+                    "description": "Apply the material to the selected nodes.",
+                }
+            )
+
+        if "apply_to_scene" in actions:
+            action_instances.append(
+                {
+                    "name": "apply_to_scene",
+                    "params": None,
+                    "caption": "Apply to Scene by Name",
+                    "description": "Apply the material to the scene by name.",
+                }
+            )
+
+        if "open_file_system" in actions:
+            action_instances.append(
+                {
+                    "name": "open_file_system",
+                    "params": None,
+                    "caption": "Open in Explorer",
+                    "description": "Show in the local file system.",
+                }
+            )
+        
+        # NOTE requires bulk operations
+        # if "export_to_library" in actions:
+        #     action_instances.append(
+        #         {
+        #             "name": "export_to_library",
+        #             "params": {"bulk_operation": True},
+        #             "caption": "Export to Material Library",
+        #             "description": "Create a Material Library with selected item or add to existing.",
+        #         }
+        #     )
+
         return action_instances
 
     def execute_action(self, name, params, sg_publish_data):
@@ -170,6 +253,24 @@ class VredActions(HookBaseClass):
         elif name == "import_sceneplate":
             image_path = self.get_publish_path(sg_publish_data)
             self.import_sceneplate(image_path)
+
+        elif name == "import_metadata":
+            self._import_metadata(path, sg_publish_data)
+
+        elif name == "import_metadata_set":
+            self._import_metadata_set(path, sg_publish_data)
+
+        # Material actions
+        elif name == "import_material":
+            self._import_material(path, sg_publish_data)
+        elif name == "import_material_asset":
+            self._import_material(path, sg_publish_data)
+        elif name == "apply_to_nodes":
+            self._apply_material_to_selected_nodes(path)
+        elif name == "apply_to_scene":
+            self._apply_material_to_scene_by_name(path)
+        elif name == "open_file_system":
+            self._open_in_explorer(path)
 
     def execute_multiple_actions(self, actions):
         """
@@ -269,3 +370,219 @@ class VredActions(HookBaseClass):
         """
 
         self.vredpy.vrGUIService.openImportDialog([path])
+
+    def _import_metadata(self, path, sg_publish_data=None):
+        """Import the VRED Metadata."""
+
+        if not hasattr(self.vredpy, "vrMetadataService"):
+            error_msg = "Failed to import VRED Metadata - the current running version of VRED does not support metadata."
+            self.logger.error(error_msg)
+            raise Exception(error_msg)
+
+        if not os.path.isfile(path):
+            error_msg = "Failed to import VRED Metadata - metadata file path invalid."
+            self.logger.error(error_msg)
+            raise Exception(error_msg)
+
+        with open(path, "r+") as fp:
+            metadata = json.load(fp)
+            for node_name, node_metadata in metadata.items():
+                node = self.vredpy.vrNodeService.findNode(node_name)
+                if not node:
+                    error_msg = f"Failed to import VRED Metadata - node '{node_name}' not found ."
+                    self.logger.error(error_msg)
+                    continue
+                metadata = self.vredpy.vrMetadataService.getMetadata(node)
+                object_set = metadata.getObjectSet()
+                for key, value in node_metadata.items():
+                    object_set.setValue(key, value)
+
+    def _import_metadata_set(self, path, sg_publish_data=None):
+        """Import the VRED Metadata Set."""
+
+        # TODO do not load if metadata set already exists
+
+        if not hasattr(self.vredpy, "vrMetadataService"):
+            error_msg = "Failed to import VRED Metadata Set - the current running version of VRED does not support metadata."
+            self.logger.error(error_msg)
+            raise Exception(error_msg)
+
+        if not os.path.isfile(path):
+            error_msg = "Failed to import VRED Metadata Set - metadata file path invalid."
+            self.logger.error(error_msg)
+            raise Exception(error_msg)
+        
+        metadata_set_name = sg_publish_data.get("name")
+        if not metadata_set_name:
+            error_msg = "Failed to import VRED Metadata Set - missing name."
+            self.logger.error(error_msg)
+            raise Exception(error_msg)
+
+        existing_sets = self.vredpy.vrMetadataService.findSets(metadata_set_name)
+        if existing_sets:
+            # TODO ask to delete first or not continue
+            self.vredpy.vrMetadataService.deleteSets(existing_sets)
+            # warning_msg = "Metadata Set already exists."
+            # self.logger.warning(warning_msg)
+            # raise Exception(warning_msg)
+
+        # TODO assign metadata set to objects
+        objects = [] 
+        metadata_set = self.vredpy.vrMetadataService.createSet(metadata_set_name, objects)
+
+        metadata = None
+        with open(path, "r+") as fp:
+            metadata = json.load(fp)
+
+        if not metadata:
+            warning_msg = "No metadata found."
+            self.logger.warning(warning_msg)
+            raise Exception(warning_msg)
+
+        # 
+        # FIXME clean this up
+        #
+
+        # Load all materials first
+        materials = metadata.get("SG_materials", [])
+        filters = []
+        entity_type = None
+        for material in materials:
+            material_data = json.loads(material)
+            project_data = material_data["project"]
+            entity_type = material_data["type"]
+            filters.append(
+                {
+                    "filter_operator": "and",
+                    "filters": [
+                        ["id", "is", material_data["id"]],
+                        ["project", "is", project_data],
+                    ],
+                }
+            )
+                    
+        if filters:
+            filter_value = [{
+                "filter_operator": "any",
+                "filters": filters,
+            }]
+            materials = self.parent.shotgun.find(
+                entity_type,
+                filter_value,
+                fields=["code", "path"],
+            )
+            for material_publish_data in materials:
+                path = self.get_publish_path(material_publish_data)
+                self._import_material(path, material_publish_data)
+
+        # Load metadata sets and apply metadata to nodes
+        for set_key, set_value in metadata.items():
+            metadata_set.setValue(set_key, set_value)
+            node = self.vredpy.vrNodeService.findNode(set_key)
+            if node and node.isValid():
+                metadata = self.vredpy.vrMetadataService.getMetadata(node)
+                object_set = metadata.getObjectSet()
+                values = json.loads(set_value)
+                for key, value in values.items():
+                    object_set.setValue(key, value)
+                    # TODO apply the metadata to the node, e.g. apply material, texture, color, etc...
+                    if key == "material":
+                        if isinstance(value, dict):
+                            material = self.vredpy.find_material_by_metadata(value)
+                        else:
+                            material = self.vredpy.vrMaterialService.findMaterial(value)
+                        if material:
+                            node.applyMaterial(material)
+
+    def _import_material(self, path, sg_publish_data=None):
+        """Import the VRED Material."""
+
+        # TODO check if already imported/loaded
+
+        # First try to import the material as a VRED Material Asset
+        material = self._import_material_asset(path)
+
+        if material and material.isValid():
+            # Convert v1 vrMaterialPtr to v2 vrdMaterial
+            material_v2 = self.vredpy.get_material_v2(material)
+            materials = [material_v2]
+        else:
+            # NOTE this is a reason to use material assets - guarantees one material per asset/file
+            # Import materials from file path
+            if not os.path.isfile(path):
+                return
+            materials = self.vredpy.vrMaterialService.loadMaterials([path])
+
+        # Create metadata for material (for Scene Breakdown2 referencing), if data given
+        if sg_publish_data:
+            self.vredpy.add_metadata_to_materials(materials, sg_publish_data)
+
+        return materials
+
+    def _import_material_asset(self, path):
+        """Load the VRED Material Asset."""
+
+        if not path:
+            return
+
+        name = self.vredpy.get_material_asset_name_from_path(path)
+        return self.vredpy.vrAssetsModule.loadMaterialAssetByName(name, path)
+
+    def _apply_material_to_selected_nodes(self, path):
+        """ """
+
+        # TODO move to vrepdy
+
+        nodes = self.vredpy.vrScenegraphService.getSelectedNodes()
+        if not nodes:
+            return
+
+        materials = self._import_material(path)
+        if not materials:
+            return
+
+        material = materials[0]
+        self.vredpy.vrMaterialService.applyMaterialToNodes(material, nodes)
+
+    def _apply_material_to_scene_by_name(self, path):
+        """ """
+
+        # TODO move to vrepdy
+
+        # Update nodes to use the new material
+        materials = self._import_material(path)
+        materials_to_remove = []
+        for material in materials:
+            existing_materials = self.vredpy.vrMaterialService.findMaterials(
+                material.getName()
+            )
+            if not existing_materials:
+                continue
+            for existing_material in existing_materials:
+                nodes = self.vredpy.vrMaterialService.findNodesWithMaterial(
+                    existing_material
+                )
+                if not nodes:
+                    continue
+                self.vredpy.vrMaterialService.applyMaterialToNodes(material, nodes)
+            materials_to_remove.extend(existing_materials)
+
+        # Remove the old materials
+        self.vredpy.vrMaterialService.deleteMaterials(materials_to_remove)
+
+    def _open_in_explorer(self, path):
+        """ """
+
+        # Taken from workfiles
+        if not sgtk.util.is_windows():
+            return
+
+        if os.path.isfile(path):
+            path = os.path.dirname(path)
+        cmd = 'cmd.exe /C start "Folder" "%s"' % path
+
+        exit_code = os.system(cmd)
+        if exit_code != 0:
+            # Log error
+            pass
+    
