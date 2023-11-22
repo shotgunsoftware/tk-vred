@@ -11,3 +11,4 @@
 from .menu_generation import VREDMenuGenerator
 from .dock_widget import DockWidget
 from .vred_py import VREDPy
+# from .export_to_library_widget import ExportToLibraryWidget
