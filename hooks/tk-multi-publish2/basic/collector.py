@@ -71,6 +71,19 @@ class VREDSessionCollector(HookBaseClass):
 
         return collector_settings
 
+    @staticmethod
+    def context_has_material_entity(context):
+        """Return True if the item has a material context."""
+
+        if not context:
+            return False
+
+        entity = context.entity
+        if not entity:
+            return False
+
+        return entity.get("type") == "CustomNonProjectEntity01"
+
     def process_current_session(self, settings, parent_item):
         """
         Analyzes the current scene open in a DCC and parents a subtree of items
@@ -81,6 +94,10 @@ class VREDSessionCollector(HookBaseClass):
         """
         # create an item representing the current VRED session
         item = self.collect_current_vred_session(settings, parent_item)
+
+        # Collect the materail items for Material context
+        # if self.context_has_material_entity(item.context):
+        self.collect_materials(item)
 
         # look at the render folder to find rendered images on disk
         self.collect_rendered_images(item)
@@ -96,6 +113,7 @@ class VREDSessionCollector(HookBaseClass):
         """
 
         publisher = self.parent
+        vredpy = publisher.engine.vredpy
 
         # store the Batch Processing settings in the root item properties
         bg_processing = settings.get("Background Processing")
@@ -137,6 +155,27 @@ class VREDSessionCollector(HookBaseClass):
             session_item.properties["work_template"] = work_template
             self.logger.debug("Work template defined for VRED collection.")
 
+        # TODO do the same for the object metadata / publish_metadata plugin
+        # Find metadata sets
+        asset_name = session_item.context.entity.get("name")
+        all_metadata_sets = vredpy.vrMetadataService.getAllSets()
+        metadata_sets = []
+        for metadata_set in all_metadata_sets:
+            parent_asset = metadata_set.getValue("SG_parent_asset")
+            if parent_asset == asset_name:
+                metadata_sets.append(metadata_set)
+        if metadata_sets:
+            metadata_set_group_item = session_item.create_item(
+                "vred.session.metadata_set", "Metadata Sets", asset_name,
+            )
+            for metadata_set in metadata_sets:
+                metadata_set_item = metadata_set_group_item.create_item(
+                    "vred.session.metadata_set.item", "Metadata Set", metadata_set.getName(),
+                )
+                metadata_set_item.properties["metadata_set"] = metadata_set
+                # NOTE do we need this?
+                metadata_set_item.properties["path"] = path
+            
         self.logger.info("Collected current VRED scene")
 
         # Need to store the path on properties to backward compatibility
@@ -227,3 +266,49 @@ class VREDSessionCollector(HookBaseClass):
 
             if rd["render_pass"]:
                 item.name = "%s (Render Pass: %s)" % (item.name, rd["render_pass"])
+
+    def collect_materials(self, session_item):
+        """
+        Creates an item that represents the current VRED session materials.
+
+        :param settings: Configured settings for this collector
+        :type settings: dict
+        :param parent_item: The VRED session item instance
+        :type parent_item: :class:`PublishItem`
+
+        :returns: Item of type vred.session.material
+        """
+
+        # TODO bg publishing
+
+        publisher = self.parent
+        vredpy = publisher.engine.vredpy
+
+        material_nodes = vredpy.get_shotgrid_material_nodes()
+        if not material_nodes:
+            return None
+
+        # Get info from the VRED session item
+        path = session_item.properties["path"]
+        work_template = session_item.properties["work_template"]
+
+        # Create the material group item
+        material_group_item = session_item.create_item(
+            "vred.session.material", "VRED", "Materials"
+        )
+        material_icon_path = os.path.join(self.disk_location, os.pardir, "icons", "material.png")
+        material_group_item.set_icon_from_path(material_icon_path)
+
+        # Create the material items (under the group)
+        for material_node in material_nodes:
+            material = material_node.getMaterial()
+            material_name = material.getName()
+            material_node_item = material_group_item.create_item(
+                "vred.session.material.item", "VRED Material", material_name
+            )
+            material_node_item.properties["material_node"] = material_node
+            material_node_item.properties["path"] = path
+            material_node_item.properties["work_template"] = work_template
+            material_node_item.set_icon_from_path(material_icon_path)
+
+        return material_group_item
