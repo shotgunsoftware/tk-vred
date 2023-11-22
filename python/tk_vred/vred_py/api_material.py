@@ -8,19 +8,170 @@
 # agreement to the ShotGrid Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk.
 
+import os
+
 from .base import VREDPyBase
 
 
 class VREDPyMaterial(VREDPyBase):
     """VRED Python API material helper class."""
 
+    # Constants
+    # ----------------------------------------------------------------------------------------
+    # The name of the Material group node to store ShotGrid materiasl
+    SHOTGRID_MATERIAL_GROUP_NAME = "ShotGrid Materials"
+    # This is the prefix given to VRED Material Assets
+    VRED_MATERIAL_ASSET_NAME_PREFIX = "MAT_"
+
+
     def __init__(self, vred_py):
         """Initialize"""
         super(VREDPyMaterial, self).__init__(vred_py)
 
+
+    # Material v1 and v2 handling
+    # ----------------------------------------------------------------------------------------
+
+    def get_material_v2(self, material_v1):
+        """
+        Convert the v1 material object to a v2 material object.
+
+        :param material_v1: The v1 material object.
+        :type material_v1: vrMaterialPtr
+
+        :return: The v2 material object.
+        :rtype: vrdMaterial
+        """
+
+        material_id = material_v1.getID()
+        return self.vred_py.vrMaterialService.getMaterialFromId(material_id)
+
+    def get_material_v1(self, material_v2):
+        """
+        Convert the v1 material object to a v2 material object.
+
+        :param material_v1: The v1 material object.
+        :type material_v1: vrMaterialPtr
+
+        :return: The v2 material object.
+        :rtype: vrdMaterial
+        """
+
+        raise NotImplementedError()
+
+    # General Material methods
+    # ----------------------------------------------------------------------------------------
+
+    def delete_material(self, material):
+        """
+        Convenience method to delete a signle materials and clean up associated ShotGrid data.
+        """
+
+        self.delete_materials([material])
+
+    def delete_materials(self, materials):
+        """
+        Convenience method to delete the materials and clean up associated ShotGrid data.
+        """
+
+        self.vred_py.remove_shotgrid_metadata(materials)
+        self.vred_py.vrMaterialService.deleteMaterials(materials)
+
+    # Retrieving & Searching Materials and Material Nodes
+    # ----------------------------------------------------------------------------------------
+
+    def find_material_by_metadata(self, metadata):
+        """
+        Find and return the material that matches the given metadata.
+
+        This find method searches by material nodes, since the VRED API is limited to searching
+        for materials by name.
+
+        :param metadata: A list of tuples defining the metadata to search for the material by.
+            The tuples contain (1) the metadata key (2) the metadata value.
+        :type metadata: List[Tuple[key,value]]
+
+        :return: The material matching the metadata.
+        :rtype: vrdMaterial
+        """
+
+        def __compare_metadata(m1, m2):
+            """Return True if the metadata are equal."""
+            for m1_key, m1_value in m1.items():
+                if isinstance(m2, dict):
+                    m2_value = m2.get(m1_key)
+                else:
+                    m2_value = self.vred_py.get_metadata_value(m2, m1_key)
+
+                if isinstance(m1_value, dict):
+                    # Traverse nested metadata dictionaries to get to values to compare
+                    if not __compare_metadata(m1_value, m2_value):
+                        return False
+                else:
+                    # Compare the values
+                    if not m1_value == m2_value:
+                        return False
+            return True
+
+        def __has_metadata(node, metadata):
+            """Return True if the node holds the material, else False."""
+            if not node.isType(self.vred_py.vrdMaterialNode):
+                return False
+            material = node.getMaterial()
+            if not material:
+                return False
+            if not self.vred_py.vrMetadataService.hasMetadata(material):
+                return False
+
+            material_metadata = self.vred_py.vrMetadataService.getMetadata(material)
+            if not __compare_metadata(metadata, material_metadata):
+                return False
+
+            return True  # Material metadata matched
+
+
+        material_nodes = self.vred_py.vrNodeService.findNodes(
+            lambda n, m=metadata: __has_metadata(n, m),
+            root=self.vred_py.vrMaterialService.getMaterialRoot(),
+        )
+        if not material_nodes:
+            return None
+        if len(material_nodes) > 1:
+            print("Found more than one material node-----------------------------")
+            # raise Exception("Found more than one material node")
+        return material_nodes[0].getMaterial()
+
+    def find_material_node_by_material(self, material):
+        """
+        Find and return the material node that holds the material.
+
+        This method is more robust that using the VRED API findMaterialNode function, since
+        findMaterialNode will search for the node based on the material name. This means that
+        if there are multipl materials with the same name, this could return the incorrect
+        node.
+        """
+
+        def __has_material(node, material):
+            """Return True if the node holds the material, else False."""
+            if not node.isType(self.vred_py.vrdMaterialNode):
+                return False
+            node_material = node.getMaterial()
+            if not node_material:
+                return False
+            return node_material.getObjectId() == material.getObjectId()
+
+        return self.vred_py.vrNodeService.findNodes(
+            lambda n, m=material: __has_material(n, m),
+            root=self.vred_py.vrMaterialService.getMaterialRoot(),
+        )
+
+    # Data Validation methods
+
     def get_materials(self, items):
         """
         Return a list of material objects.
+
+        NOTE: this method could be improved with latest VRED API capabilitie
 
         :param items: The list of items to convert to materials. This list may contain
             material names (str), ids (int), or objects (vrdMaterial).
@@ -64,6 +215,8 @@ class VREDPyMaterial(VREDPyBase):
     def find_materials(self, using_orange_peel=None, using_texture=None):
         """
         Return a list of materials matching the given parameters.
+
+        NOTE: this method could be improved with latest VRED API capabilities
 
         :param using_orange_peel:
             True  - return materials that have the clearcoat property and have set to use
@@ -130,3 +283,78 @@ class VREDPyMaterial(VREDPyBase):
             result.append(mat)
 
         return result
+
+    # VRED Material Asset handling
+    # ----------------------------------------------------------------------------------------
+
+    def get_material_asset_name_from_path(self, path):
+        """
+        Return the based VRED Material Asset name from the file path.
+        """
+
+        prefix_len = len(self.VRED_MATERIAL_ASSET_NAME_PREFIX)
+        full_name = os.path.basename(path)[prefix_len:]
+        base_name, _ = os.path.splitext(full_name)
+        return base_name
+
+
+    # ShotGrid material handling
+    # ----------------------------------------------------------------------------------------
+
+    # def get_or_create_shotgrid_materials_group(self, create=True):
+    #     """Create a group in the VRED Material Editor to add materials specific to ShotGrid."""
+
+    #     group_node = self.vred_py.vrNodeService.findNode(
+    #         self.SHOTGRID_MATERIAL_GROUP_NAME,
+    #         root=self.vred_py.vrMaterialService.getMaterialRoot()
+    #     )
+
+    #     if not group_node.isValid() and create:
+    #         group_node = self.vred_py.vrMaterialService.createMaterialGroup()
+    #         group_node.setName(self.SHOTGRID_MATERIAL_GROUP_NAME)
+        
+    #     return group_node
+        
+    # def add_shotgrid_material(self, material):
+    #     """Convenience function to add a material node to the ShotGrid Material Group."""
+
+    #     self.add_shotgrid_materials([material])
+
+    # def add_shotgrid_materials(self, materials):
+    #     """Convenience function to add materials node to the ShotGrid Material Group."""
+
+    #     shotgrid_group = self.get_or_create_shotgrid_materials_group()
+    #     for material in materials:
+    #         material_node = self.find_material_node_by_material(material)
+    #         if not material_node:
+    #             raise self.vred_py.VREDPyError("Failed to find material node")
+    #         shotgrid_group.children.append(material_node)
+
+    # def add_shotgrid_materials_from_file(self, file_path):
+    #     """Load in the materials from the given file path and add them to the ShotGrid Mateial Group."""
+
+    #     materials = self.vred_py.vrMaterialService.loadMaterials([file_path])
+    #     self.add_shotgrid_materials(materials)
+
+    def get_shotgrid_material_nodes(self):
+        """Return the list of vrdMaterialNode objects under the ShotGrid Materials Group."""
+
+        # shotgrid_group = self.get_or_create_shotgrid_materials_group(create=False)
+        # if shotgrid_group:
+        #     return self.vred_py.vrMaterialService.getMaterialNodes(shotgrid_group)
+        # return []
+
+        def __has_shotgrid_metadata(node):
+            """Return True if the node holds the material, else False."""
+            if not node.isType(self.vred_py.vrdMaterialNode):
+                return False
+            material = node.getMaterial()
+            if not material:
+                return False
+            return self.vred_py.has_shotgrid_metadata(material)  
+
+        material_nodes = self.vred_py.vrNodeService.findNodes(
+            lambda n: __has_shotgrid_metadata(n),
+            root=self.vred_py.vrMaterialService.getMaterialRoot(),
+        )
+        return material_nodes

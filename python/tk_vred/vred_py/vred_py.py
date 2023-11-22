@@ -17,6 +17,7 @@ import types
 from . import (
     api_animation,
     api_material,
+    api_metadata,
     api_node,
     api_settings,
     api_utils,
@@ -92,7 +93,8 @@ class VREDPy:
                 patched_attr = None
 
             if patched_attr is None:
-                raise self.VREDPyNotSupportedError(
+                # Must raise AttributeError specically for hasattr
+                raise AttributeError(
                     f"This VRED version does not support the API attribute: {name}"
                 )
 
@@ -156,6 +158,7 @@ class VREDPy:
         api_modules = [
             api_animation.VREDPyAnimation(self),
             api_material.VREDPyMaterial(self),
+            api_metadata.VREDPyMetadata(self),
             api_node.VREDPyNode(self),
             api_settings.VREDPySetting(self),
             api_utils.VREDPyUtils(self),

@@ -11,6 +11,7 @@
 from .vred_py import VREDPy
 from . import api_animation
 from . import api_material
+from . import api_metadata
 from . import api_node
 from . import api_settings
 from . import api_utils
