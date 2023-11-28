@@ -10,9 +10,10 @@
 
 import os
 import pprint
-import json
+from pathlib import Path
 
 import sgtk
+from sgtk import TankError
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
@@ -140,7 +141,6 @@ class VREDMaterialFilePublishPlugin(HookBaseClass):
             # Session specific validation
             path = item.properties.get("path")
             if not path:
-                path = item.properties.get("path")
                 # The session still requires saving. provide a save button.
                 error_msg = "The VRED session has not been saved."
                 self.logger.error(error_msg, extra=self._get_save_as_action(item))
@@ -164,7 +164,20 @@ class VREDMaterialFilePublishPlugin(HookBaseClass):
             self.logger.error(error_msg)
             raise Exception(error_msg)
 
+        material_context = self._get_material_context(item)
+        if not material_context:
+            error_msg = "Failed to get ShotGrid context from Material VRED metadata."
+            self.logger.error(error_msg)
+            raise Exception(error_msg)
+        # Store the context to use later
+        item.properties["material_context"] = material_context
+
         publish_path = self.get_publish_path(settings, item)
+        if not publish_path:
+            error_msg = "Failed to get publish path."
+            self.logger.error(error_msg)
+            raise Exception(error_msg)
+
         publish_file_path = self._get_vred_save_material_path(item, publish_path)
         if os.path.exists(publish_file_path):
             error_msg = (
@@ -236,11 +249,12 @@ class VREDMaterialFilePublishPlugin(HookBaseClass):
             raise Exception(error_msg)
 
         version_data = {"id": publish_version["id"], "type": publish_version["type"]} if publish_version else None
+        material_context = item.properties["material_context"]
 
         self.logger.info("Registering publish...")
         publish_data = {
             "tk": publisher.sgtk,
-            "context": item.context,
+            "context": material_context,
             "comment": item.description,
             "path": publish_file_path,
             "name": publish_name,
@@ -416,6 +430,33 @@ class VREDMaterialFilePublishPlugin(HookBaseClass):
         metadata = self.vredpy.vrMetadataService.getMetadata(material)
         return self.vredpy.get_metadata_value(metadata, "name")
 
+    def get_publish_path(self, settings, item):
+        """
+        Get a publish path for the supplied settings and item.
+
+        :param settings: This plugin instance's configured settings
+        :param item: The item to determine the publish path for
+
+        :return: A string representing the output path to supply when
+            registering a publish for the supplied item
+
+        Extracts the publish path via the configured work and publish templates
+        if possible.
+        """
+
+        publish_path = super(VREDMaterialFilePublishPlugin, self).get_publish_path(settings, item)
+        if publish_path:
+            return publish_path
+
+
+        # Failed to get publish path from the item context. Create a new context from the item
+        # metadata and try again. 
+        material_context = item.get_property("material_context")
+        if not material_context:
+            material_context = self._get_material_context(item)
+            item.properties["material_context"] = material_context
+
+        return super(VREDMaterialFilePublishPlugin, self).get_publish_path(settings, item, context=material_context)
 
     ############################################################################
     # Helper methods
@@ -550,25 +591,30 @@ class VREDMaterialFilePublishPlugin(HookBaseClass):
         """
 
         # TODO add version tag to asset
-
         # NOTE this requires VRED to have the material assets directory to point to ShotGrid storage
+
+        def __create_material_asset(material_ptr, path):
+            if not os.path.exists(path):
+                os.makedirs(path)
+            self.vredpy.vrAssetsModule.reloadAssetDirectory(os.path.dirname(path))
+            success = self.vredpy.vrAssetsModule.createMaterialAsset(material_ptr, path)
+            if not success:
+                # Try one more time by reloading all directories
+                self.vredpy.vrAssetsModule.reloadAllAssetDirectories()
+                success = self.vredpy.vrAssetsModule.createMaterialAsset(material_ptr, path)
+            return success
+
 
         publish_path = os.path.dirname(publish_data.get("path"))
 
-        # Ensure the Asset Manager knows about the directory
-        publish_asset_dir = publish_path.replace(os.sep, "/")
-        if not os.path.exists(publish_asset_dir):
-            os.makedirs(publish_asset_dir)
-
-        self.vredpy.vrAssetsModule.reloadAssetDirectory(
-            os.path.dirname(publish_asset_dir)
-        )
-
-        success = self.vredpy.vrAssetsModule.createMaterialAsset(material_ptr, publish_asset_dir)
+        # First try to resolve publish path such that it can be passed to create the VRED Material Asset
+        material_asset_path = str(Path(publish_path).resolve())
+        success = __create_material_asset(material_ptr, material_asset_path)
         if not success:
-            # Try one more time by reloading all directories
-            self.vredpy.vrAssetsModule.reloadAllAssetDirectories()
-            success = self.vredpy.vrAssetsModule.createMaterialAsset(material_ptr, publish_asset_dir)
+            # Ensure the Asset Manager knows about the directory
+            material_asset_path = publish_path.replace(os.sep, "/")
+            material_asset_path = material_asset_path[0].capitalize() + material_asset_path[1:]
+            success = __create_material_asset(material_ptr, material_asset_path)
 
         if success:
             # Modify publish data for the VRED Material Asset
@@ -582,3 +628,32 @@ class VREDMaterialFilePublishPlugin(HookBaseClass):
             item.properties["sg_publish_vred_material_asset_data"] = vred_material_asset_data
         
         return success
+
+    def _get_material_context(self, item):
+        """Get the ShotGrid context from the VRED Material metadata."""
+
+        material_node = item.get_property("material_node")
+        material = material_node.getMaterial()
+        metadata = self.vredpy.vrMetadataService.getMetadata(material)
+
+        project = self.vredpy.get_metadata_value(metadata, "project")
+        entity = self.vredpy.get_metadata_value(metadata, "entity")
+        task = self.vredpy.get_metadata_value(metadata, "task")
+        step = task.get("step") or self.vredpy.get_metadata_value(metadata, "step")
+        if not step:
+            step = self.parent.shotgun.find_one(
+                "Task",
+                filters=[["id", "is", task["id"]]],
+                fields=["step"],
+            )["step"]
+
+        return sgtk.Context(
+            item.context.sgtk,
+            project=project,
+            entity=entity,
+            step=step,
+            task=task,
+            user=item.context.user,
+            additional_entities=item.context.additional_entities,
+            source_entity=entity,
+        )
