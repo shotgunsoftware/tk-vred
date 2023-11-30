@@ -10,10 +10,11 @@
 
 import os
 import re
+import tempfile
 
 import sgtk
+from sgtk.platform.qt import QtGui
 
-import vrFileIO
 import vrRenderSettings
 
 HookBaseClass = sgtk.get_hook_baseclass()
@@ -71,18 +72,10 @@ class VREDSessionCollector(HookBaseClass):
 
         return collector_settings
 
-    @staticmethod
-    def context_has_material_entity(context):
-        """Return True if the item has a material context."""
-
-        if not context:
-            return False
-
-        entity = context.entity
-        if not entity:
-            return False
-
-        return entity.get("type") == "CustomNonProjectEntity01"
+    @property
+    def vredpy(self):
+        """Get the VRED api module."""
+        return self.parent.engine.vredpy
 
     def process_current_session(self, settings, parent_item):
         """
@@ -96,7 +89,6 @@ class VREDSessionCollector(HookBaseClass):
         item = self.collect_current_vred_session(settings, parent_item)
 
         # Collect the materail items for Material context
-        # if self.context_has_material_entity(item.context):
         self.collect_materials(item)
 
         # look at the render folder to find rendered images on disk
@@ -121,7 +113,7 @@ class VREDSessionCollector(HookBaseClass):
             parent_item.properties["bg_processing"] = bg_processing.value
 
         # get the path to the current file
-        path = vrFileIO.getFileIOFilePath()
+        path = self.vredpy.vrFileIO.getFileIOFilePath()
 
         # determine the display name for the item
         if path:
@@ -182,6 +174,9 @@ class VREDSessionCollector(HookBaseClass):
         # TODO: clean LMV plugin to remove the path query
         session_item.properties["path"] = path
 
+        # Set a default thumbnail as the current VRED viewport
+        session_item.thumbnail = self._get_thumbnail_pixmap()
+
         return session_item
 
     def collect_rendered_images(self, parent_item):
@@ -193,7 +188,7 @@ class VREDSessionCollector(HookBaseClass):
         :return:
         """
 
-        render_path = vrRenderSettings.getRenderFilename()
+        render_path = self.vredpy.vrRenderSettings.getRenderFilename()
         render_folder = os.path.dirname(render_path)
 
         if not os.path.isdir(render_folder):
@@ -312,3 +307,31 @@ class VREDSessionCollector(HookBaseClass):
             material_node_item.set_icon_from_path(material_icon_path)
 
         return material_group_item
+    def _get_thumbnail_pixmap(self):
+        """
+        Generate a thumbnail from the current VRED viewport.
+
+        :return: A thumbnail of the current VRED viewport.
+        :rtype: QtGui.QPixmap
+        """
+
+        pixmap = None
+        thumbnail_path = None
+
+        try:
+            thumbnail_path = tempfile.NamedTemporaryFile(
+                suffix=".jpg", prefix="sgtk_thumb", delete=False
+            ).name
+            self.vredpy.vrMovieExport.createSnapshotFastInit(800, 600)
+            self.vredpy.vrMovieExport.createSnapshotFast(thumbnail_path)
+            self.vredpy.vrMovieExport.createSnapshotFastTerminate()
+            pixmap = QtGui.QPixmap(thumbnail_path)
+        except Exception as e:
+            self.logger.error(f"Failed to set default thumbnail: {e}")
+        finally:
+            try:
+                os.remove(thumbnail_path)
+            except:
+                pass
+
+        return pixmap
