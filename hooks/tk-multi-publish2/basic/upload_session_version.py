@@ -192,9 +192,6 @@ class UploadVersionPlugin(HookBaseClass):
             )
             return False
 
-        # Store the translator in the item properties so it can be used later
-        item.properties["lmv_translator"] = lmv_translator
-
         return True
 
     def publish(self, settings, item):
@@ -590,7 +587,12 @@ class UploadVersionPlugin(HookBaseClass):
             - The path to the temporary folder where the LMV files have been processed
         """
 
-        lmv_translator = item.properties["lmv_translator"]
+        path = item.get_property("path")
+
+        # Translate file to LMV
+        framework_lmv = self.load_framework("tk-framework-lmv_v0.x.x")
+        translator = framework_lmv.import_module("translator")
+        lmv_translator = translator.LMVTranslator(path, self.parent.sgtk, item.context)
         lmv_translator.translate()
 
         # Package up the LMV files into a zip file
