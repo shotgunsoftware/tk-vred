@@ -10,10 +10,11 @@
 
 import os
 import re
+import tempfile
 
 import sgtk
+from sgtk.platform.qt import QtGui
 
-import vrFileIO
 import vrRenderSettings
 
 HookBaseClass = sgtk.get_hook_baseclass()
@@ -71,6 +72,11 @@ class VREDSessionCollector(HookBaseClass):
 
         return collector_settings
 
+    @property
+    def vredpy(self):
+        """Get the VRED api module."""
+        return self.parent.engine.vredpy
+
     def process_current_session(self, settings, parent_item):
         """
         Analyzes the current scene open in a DCC and parents a subtree of items
@@ -103,7 +109,7 @@ class VREDSessionCollector(HookBaseClass):
             parent_item.properties["bg_processing"] = bg_processing.value
 
         # get the path to the current file
-        path = vrFileIO.getFileIOFilePath()
+        path = self.vredpy.vrFileIO.getFileIOFilePath()
 
         # determine the display name for the item
         if path:
@@ -143,6 +149,9 @@ class VREDSessionCollector(HookBaseClass):
         # TODO: clean LMV plugin to remove the path query
         session_item.properties["path"] = path
 
+        # Set a default thumbnail as the current VRED viewport
+        session_item.thumbnail = self._get_thumbnail_pixmap()
+
         return session_item
 
     def collect_rendered_images(self, parent_item):
@@ -154,7 +163,7 @@ class VREDSessionCollector(HookBaseClass):
         :return:
         """
 
-        render_path = vrRenderSettings.getRenderFilename()
+        render_path = self.vredpy.vrRenderSettings.getRenderFilename()
         render_folder = os.path.dirname(render_path)
 
         if not os.path.isdir(render_folder):
@@ -227,3 +236,32 @@ class VREDSessionCollector(HookBaseClass):
 
             if rd["render_pass"]:
                 item.name = "%s (Render Pass: %s)" % (item.name, rd["render_pass"])
+
+    def _get_thumbnail_pixmap(self):
+        """
+        Generate a thumbnail from the current VRED viewport.
+
+        :return: A thumbnail of the current VRED viewport.
+        :rtype: QtGui.QPixmap
+        """
+
+        pixmap = None
+        thumbnail_path = None
+
+        try:
+            thumbnail_path = tempfile.NamedTemporaryFile(
+                suffix=".jpg", prefix="sgtk_thumb", delete=False
+            ).name
+            self.vredpy.vrMovieExport.createSnapshotFastInit(800, 600)
+            self.vredpy.vrMovieExport.createSnapshotFast(thumbnail_path)
+            self.vredpy.vrMovieExport.createSnapshotFastTerminate()
+            pixmap = QtGui.QPixmap(thumbnail_path)
+        except Exception as e:
+            self.logger.error(f"Failed to set default thumbnail: {e}")
+        finally:
+            try:
+                os.remove(thumbnail_path)
+            except:
+                pass
+
+        return pixmap
