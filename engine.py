@@ -31,7 +31,127 @@ class VREDEngine(sgtk.platform.Engine):
 
         self.__vred_execpath = os.getenv("TK_VRED_EXECPATH", None)
 
+        # FIXME temp hack
+        self.__header_fields = ["id", "type", "project", "content", "entity", "step"]
+
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
+
+    def get_homescreen_data(self):
+        """Return my tasks."""
+
+        filters = [
+            ["project", "is", self.context.project],
+            {
+                "filter_operator": "any",
+                "filters": [
+                    ["task_assignees", "is", self.context.user],
+                    ["task_assignees.Group.users", "is", self.context.user],
+                ],
+            }
+        ]
+
+        # TODO pass fields but hide them on C++ side instead
+        header_names = ["ID", "Type", "Project", "Name", "Entity", "Step"]
+        # header_fields = ["id", "type", "project", "content", "entity", "step"]
+        header_fields = self.__header_fields
+        fields = [
+            "image",
+            # "content",
+            # "entity",
+            # "step",
+        ]
+        fields.extend(header_fields)
+        tasks = self.shotgun.find("Task", filters, fields=fields)
+
+        # Replace dictionary values with a single displayable value
+        # FIXME think about this
+        processed_tasks = []
+        images = []
+        for task in tasks:
+            task_data = []
+            # for field in fields:
+            for field in header_fields:
+                data = task.get(field, "")
+                if isinstance(data, dict):
+                    data = data.get("name", data)
+                task_data.append(data)
+            processed_tasks.append(task_data)
+
+            # TODO actually download images and pass to home screen
+            # images.append(task.get("image"))
+            # images.append("file:///C:/Users/qa/Desktop/output.jpg")
+            images.append("file:///C:/Users/qa/Desktop/backseat.jpg")
+
+
+        # from sgtk.platform.qt import QtCore
+        # callback = QtCore.Signal()
+        # self.callback.connect(self._open_workfiles)
+
+        task_data = {
+            "name": "My Tasks",
+            "data": processed_tasks,
+            "headers": header_names,
+            # FIXME just include it in the data
+            "images": images,
+            "actions": [
+                {"name": "Open Workfiles", "callback": self._open_workfiles},
+                # {"name": "Open Workfiles", "callback": self.callback},
+            ]
+        }
+
+        # Work around for Python callbacks
+        # TODO disconnect on destroy
+        self.vredpy.vrMaterialService.homeScreenEvent.connect(self._open_workfiles)
+
+        return task_data
+
+    def _open_workfiles(self, event_name=None, event_data=None):
+        """Open workfiles app with the given data.""" 
+
+        def __open_file_open_dialog():
+            workfiles = self.apps.get("tk-multi-workfiles2", None)
+            if not workfiles:
+                return
+            if not hasattr(workfiles, "show_file_open_dlg"):
+                return
+            workfiles.show_file_open_dlg(use_modal_dialog=False)
+
+        print("Hello from VRED engine!")
+        print("Event", event_name)
+        print("\tRaw Data:", event_data)
+
+        data = event_data.toVariant()
+        print("\tProcessed Data:", data)
+
+        # TODO check this is the correct event we want to handle, e.g. event_name == "My Tasks"
+        # TODO exctract info and create context, set it on the engine, then open workfiles
+        # TODO add mouse busy cursor during operation to indicate something is happening
+
+        # FIXME actually get the right data formatted, but for now just test opening workfiles with context
+        if not data:
+            return
+
+        sg_data = {}
+        if isinstance(data, list):
+            if isinstance(data[0], list):
+                item = data[0]
+            else:
+                item = data
+            sg_data = {}
+            for index, header_field in enumerate(self.__header_fields):
+                sg_data[header_field] = item[index]
+        
+        if not sg_data:
+            return
+
+        tk = self.sgtk
+        context = tk.context_from_entity_dictionary(sg_data)
+
+        # Set the context on the egine before openign workfiles
+        self.change_context(context)
+
+        __open_file_open_dialog()
+
 
     # -------------------------------------------------------------------------------------------------------
     # Properties
@@ -184,6 +304,11 @@ class VREDEngine(sgtk.platform.Engine):
         Called when the engine should tear down itself and all its apps.
         """
         self.logger.debug("{}: Destroying...".format(self))
+
+        try:
+            self.vredpy.vrMaterialService.homeScreenEvent.disconnect(self._open_workfiles)
+        except RuntimeError as e:
+            print(e)
 
         # Clean up the menu and clear the menu generator
         if self.has_ui:

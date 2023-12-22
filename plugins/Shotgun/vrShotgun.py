@@ -54,6 +54,13 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
                 newFile=True,
                 showImportOptions=False,
             )
+        
+        # Add Home Screen widget
+        data = engine.get_homescreen_data()
+        print(data)
+
+        # NOTE we can just do it all from the engine
+        engine.vredpy.vrMaterialService.addOnboardingPage.emit(data)
 
     def __del__(self):
         self.destroyMenu()
