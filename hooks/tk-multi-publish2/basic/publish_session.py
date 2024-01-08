@@ -285,6 +285,8 @@ class VREDSessionPublishPlugin(HookBaseClass):
         # store the item publish version
         item.properties["publish_version"] = self.get_publish_version(settings, item)
 
+        dependencies = self.get_publish_dependencies(settings, item)
+
         # run the base class validation
         return super(VREDSessionPublishPlugin, self).validate(settings, item)
 
@@ -353,6 +355,57 @@ class VREDSessionPublishPlugin(HookBaseClass):
         # bump the session file to the next version
         if not bg_processing or (bg_processing and not in_bg_process):
             self._save_to_next_version(item.properties["path"], item, self.save_file)
+
+    def get_publish_dependencies(self, settings, item):
+        """
+        Get publish dependencies for the supplied settings and item.
+
+        :param settings: This plugin instance's configured settings
+        :param item: The item to determine the publish template for
+
+        :return: A list of file paths representing the dependencies to store in
+            SG for this publish
+        """
+
+        publish_dependencies = item.local_properties.get("publish_dependencies")
+        if publish_dependencies:
+            return publish_dependencies
+
+        dependencies = super(VREDSessionPublishPlugin, self).get_publish_dependencies(settings, item)
+
+        # Add any referenced wire files the the list of dependencies for this file. If wire
+        # files are not ShotGrid managed files, then these will not be included at publish time
+        breakdown2_app = self.parent.engine.apps.get("tk-multi-breakdown2")
+        if breakdown2_app:
+            # Use the Breakdown2 api to do the work for us to find references
+            manager = breakdown2_app.create_breakdown_manager()
+            file_items = manager.scan_scene()
+            for file_item in file_items:
+                file_path = file_item.get("path")
+                if not file_path:
+                    continue
+                file_name = os.path.basename(file_path)
+                if os.path.splitext(file_name)[1].lower() == ".wire":
+                    dependencies.append(file_path)
+        else:
+            # Manually find references
+            for r in self._vredpy.vrReferenceService.getSceneReferences():
+                has_parent = self._vredpy.vrReferenceService.getParentReferences(r)
+                if has_parent:
+                    continue
+                if r.hasSmartReference():
+                    file_path = r.getSmartPath()
+                elif r.hasSourceReference():
+                    file_path = r.getSourcePath()
+                else:
+                    continue
+                file_name = os.path.basename(file_path)
+                if os.path.splitext(file_name)[1].lower() == ".wire":
+                    dependencies.append(file_path)
+
+        # Stash the publish dependencies on the item so we don't have to do this again
+        item.local_properties["publish_dependencies"] = dependencies
+        return dependencies
 
     def save_file(self, path):
         """
