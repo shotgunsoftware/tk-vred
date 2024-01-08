@@ -12,6 +12,8 @@ import sgtk
 import vrFileIO
 import vrScenegraph
 
+import pprint
+
 
 sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
@@ -57,7 +59,7 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
         
         # Add Home Screen widget
         data = engine.get_homescreen_data()
-        print(data)
+        pprint.pprint(data)
 
         # NOTE we can just do it all from the engine
         engine.vredpy.vrMaterialService.addOnboardingPage.emit(data)

@@ -31,9 +31,6 @@ class VREDEngine(sgtk.platform.Engine):
 
         self.__vred_execpath = os.getenv("TK_VRED_EXECPATH", None)
 
-        # FIXME temp hack
-        self.__header_fields = ["id", "type", "project", "content", "entity", "step"]
-
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
 
     def get_homescreen_data(self):
@@ -51,61 +48,99 @@ class VREDEngine(sgtk.platform.Engine):
         ]
 
         # TODO pass fields but hide them on C++ side instead
-        header_names = ["ID", "Type", "Project", "Name", "Entity", "Step"]
-        # header_fields = ["id", "type", "project", "content", "entity", "step"]
-        header_fields = self.__header_fields
-        fields = [
-            "image",
-            # "content",
-            # "entity",
-            # "step",
+        field_data = [
+            {
+                "id": "image",
+                "type": "image",
+                "name": "Thumbnail",
+                "visible": True,
+            },
+            {
+                "id": "id",
+                "type": "int",
+                "name": "ID",
+                "visible": False,
+            },
+            {
+                "id": "type",
+                "type": "string",
+                "name": "Type",
+                "visible": False,
+            },
+            {
+                "id": "project",
+                "type": "string",
+                "name": "Project",
+                "visible": False,
+            },
+            
+            {
+                "id": "content",
+                "type": "string",
+                "name": "Task Name",
+                "visible": True,
+            },
+            {
+                "id": "entity",
+                "type": "string",
+                "name": "Link",
+                "visible": True,
+            },
+            {
+                "id": "step",
+                "type": "string",
+                "name": "Pipeline Step",
+                "visible": True,
+            },
         ]
-        fields.extend(header_fields)
+        fields = [field["id"] for field in field_data]
+        # header_names = [field["name"] for field in field_data]
         tasks = self.shotgun.find("Task", filters, fields=fields)
 
         # Replace dictionary values with a single displayable value
-        # FIXME think about this
+        # TODO add placeholder image
+        # TODO download thumbnails if they are not cached (this only works if thumbnail cached)
         processed_tasks = []
-        images = []
         for task in tasks:
             task_data = []
-            # for field in fields:
-            for field in header_fields:
-                data = task.get(field, "")
-                if isinstance(data, dict):
-                    data = data.get("name", data)
-                task_data.append(data)
+            for data in field_data:
+                field = data["id"]
+                value = task.get(field, "")
+                if isinstance(value, dict):
+                    value = value.get("name", value)
+                task_data.append(value)
             processed_tasks.append(task_data)
-
-            # TODO actually download images and pass to home screen
-            # images.append(task.get("image"))
-            # images.append("file:///C:/Users/qa/Desktop/output.jpg")
-            images.append("file:///C:/Users/qa/Desktop/backseat.jpg")
-
 
         # from sgtk.platform.qt import QtCore
         # callback = QtCore.Signal()
         # self.callback.connect(self._open_workfiles)
+        # FIXME VRED does not update title when already created
+        homescreen_id = "My ShotGrid Tasks"
 
         task_data = {
-            "name": "My Tasks",
+            "name": homescreen_id,
             "data": processed_tasks,
-            "headers": header_names,
-            # FIXME just include it in the data
-            "images": images,
+            "fields": field_data,
             "actions": [
-                {"name": "Open Workfiles", "callback": self._open_workfiles},
+                # {"name": "Open Workfiles", "callback": self._open_workfiles},
+                {
+                    "name": "Open Workfiles",
+                    "callback": lambda e, d, f=fields: self._open_workfiles(e, d, f)
+                },
                 # {"name": "Open Workfiles", "callback": self.callback},
-            ]
+            ],
         }
 
         # Work around for Python callbacks
-        # TODO disconnect on destroy
-        self.vredpy.vrMaterialService.homeScreenEvent.connect(self._open_workfiles)
+        self.vredpy.vrMaterialService.homeScreenEvent.connect(
+            lambda e, d, f=fields: self._open_workfiles(e, d, f)
+        )
 
         return task_data
 
-    def _open_workfiles(self, event_name=None, event_data=None):
+    # TODO
+    # @wait_cursor
+    def _open_workfiles(self, event_name, event_data, fields):
         """Open workfiles app with the given data.""" 
 
         def __open_file_open_dialog():
@@ -116,41 +151,47 @@ class VREDEngine(sgtk.platform.Engine):
                 return
             workfiles.show_file_open_dlg(use_modal_dialog=False)
 
-        print("Hello from VRED engine!")
-        print("Event", event_name)
-        print("\tRaw Data:", event_data)
 
-        data = event_data.toVariant()
-        print("\tProcessed Data:", data)
+        from sgtk.platform.qt import QtCore, QtGui
+        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            print("Hello from ShotGrid!")
+            print("Event", event_name)
+            print("\tData:", event_data)
 
-        # TODO check this is the correct event we want to handle, e.g. event_name == "My Tasks"
-        # TODO exctract info and create context, set it on the engine, then open workfiles
-        # TODO add mouse busy cursor during operation to indicate something is happening
+            data = event_data.toVariant()
+            print("\tProcessed Data:", data)
 
-        # FIXME actually get the right data formatted, but for now just test opening workfiles with context
-        if not data:
-            return
+            # TODO check this is the correct event we want to handle, e.g. event_name == "My Tasks"
+            #       also check event action id, e.g. open work files, open in SG, etc.
 
-        sg_data = {}
-        if isinstance(data, list):
-            if isinstance(data[0], list):
-                item = data[0]
-            else:
-                item = data
+            if not data:
+                return
+
             sg_data = {}
-            for index, header_field in enumerate(self.__header_fields):
-                sg_data[header_field] = item[index]
-        
-        if not sg_data:
-            return
+            if isinstance(data, list):
+                if isinstance(data[0], list):
+                    item = data[0]
+                else:
+                    item = data
+                sg_data = {}
+                # for index, field_data in enumerate(fields):
+                for index, field in enumerate(fields):
+                    # field = field_data["id"]
+                    sg_data[field] = item[index]
+            
+            if not sg_data:
+                return
 
-        tk = self.sgtk
-        context = tk.context_from_entity_dictionary(sg_data)
+            tk = self.sgtk
+            context = tk.context_from_entity_dictionary(sg_data)
 
-        # Set the context on the egine before openign workfiles
-        self.change_context(context)
+            # Set the context on the egine before openign workfiles
+            self.change_context(context)
 
-        __open_file_open_dialog()
+            __open_file_open_dialog()
+        finally:
+            QtGui.QApplication.restoreOverrideCursor()
 
 
     # -------------------------------------------------------------------------------------------------------
