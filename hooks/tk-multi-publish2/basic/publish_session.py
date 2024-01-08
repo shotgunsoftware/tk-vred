@@ -371,7 +371,9 @@ class VREDSessionPublishPlugin(HookBaseClass):
         if publish_dependencies:
             return publish_dependencies
 
-        dependencies = super(VREDSessionPublishPlugin, self).get_publish_dependencies(settings, item)
+        dependencies = super(VREDSessionPublishPlugin, self).get_publish_dependencies(
+            settings, item
+        )
 
         # Add any referenced wire files the the list of dependencies for this file. If wire
         # files are not ShotGrid managed files, then these will not be included at publish time
