@@ -75,3 +75,6 @@ description: "ShotGrid Integration for VRED"
 # Required minimum versions for this item to run
 requires_shotgun_version:
 requires_core_version: "v0.19.18"
+
+frameworks:
+  - {"name": "tk-framework-lmv", "version": "v1.x.x"}
