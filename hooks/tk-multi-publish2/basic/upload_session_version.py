@@ -180,13 +180,13 @@ class UploadVersionPlugin(HookBaseClass):
 
             framework_lmv = self.load_framework("tk-framework-lmv_v1.x.x")
             if not framework_lmv:
-                self.logger.error(
-                    "Missing required framework tk-framework-lmv v1.x.x"
-                )
+                self.logger.error("Missing required framework tk-framework-lmv v1.x.x")
                 return False
 
             translator = framework_lmv.import_module("translator")
-            lmv_translator = translator.LMVTranslator(path, self.parent.sgtk, item.context)
+            lmv_translator = translator.LMVTranslator(
+                path, self.parent.sgtk, item.context
+            )
             lmv_translator_path = lmv_translator.get_translator_path()
             if not lmv_translator_path:
                 self.logger.error(
