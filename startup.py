@@ -153,7 +153,7 @@ class VREDLauncher(SoftwareLauncher):
             # First check if it is in the list of versions defined by the engine laucher
             if self.versions and not sw_version.version in self.versions:
                 self.logger.debug(
-                    f"Skipping version '{sw_version.version}' not included in the Software Entity versions {self.versions}"
+                    f"Version '{sw_version.version}' not included in the Software Entity versions list {self.versions} -- skipping"
                 )
                 continue
 
