@@ -123,10 +123,11 @@ class VREDLauncher(SoftwareLauncher):
                 )
                 continue
 
-            supported, reason = self._is_supported(sw_version)
-
             if re.search("Presenter", sw_version.product):
                 supported = False
+                reason = "VRED Presenter is not supported"
+            else:
+                supported, reason = self._is_supported(sw_version)
 
             if supported:
                 supported_sw_versions.append(sw_version)
