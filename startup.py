@@ -116,6 +116,13 @@ class VREDLauncher(SoftwareLauncher):
         supported_sw_versions = []
 
         for sw_version in self._find_software():
+            # First check if it is in the list of versions defined by the engine laucher
+            if self.versions and not sw_version.version in self.versions:
+                self.logger.debug(
+                    f"Version '{sw_version.version}' not included in the Software Entity versions list {self.versions} -- skipping"
+                )
+                continue
+
             supported, reason = self._is_supported(sw_version)
 
             if re.search("Presenter", sw_version.product):
@@ -136,13 +143,20 @@ class VREDLauncher(SoftwareLauncher):
 
         :return: A list of :class:`SoftwareVersion` objects.
         """
+
         self.logger.debug("Scanning for VRED Presenter...")
 
         supported_sw_versions = []
 
         for sw_version in self._find_software():
-            supported, reason = self._is_supported(sw_version)
+            # First check if it is in the list of versions defined by the engine laucher
+            if self.versions and not sw_version.version in self.versions:
+                self.logger.debug(
+                    f"Skipping version '{sw_version.version}' not included in the Software Entity versions {self.versions}"
+                )
+                continue
 
+            supported, reason = self._is_supported(sw_version)
             if supported:
                 supported_sw_versions.append(sw_version)
             else:
