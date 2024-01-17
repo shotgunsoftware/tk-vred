@@ -80,6 +80,14 @@ class VREDEngine(sgtk.platform.Engine):
         """Get the path to the currently running VRED executable."""
         return self.__vred_execpath
 
+    @property
+    def menu_generator(self):
+        """Menu generator to help the engine manage the ShotGrid menu in VRED."""
+        if self._menu_generator is None:
+            self._menu_generator = self._tk_vred.VREDMenuGenerator(engine=self)
+
+        return self._menu_generator
+
     # -------------------------------------------------------------------------------------------------------
     # Override base Engine class methods
     # -------------------------------------------------------------------------------------------------------
