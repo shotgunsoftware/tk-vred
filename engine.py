@@ -58,6 +58,11 @@ class VREDEngine(sgtk.platform.Engine):
         else:
             return False
 
+    @property
+    def context_change_allowed(self):
+        """Specifies that context changes are allowed by the engine."""
+        return True
+
     # -------------------------------------------------------------------------------------------------------
     # VRED Engine properties
 
@@ -205,19 +210,6 @@ class VREDEngine(sgtk.platform.Engine):
 
         for dialog in dialogs_still_opened:
             dialog.close()
-
-    @property
-    def context_change_allowed(self):
-        """Specifies that context changes are allowed by the engine."""
-        return True
-
-    @property
-    def menu_generator(self):
-        """Menu generator to help the engine manage the ShotGrid menu in VRED."""
-        if self._menu_generator is None:
-            self._menu_generator = self._tk_vred.VREDMenuGenerator(engine=self)
-
-        return self._menu_generator
 
     def _get_dialog_parent(self):
         """Get the QWidget parent for all dialogs created through show_dialog & show_modal."""
