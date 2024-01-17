@@ -175,9 +175,7 @@ class VREDEngine(sgtk.platform.Engine):
                 )
 
     def post_app_init(self):
-        """
-        Runs after all apps have been initialized.
-        """
+        """Runs after all apps have been initialized."""
 
         self.logger.debug("{}: Post Initializing...".format(self))
 
@@ -193,9 +191,7 @@ class VREDEngine(sgtk.platform.Engine):
             self._hide_menu_in_scripts()
 
     def destroy_engine(self):
-        """
-        Called when the engine should tear down itself and all its apps.
-        """
+        """Called when the engine should tear down itself and all its apps."""
         self.logger.debug("{}: Destroying...".format(self))
 
         # Clean up the menu and clear the menu generator
