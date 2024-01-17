@@ -273,6 +273,36 @@ class VREDEngine(sgtk.platform.Engine):
         # so it should have the object name set to the panel_id
         return widget_intance
 
+    def _create_dialog(self, title, bundle, widget, parent):
+        """
+        Intercept the create dialog method to apply custom styling specific for VRED, to all
+        Toolkit Apps before they are shown.
+        """
+
+        # Create the dialog as usual.
+        dialog = super(VREDEngine, self)._create_dialog(title, bundle, widget, parent)
+
+        # Based on the current VRED version, determine if any custom styling is needed.
+        if self._version_check(self.vred_version, "2024.0.0") >= 0:
+            # For VRED >- 2024, we need to add Qt styling for QToolButton menu indicator. VRED
+            # QSS styling is set to apply specifically to QToolButtons in a QToolBar, so some
+            # Toolkit buttons may get missed.
+            qss = """
+                QToolButton::menu-indicator {
+                    subcontrol-origin: padding;
+                    subcontrol-position: bottom right;
+                    left: 1px;
+                }
+            """
+            # Append the QSS styling to the dialog that was created. We append instead of just
+            # setting the style to be safe not to override any existing style (even though the
+            # parent method applies all style to the dialog's widget, not the dialog itself).
+            style_sheet = dialog.styleSheet()
+            style_sheet += f"\n\n{qss}"
+            dialog.setStyleSheet(style_sheet)
+
+        return dialog
+
     def _get_dialog_parent(self):
         """Get the QWidget parent for all dialogs created through show_dialog & show_modal."""
 
