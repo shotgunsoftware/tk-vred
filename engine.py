@@ -215,6 +215,64 @@ class VREDEngine(sgtk.platform.Engine):
         for dialog in dialogs_still_opened:
             dialog.close()
 
+    def show_panel(self, panel_id, title, bundle, widget_class, *args, **kwargs):
+        """
+        Docks an app widget in a VRED panel.
+
+        :param panel_id: Unique identifier for the panel, as obtained by register_panel().
+        :param title: The title of the panel
+        :param bundle: The app, engine or framework object that is associated with this window
+        :param widget_class: The class of the UI to be constructed. This must derive from QWidget.
+
+        Additional parameters specified will be passed through to the widget_class constructor.
+
+        :returns: the created widget_class instance
+        """
+
+        from sgtk.platform.qt import QtCore
+
+        self.logger.debug("Begin showing panel {}".format(panel_id))
+
+        if not self.has_ui:
+            self.log_error(
+                "Sorry, this environment does not support UI display! Cannot show "
+                "the requested window '{}'.".format(title)
+            )
+            return None
+
+        # Reuse the widget instance, if it already exists. Only reuse the widget
+        # instance if it is found in the docked widgets - widgets found by
+        # traversing all the application widgets may point to stale widgets and
+        # attempting to reuse them may cause errors (e.g. there have been issues
+        # with reusing Shotgun Panel App by finding it from QApplication.allWidgets())
+        dialog_widget = None
+        for dock_widget_panel_id, dock_widget in self._dock_widgets.items():
+            if dock_widget_panel_id == panel_id:
+                dialog_widget = dock_widget.widget()
+                parent = self._get_dialog_parent()
+                dialog_widget.setParent(parent)
+                break
+
+        if not dialog_widget:
+            dialog_widget, widget_intance = self._create_dialog_with_widget(
+                title, bundle, widget_class, *args, **kwargs
+            )
+            dialog_widget.setObjectName(panel_id)
+        else:
+            widget_intance = dialog_widget._widget
+
+        dock_properties = self.get_setting("docked_apps", {}).get(bundle.name, {})
+        dock_area = dock_properties.get("pos", QtCore.Qt.RightDockWidgetArea)
+        tabbed = dock_properties.get("tabbed", True)
+        self.show_dock_widget(
+            panel_id, title, dialog_widget, dock_area=dock_area, tabbed=tabbed
+        )
+
+        # Return the widget created by the method, _create_dialog_with_widget, since this will
+        # have the widget_class type expected by the caller. This widget represents the panel
+        # so it should have the object name set to the panel_id
+        return widget_intance
+
     def _get_dialog_parent(self):
         """Get the QWidget parent for all dialogs created through show_dialog & show_modal."""
 
@@ -234,6 +292,40 @@ class VREDEngine(sgtk.platform.Engine):
             window = wrap_instance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
 
         return window
+
+    def _emit_log_message(self, handler, record):
+        """
+        Called by the engine to log messages in VRED Terminal.
+        All log messages from the toolkit logging namespace will be passed to this method.
+
+        :param handler: Log handler that this message was dispatched from.
+                        Its default format is "[levelname basename] message".
+        :type handler: :class:`~python.logging.LogHandler`
+        :param record: Standard python logging record.
+        :type record: :class:`~python.logging.LogRecord`
+        """
+
+        # For Python2, make sure the msg passed to VRED C++ API is indeed a Python
+        # string (and not unicode, which may be the case if any string concatenation
+        # was performed on the msg).
+        msg = str(handler.format(record))
+
+        # The VREDPy may not have been initialized yet when this method is called, fall back
+        # to import the vrController module
+        if self.vredpy:
+            vrController = self.vredpy.vrController
+        else:
+            import vrController
+
+        if record.levelno < logging.WARNING:
+            vrController.vrLogInfo(msg)
+        elif record.levelno < logging.ERROR:
+            vrController.vrLogWarning(msg)
+        else:
+            vrController.vrLogError(msg)
+
+    #####################################################################################
+    # VRED Engine methods
 
     def _hide_menu_in_scripts(self):
         """
@@ -568,101 +660,6 @@ class VREDEngine(sgtk.platform.Engine):
 
         # All QMenus will now be a QMenuPatch
         QtGui.QMenu = QMenuPatch
-
-    #####################################################################################
-    # Logging
-
-    def _emit_log_message(self, handler, record):
-        """
-        Called by the engine to log messages in VRED Terminal.
-        All log messages from the toolkit logging namespace will be passed to this method.
-
-        :param handler: Log handler that this message was dispatched from.
-                        Its default format is "[levelname basename] message".
-        :type handler: :class:`~python.logging.LogHandler`
-        :param record: Standard python logging record.
-        :type record: :class:`~python.logging.LogRecord`
-        """
-
-        # For Python2, make sure the msg passed to VRED C++ API is indeed a Python
-        # string (and not unicode, which may be the case if any string concatenation
-        # was performed on the msg).
-        msg = str(handler.format(record))
-
-        # The VREDPy may not have been initialized yet when this method is called, fall back
-        # to import the vrController module
-        if self.vredpy:
-            vrController = self.vredpy.vrController
-        else:
-            import vrController
-
-        if record.levelno < logging.WARNING:
-            vrController.vrLogInfo(msg)
-        elif record.levelno < logging.ERROR:
-            vrController.vrLogWarning(msg)
-        else:
-            vrController.vrLogError(msg)
-
-    ##########################################################################################
-    # panel support
-
-    def show_panel(self, panel_id, title, bundle, widget_class, *args, **kwargs):
-        """
-        Docks an app widget in a VRED panel.
-
-        :param panel_id: Unique identifier for the panel, as obtained by register_panel().
-        :param title: The title of the panel
-        :param bundle: The app, engine or framework object that is associated with this window
-        :param widget_class: The class of the UI to be constructed. This must derive from QWidget.
-
-        Additional parameters specified will be passed through to the widget_class constructor.
-
-        :returns: the created widget_class instance
-        """
-
-        from sgtk.platform.qt import QtCore, QtGui
-
-        self.logger.debug("Begin showing panel {}".format(panel_id))
-
-        if not self.has_ui:
-            self.log_error(
-                "Sorry, this environment does not support UI display! Cannot show "
-                "the requested window '{}'.".format(title)
-            )
-            return None
-
-        # Reuse the widget instance, if it already exists. Only reuse the widget
-        # instance if it is found in the docked widgets - widgets found by
-        # traversing all the application widgets may point to stale widgets and
-        # attempting to reuse them may cause errors (e.g. there have been issues
-        # with reusing Shotgun Panel App by finding it from QApplication.allWidgets())
-        dialog_widget = None
-        for dock_widget_panel_id, dock_widget in self._dock_widgets.items():
-            if dock_widget_panel_id == panel_id:
-                dialog_widget = dock_widget.widget()
-                parent = self._get_dialog_parent()
-                dialog_widget.setParent(parent)
-                break
-
-        if not dialog_widget:
-            dialog_widget, widget_intance = self._create_dialog_with_widget(
-                title, bundle, widget_class, *args, **kwargs
-            )
-            dialog_widget.setObjectName(panel_id)
-        else:
-            widget_intance = dialog_widget._widget
-
-        dock_properties = self.get_setting("docked_apps", {}).get(bundle.name, {})
-        dock_area = dock_properties.get("pos", QtCore.Qt.RightDockWidgetArea)
-        tabbed = dock_properties.get("tabbed", True)
-        self.show_dock_widget(
-            panel_id, title, dialog_widget, dock_area=dock_area, tabbed=tabbed
-        )
-
-        # Return the widget created by the method, _create_dialog_with_widget, since this will
-        # have the widget_class type expected by the caller. This widget represents the panel
-        # so it should have the object name set to the panel_id
-        return widget_intance
 
     def show_dock_widget(self, panel_id, title, widget, dock_area=None, tabbed=False):
         """
