@@ -311,7 +311,10 @@ class VREDMenu(object):
 
         self._name = name
         self._menu_bar = menu_bar
-        self._menu = create_qt_menu(self._name)
+        # For VRED >= 2024, there is a new menu style specific to menus that do not show
+        # icons. For VRED < 2024, this style does not exist, so it will be ignored and
+        # the default QMenu style will be used.
+        self._menu = create_qt_menu(self._name, object_name="MenuWithoutIcons")
 
     def clean(self):
         """
@@ -474,7 +477,7 @@ class AppCommand(object):
         )
 
 
-def create_qt_menu(name):
+def create_qt_menu(name, object_name=None):
     """
     Helper function to create a Qt menu with the given name.
 
@@ -485,4 +488,7 @@ def create_qt_menu(name):
 
     menu = QtGui.QMenu()
     menu.setTitle(name)
+    menu.setTearOffEnabled(True)
+    if object_name:
+        menu.setObjectName(object_name)
     return menu
