@@ -40,13 +40,13 @@ class VREDSessionPublishPlugin(HookBaseClass):
         loader_url = "https://help.autodesk.com/view/SGDEV/ENU/?contextId=PC_APP_LOADER"
 
         return """
-            Publishes the file to ShotGrid. A <b>Publish</b> entry will be
-            created in ShotGrid which will include a reference to the file's current
-            path on disk. If a publish template is configured, a copy of the
-            current session will be copied to the publish template path which
-            will be the file that is published. Other users will be able to access
-            the published file via the <b><a href='%s'>Loader</a></b> so long as
-            they have access to the file's location on disk.
+            Publishes the file to Flow Production Tracking. A <b>Publish</b> entry
+            will be created in Flow Production Tracking which will include a reference
+            to the file's current path on disk. If a publish template is configured,
+            a copy of the current session will be copied to the publish template
+            path which will be the file that is published. Other users will be able
+            to access the published file via the <b><a href='%s'>Loader</a></b> so
+            long as they have access to the file's location on disk.
 
             If the session has not been saved, validation will fail and a button
             will be provided in the logging output to save the file.
@@ -364,7 +364,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         :param item: The item to determine the publish template for
 
         :return: A list of file paths representing the dependencies to store in
-            SG for this publish
+            PTR for this publish
         """
 
         publish_dependencies = item.local_properties.get("publish_dependencies")
@@ -376,7 +376,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         )
 
         # Add any referenced wire files the the list of dependencies for this file. If wire
-        # files are not ShotGrid managed files, then these will not be included at publish time
+        # files are not Flow Production Tracking managed files, then these will not be included at publish time
         breakdown2_app = self.parent.engine.apps.get("tk-multi-breakdown2")
         if breakdown2_app:
             # Use the Breakdown2 api to do the work for us to find references

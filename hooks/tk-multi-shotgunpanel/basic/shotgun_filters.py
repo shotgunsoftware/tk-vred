@@ -15,9 +15,9 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 class VREDShotgunFilters(HookBaseClass):
     """
-    Controls the filter configuration for the ShotGrid Panel.
+    Controls the filter configuration for the Flow Production Tracking Panel.
 
-    Via this hook, the data that is retrieved for the ShotGrid Panel can be controlled.
+    Via this hook, the data that is retrieved for the Flow Production Tracking Panel can be controlled.
     """
 
     def get_link_filters(self, sg_location, entity_type, context_project, context_user):
@@ -35,7 +35,7 @@ class VREDShotgunFilters(HookBaseClass):
         :param context_project: The current context project.
         :param context_user: The current context user.
 
-        :returns: Standard SG api3 filters that can be used to retrieve
+        :returns: Standard PTR api3 filters that can be used to retrieve
                   associated data
         """
 
