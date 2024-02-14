@@ -17,7 +17,7 @@ from tank_vendor import six
 
 
 class VREDEngine(sgtk.platform.Engine):
-    """A VRED engine for Flow Production Tracking Toolkit."""
+    """A VRED engine for Flow Production Tracking."""
 
     def __init__(self, tk, context, engine_instance_name, env):
         """Class Constructor"""
@@ -144,7 +144,7 @@ class VREDEngine(sgtk.platform.Engine):
             > 0
         ):
             msg = (
-                "The Flow Production Tracking Toolkit has not yet been fully tested "
+                "The Flow Production Tracking has not yet been fully tested "
                 "with VRED {version}. You can continue to use the Toolkit but you may "
                 "experience bugs or instability.  Please report any issues you see to {support_url}".format(
                     version=self.vred_version, support_url=sgtk.support_url
@@ -154,14 +154,14 @@ class VREDEngine(sgtk.platform.Engine):
             if self.has_ui:
                 QtGui.QMessageBox.warning(
                     self._get_dialog_parent(),
-                    "Warning - Flow Production Tracking Toolkit!",
+                    "Warning - Flow Production Tracking!",
                     msg,
                 )
         elif self._version_check(self.vred_version, "2021.0") < 0 and self.get_setting(
             "compatibility_dialog_old_version"
         ):
             msg = (
-                "The Flow Production Tracking Toolkit is not fully capable with VRED {version}. "
+                "The Flow Production Tracking is not fully capable with VRED {version}. "
                 "You should consider upgrading to a more recent version of VRED. "
                 "Please report any issues you see to {support_url}".format(
                     version=self.vred_version, support_url=sgtk.support_url
@@ -171,7 +171,7 @@ class VREDEngine(sgtk.platform.Engine):
             if self.has_ui:
                 QtGui.QMessageBox.warning(
                     self._get_dialog_parent(),
-                    "Warning - Flow Production Tracking Toolkit!",
+                    "Warning - Flow Production Tracking!",
                     msg,
                 )
 
