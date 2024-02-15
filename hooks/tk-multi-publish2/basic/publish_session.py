@@ -391,8 +391,9 @@ class VREDSessionPublishPlugin(HookBaseClass):
                     dependencies.append(file_path)
         else:
             # Manually find references
-            for r in self._vredpy.vrReferenceService.getSceneReferences():
-                has_parent = self._vredpy.vrReferenceService.getParentReferences(r)
+            vredpy = self.parent.engine.vredpy
+            for r in vredpy.vrReferenceService.getSceneReferences():
+                has_parent = vredpy.vrReferenceService.getParentReferences(r)
                 if has_parent:
                     continue
                 if r.hasSmartReference():
