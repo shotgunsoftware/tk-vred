@@ -56,7 +56,8 @@ class VREDSessionPublishPlugin(HookBaseClass):
             file to the next version after publishing.
 
             The <code>version</code> field of the resulting <b>Publish</b> in
-            Shotgrid will also reflect the version number identified in the filename.
+            Flow Production Tracking will also reflect the version number
+            identified in the filename.
             The basic worklfow recognizes the following version formats by default:
 
             <ul>

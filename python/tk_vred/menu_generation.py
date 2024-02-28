@@ -20,7 +20,7 @@ class VREDMenuGenerator(object):
     Menu generation functionality for VRED.
     """
 
-    ROOT_MENU_TEXT = "S&hotGrid"
+    ROOT_MENU_TEXT = "F&low Production Tracking"
 
     def __init__(self, engine):
         """
