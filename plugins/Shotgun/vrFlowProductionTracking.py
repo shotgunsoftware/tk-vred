@@ -23,7 +23,6 @@ flow_production_tracking_plugin = None
 class vrFlowProductionTrackingPlugin(QtCore.QObject):
     def __init__(self, parent=None):
         super(vrFlowProductionTrackingPlugin, self).__init__(parent)
-        self.engine = None
         QtCore.QTimer.singleShot(1, self.init)
 
     def __del__(self):
