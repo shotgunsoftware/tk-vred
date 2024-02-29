@@ -1,11 +1,11 @@
 import os
 
+# Cannot use sgtk.platform.qt as it is not initialized at this point
 try:
-    from PySide2 import QtCore
+    from PySide2 import QtCore, QtWidgets
 except ModuleNotFoundError:
-    from PySide6 import QtCore
+    from PySide6 import QtCore, QtWidgets
 
-import uiTools
 
 import sgtk
 
@@ -15,13 +15,12 @@ import vrScenegraph
 
 sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
-vrShotgun_form, vrShotgun_base = uiTools.loadUiType("vrShotgunGUI.ui")
 
 # The vrShotgun plugin module instance
 shotgun = None
 
 
-class vrShotgun(vrShotgun_form, vrShotgun_base):
+class vrShotgun(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(vrShotgun, self).__init__(parent)
         QtCore.QTimer.singleShot(0, self.init)
