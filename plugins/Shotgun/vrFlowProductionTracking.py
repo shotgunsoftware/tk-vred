@@ -16,14 +16,18 @@ import vrScenegraph
 sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
 
-# The vrShotgun plugin module instance
-shotgun = None
+# The vrFlowProductionTrackingPlugin plugin module instance
+flow_production_tracking_plugin = None
 
 
-class vrShotgun(QtWidgets.QWidget):
+class vrFlowProductionTrackingPlugin(QtCore.QObject):
     def __init__(self, parent=None):
-        super(vrShotgun, self).__init__(parent)
-        QtCore.QTimer.singleShot(0, self.init)
+        super(vrFlowProductionTrackingPlugin, self).__init__(parent)
+        self.engine = None
+        QtCore.QTimer.singleShot(1, self.init)
+
+    def __del__(self):
+        self.destroyMenu()
 
     def init(self):
         # Get the SG context and start the VRED engine
@@ -39,10 +43,6 @@ class vrShotgun(QtWidgets.QWidget):
                 showImportOptions=False,
             )
 
-    def __del__(self):
-        self.destroyMenu()
-
-
 def onDestroyVREDScriptPlugin():
     """
     onDestroyVREDScriptPlugin() is called before this plugin is destroyed. In this
@@ -55,6 +55,11 @@ def onDestroyVREDScriptPlugin():
 
 try:
     if os.getenv("SHOTGUN_ENABLE") == "1":
-        shotgun = vrShotgun(VREDPluginWidget)
+        flow_production_tracking_plugin = vrFlowProductionTrackingPlugin()
+    label = QtWidgets.QLabel(VREDPluginWidget)
+    label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter);
+    label.setScaledContents(True)
+    label.setText("Flow Production Tracking menu installed in main menu bar.")
+    VREDPluginWidget.layout().addWidget(label)
 except Exception as e:
     logger.exception(e)

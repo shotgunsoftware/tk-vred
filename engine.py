@@ -378,7 +378,7 @@ class VREDEngine(sgtk.platform.Engine):
                 (
                     submenu_action
                     for submenu_action in scripts_action.menu().actions()
-                    if submenu_action.text() == "Shotgun"
+                    if submenu_action.text() == "FlowProductionTracking"
                 ),
                 None,
             )
