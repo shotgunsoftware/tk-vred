@@ -42,6 +42,7 @@ class vrFlowProductionTrackingPlugin(QtCore.QObject):
                 showImportOptions=False,
             )
 
+
 def onDestroyVREDScriptPlugin():
     """
     This method is called before this VRED plugin is destroyed.
@@ -61,7 +62,7 @@ try:
     if os.getenv("SHOTGUN_ENABLE") == "1":
         flow_production_tracking_plugin = vrFlowProductionTrackingPlugin()
         label = QtWidgets.QLabel(VREDPluginWidget)
-        label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter);
+        label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         label.setScaledContents(True)
         label.setText("Flow Production Tracking menu installed in main menu bar.")
         VREDPluginWidget.layout().addWidget(label)
