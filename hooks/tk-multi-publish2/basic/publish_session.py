@@ -377,19 +377,28 @@ class VREDSessionPublishPlugin(HookBaseClass):
 
         # Add any referenced wire files the the list of dependencies for this file. If wire
         # files are not ShotGrid managed files, then these will not be included at publish time
+        found_references = False
         breakdown2_app = self.parent.engine.apps.get("tk-multi-breakdown2")
         if breakdown2_app:
             # Use the Breakdown2 api to do the work for us to find references
-            manager = breakdown2_app.create_breakdown_manager()
-            scene_objects = manager.get_scene_objects()
-            for scene_object in scene_objects:
-                file_path = scene_object.get("path")
-                if not file_path:
-                    continue
-                file_name = os.path.basename(file_path)
-                if os.path.splitext(file_name)[1].lower() == ".wire":
-                    dependencies.append(file_path)
-        else:
+            try:
+                manager = breakdown2_app.create_breakdown_manager()
+                scene_objects = manager.get_scene_objects()
+                for scene_object in scene_objects:
+                    file_path = scene_object.get("path")
+                    if not file_path:
+                        continue
+                    file_name = os.path.basename(file_path)
+                    if os.path.splitext(file_name)[1].lower() == ".wire":
+                        dependencies.append(file_path)
+                # Indicate that references were found (even if there were none) to avoid
+                # trying to find references again with the manual method
+                found_references = True
+            except Exception:
+                # Failed to find references, fall back to manual method
+                found_references = False
+
+        if not found_references:
             # Manually find references
             vredpy = self.parent.engine.vredpy
             for r in vredpy.vrReferenceService.getSceneReferences():
