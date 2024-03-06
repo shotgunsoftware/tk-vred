@@ -381,9 +381,9 @@ class VREDSessionPublishPlugin(HookBaseClass):
         if breakdown2_app:
             # Use the Breakdown2 api to do the work for us to find references
             manager = breakdown2_app.create_breakdown_manager()
-            file_items = manager.scan_scene()
-            for file_item in file_items:
-                file_path = file_item.get("path")
+            scene_objects = manager.get_scene_objects()
+            for scene_object in scene_objects:
+                file_path = scene_object.get("path")
                 if not file_path:
                     continue
                 file_name = os.path.basename(file_path)
