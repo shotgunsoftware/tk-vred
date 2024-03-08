@@ -396,7 +396,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
                 found_references = True
             except Exception:
                 # Failed to find references, fall back to manual method
-                found_references = False
+                pass
 
         if not found_references:
             # Manually find references
