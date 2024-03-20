@@ -146,7 +146,7 @@ class VREDBreakdown2Actions(HookBaseClass):
                 )
             )
 
-        node_id = file_item.extra_data.get("node_id")
+        node_id = file_item.get("extra_data", {}).get("node_id")
         if not node_id:
             raise TankError(
                 "Failed to execute action {name}. Missing reference id in FileItem.".format(
