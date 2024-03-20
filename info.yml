@@ -65,12 +65,12 @@ configuration:
         default_value: {}
 
 
-# the ShotGrid fields that this engine needs in order to operate correctly
+# the Flow Production Tracking fields that this engine needs in order to operate correctly
 requires_shotgun_fields:
 
 # More verbose description of this item
-display_name: "ShotGrid Engine for VRED"
-description: "ShotGrid Integration for VRED"
+display_name: "Flow Production Tracking Engine for VRED"
+description: "Flow Production Tracking Integration for VRED"
 
 # Required minimum versions for this item to run
 requires_shotgun_version:

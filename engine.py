@@ -17,7 +17,7 @@ from tank_vendor import six
 
 
 class VREDEngine(sgtk.platform.Engine):
-    """A VRED engine for ShotGrid Toolkit."""
+    """A VRED engine for Flow Production Tracking Toolkit."""
 
     def __init__(self, tk, context, engine_instance_name, env):
         """Class Constructor"""
@@ -82,7 +82,7 @@ class VREDEngine(sgtk.platform.Engine):
 
     @property
     def menu_generator(self):
-        """Menu generator to help the engine manage the ShotGrid menu in VRED."""
+        """Menu generator to help the engine manage the Flow Production Tracking menu in VRED."""
         if self._menu_generator is None:
             self._menu_generator = self._tk_vred.VREDMenuGenerator(engine=self)
 
@@ -114,7 +114,8 @@ class VREDEngine(sgtk.platform.Engine):
 
         self.logger.debug("{}: Initializing...".format(self))
 
-        # unicode characters returned by the ShotGrid api need to be converted
+        # unicode characters returned by the
+        # Flow Production Tracking api need to be converted
         # to display correctly in all of the app windows
         # tell QT to interpret C strings as utf-8
         from sgtk.platform.qt import QtCore, QtGui
@@ -143,9 +144,9 @@ class VREDEngine(sgtk.platform.Engine):
             > 0
         ):
             msg = (
-                "The ShotGrid Pipeline Toolkit has not yet been fully tested with VRED {version}. "
-                "You can continue to use the Toolkit but you may experience bugs or "
-                "instability.  Please report any issues you see to {support_url}".format(
+                "The Flow Production Tracking Toolkit has not yet been fully tested "
+                "with VRED {version}. You can continue to use the Toolkit but you may "
+                "experience bugs or instability.  Please report any issues you see to {support_url}".format(
                     version=self.vred_version, support_url=sgtk.support_url
                 )
             )
@@ -153,14 +154,14 @@ class VREDEngine(sgtk.platform.Engine):
             if self.has_ui:
                 QtGui.QMessageBox.warning(
                     self._get_dialog_parent(),
-                    "Warning - ShotGrid Pipeline Toolkit!",
+                    "Warning - Flow Production Tracking Toolkit!",
                     msg,
                 )
         elif self._version_check(self.vred_version, "2021.0") < 0 and self.get_setting(
             "compatibility_dialog_old_version"
         ):
             msg = (
-                "The ShotGrid Pipeline Toolkit is not fully capable with VRED {version}. "
+                "The Flow Production Tracking Toolkit is not fully capable with VRED {version}. "
                 "You should consider upgrading to a more recent version of VRED. "
                 "Please report any issues you see to {support_url}".format(
                     version=self.vred_version, support_url=sgtk.support_url
@@ -170,7 +171,7 @@ class VREDEngine(sgtk.platform.Engine):
             if self.has_ui:
                 QtGui.QMessageBox.warning(
                     self._get_dialog_parent(),
-                    "Warning - ShotGrid Pipeline Toolkit!",
+                    "Warning - Flow Production Tracking Toolkit!",
                     msg,
                 )
 
@@ -205,7 +206,7 @@ class VREDEngine(sgtk.platform.Engine):
         self._dock_widgets.clear()
         self._tabbed_dock_widgets.clear()
 
-        # Close all ShotGrid app dialogs that are still opened since
+        # Close all Flow Production Tracking app dialogs that are still opened since
         # some apps do threads cleanup in their onClose event handler
         # Note that this function is called when the engine is restarted (through "Reload Engine and Apps")
 
@@ -378,7 +379,7 @@ class VREDEngine(sgtk.platform.Engine):
                 (
                     submenu_action
                     for submenu_action in scripts_action.menu().actions()
-                    if submenu_action.text() == "Shotgun"
+                    if submenu_action.text() == "FlowProductionTracking"
                 ),
                 None,
             )
