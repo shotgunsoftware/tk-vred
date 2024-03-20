@@ -140,15 +140,27 @@ class VREDBreakdown2Actions(HookBaseClass):
 
         file_item = params.get("file_item")
         if not file_item:
-            raise TankError("Failed to execute action {name}. Missing param 'file_item'.".format(name=name))
+            raise TankError(
+                "Failed to execute action {name}. Missing param 'file_item'.".format(
+                    name=name
+                )
+            )
 
         node_id = file_item.extra_data.get("node_id")
         if not node_id:
-            raise TankError("Failed to execute action {name}. Missing reference id in FileItem.".format(name=name))
+            raise TankError(
+                "Failed to execute action {name}. Missing reference id in FileItem.".format(
+                    name=name
+                )
+            )
 
         reference_node = self.vredpy.get_reference_by_id(node_id)
         if not reference_node:
-            raise TankError("Failed to execute action {name}. Failed to find VRED reference with id {id}.".format(name=name, id=node_id))
+            raise TankError(
+                "Failed to execute action {name}. Failed to find VRED reference with id {id}.".format(
+                    name=name, id=node_id
+                )
+            )
 
         if name == "remove_reference":
             self.vredpy.vrReferenceService.removeReference(reference_node)
