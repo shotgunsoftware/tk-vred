@@ -14,11 +14,12 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 class VREDShotgunFields(HookBaseClass):
     """
-    Controls the field configuration for the ShotGrid Panel.
+    Controls the field configuration for the Flow Production Tracking Panel.
 
-    Via this hook, the visual appearance of the ShotGrid Panel can be controlled.
-    When the ShotGrid panel displays a UI element, it will call this hook
-    in order to determine how that particular object should be formatted.
+    Via this hook, the visual appearance of the Flow Production Tracking Panel can
+    be controlled. When the Flow Production Tracking panel displays a UI element,
+    it will call this hook  in order to determine how that particular object should
+    be formatted.
     """
 
     def get_main_view_definition(self, entity_type):
@@ -33,7 +34,7 @@ class VREDShotgunFields(HookBaseClass):
 
         Base hook method is overriden to support Playlist entity type.
 
-        :param entity_type: ShotGrid entity type to provide a template for
+        :param entity_type: Flow Production Tracking entity type to provide a template for
         :returns: Dictionary containing template strings
         """
 
@@ -50,13 +51,13 @@ class VREDShotgunFields(HookBaseClass):
 
     def get_entity_tabs_definition(self, entity_type, shotgun_globals):
         """
-        Define which tabs are shown in the ShotGrid Panel for an item of
+        Define which tabs are shown in the Flow Production Tracking Panel for an item of
         a given entity type.
 
         Override the base hook method to implement custom handling for
         non-default entity types, e.g. Playlist.
 
-        :param entity_type: ShotGrid entity type to provide tab info for.
+        :param entity_type: Flow Production Tracking entity type to provide tab info for.
         :returns: Dictionary
         """
 
