@@ -46,6 +46,7 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
                 showImportOptions=False,
             )
 
+
 def onDestroyVREDScriptPlugin():
     """
     This method is called before this VRED plugin is destroyed.
