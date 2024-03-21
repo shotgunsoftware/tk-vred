@@ -1,10 +1,11 @@
 # Cannot use sgtk.platform.qt as it is not initialized at this point
 try:
-    from PySide2 import QtCore, QtWidgets
+    from PySide2 import QtCore
 except ModuleNotFoundError:
-    from PySide6 import QtCore, QtWidgets
+    from PySide6 import QtCore
 
 import os
+import uiTools
 import sgtk
 import vrFileIO
 import vrScenegraph
@@ -12,16 +13,19 @@ import vrScenegraph
 
 sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
-flow_production_tracking_plugin = None
+vrShotgun_form, vrShotgun_base = uiTools.loadUiType("vrShotgunGUI.ui")
+shotgun = None
 
 
-class vrFlowProductionTrackingPlugin(QtCore.QObject):
+class vrShotgun(vrShotgun_form, vrShotgun_base):
     """Class object to create a Scripts Plugin in VRED."""
 
     def __init__(self, parent=None):
         """Initialize the plugin."""
-        super(vrFlowProductionTrackingPlugin, self).__init__(parent)
-        QtCore.QTimer.singleShot(1, self.init)
+        super(vrShotgun, self).__init__(parent)
+        parent.layout().addWidget(self)
+        self.setupUi(self)
+        QtCore.QTimer.singleShot(0, self.init)
 
     def __del__(self):
         """Clean up the plugin."""
@@ -42,7 +46,6 @@ class vrFlowProductionTrackingPlugin(QtCore.QObject):
                 showImportOptions=False,
             )
 
-
 def onDestroyVREDScriptPlugin():
     """
     This method is called before this VRED plugin is destroyed.
@@ -60,11 +63,6 @@ def onDestroyVREDScriptPlugin():
 # Create the VRED plugin
 try:
     if os.getenv("SHOTGUN_ENABLE") == "1":
-        flow_production_tracking_plugin = vrFlowProductionTrackingPlugin()
-        label = QtWidgets.QLabel(VREDPluginWidget)
-        label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        label.setScaledContents(True)
-        label.setText("Flow Production Tracking menu installed in main menu bar.")
-        VREDPluginWidget.layout().addWidget(label)
+        shotgun = vrShotgun(VREDPluginWidget)
 except Exception as e:
     logger.exception(e)
