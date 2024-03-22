@@ -18,7 +18,14 @@ shotgun = None
 
 
 class vrShotgun(vrShotgun_form, vrShotgun_base):
-    """Class object to create a Scripts Plugin in VRED."""
+    """
+    Class object to create a Scripts Plugin in VRED.
+
+    IMPORTANT: For VRED Design, a special exception is made for the "Shotgun"
+    plugin to run (custom scripts plugins are not supported). So this plugin
+    file must be named "vrShotgun.py" with the class name "vrShotgun", and the
+    plugin must be created from the UI file "vrShotgunGUI.ui".
+    """
 
     def __init__(self, parent=None):
         """Initialize the plugin."""
