@@ -62,7 +62,7 @@ class VREDActions(HookBaseClass):
         one object is returned for an action, use the params key to pass additional
         data into the run_action hook.
 
-        :param sg_data: ShotGrid data dictionary with all the standard publish fields.
+        :param sg_data: Flow Production Tracking data dictionary with all the standard publish fields.
         :param actions: List of action strings which have been defined in the app configuration.
         :param ui_area: String denoting the UI Area (see above).
         :returns List of dictionaries, each with keys name, params, caption and description
@@ -133,7 +133,7 @@ class VREDActions(HookBaseClass):
 
         :param name: Action name string representing one of the items returned by generate_actions.
         :param params: Params data, as specified by generate_actions.
-        :param sg_data: ShotGrid data dictionary with all the standard publish fields.
+        :param sg_data: Flow Production Tracking data dictionary with all the standard publish fields.
         :returns: Dictionary representing an Entity if action requires a context change in the panel,
                   otherwise no return value expected.
         """
@@ -141,7 +141,7 @@ class VREDActions(HookBaseClass):
         self.logger.debug(
             "Execute action called for action {name}"
             "Parameters: {params}"
-            "SG Data: {data}".format(name=name, params=params, data=sg_data)
+            "PTR Data: {data}".format(name=name, params=params, data=sg_data)
         )
 
         result = None
@@ -156,8 +156,8 @@ class VREDActions(HookBaseClass):
 
         elif name == "load_for_review":
             if self._load_for_review(sg_data):
-                # Set the result to the SG data to trigger navigation in SG panel to he entity
-                # represented by the SG data.
+                # Set the result to the PTR data to trigger navigation in PTR panel to he entity
+                # represented by the PTR data.
                 result = sg_data
 
         elif name == "smart_reference":
@@ -184,7 +184,7 @@ class VREDActions(HookBaseClass):
         Each entry will have the following values:
 
             name: Name of the action to execute
-            sg_data: Publish information coming from ShotGrid
+            sg_data: Publish information coming from Flow Production Tracking
             params: Parameters passed down from the generate_actions hook.
 
         .. note::
@@ -272,7 +272,7 @@ class VREDActions(HookBaseClass):
         Find an associated published file from the entity defined by the `sg_data`,
         and load it into VRED.
 
-        :param sg_data: The ShotGrid data for the entity to load for review.
+        :param sg_data: The Flow Production Tracking data for the entity to load for review.
         :type sg_data: dict
         :param confirm_action: True will ask the user to confirm executing this action,
                                or False to execute the action immediately.
@@ -282,7 +282,7 @@ class VREDActions(HookBaseClass):
         """
 
         # The current entity. This entity dictionary will be the return value to
-        # trigger a context change in SG Panel to this entity.
+        # trigger a context change in PTR Panel to this entity.
         entity = {"type": sg_data["type"], "id": sg_data["id"]}
 
         # Load for review action only supports Version entity type

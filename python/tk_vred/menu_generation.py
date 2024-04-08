@@ -20,7 +20,7 @@ class VREDMenuGenerator(object):
     Menu generation functionality for VRED.
     """
 
-    ROOT_MENU_TEXT = "S&hotGrid"
+    ROOT_MENU_TEXT = "F&low Production Tracking"
 
     def __init__(self, engine):
         """
@@ -138,7 +138,7 @@ class VREDMenuGenerator(object):
 
     def clean_menu(self):
         """
-        Remove ShotGrid root menu in VRED, if it exists and
+        Remove Flow Production Tracking root menu in VRED, if it exists and
         clear the menu_favourites property.
         """
 
@@ -164,7 +164,7 @@ class VREDMenuGenerator(object):
         ctx_name = six.ensure_str(str(ctx))
 
         context_menu = create_qt_menu(ctx_name)
-        context_menu.addAction("Jump to ShotGrid", self._jump_to_sg)
+        context_menu.addAction("Jump to Flow Production Tracking", self._jump_to_sg)
 
         # Add the menu item only when there are filesystem locations.
         if ctx.filesystem_locations:
@@ -262,7 +262,7 @@ class VREDMenuGenerator(object):
 
     def _jump_to_sg(self):
         """
-        Jump to ShotGrid, launch web browser
+        Jump to Flow Production Tracking, launch web browser
         """
         url = self._engine.context.shotgun_url
 
@@ -298,7 +298,7 @@ class VREDMenuGenerator(object):
 class VREDMenu(object):
     """
     Class manages a custom menu action in VRED. This is primarily used to create the
-    ShotGrid menu in VRED.
+    Flow Production Tracking menu in VRED.
     """
 
     def __init__(self, name, menu_bar):

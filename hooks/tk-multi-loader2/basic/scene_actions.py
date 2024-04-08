@@ -60,7 +60,7 @@ class VredActions(HookBaseClass):
         one object is returned for an action, use the params key to pass additional
         data into the run_action hook.
 
-        :param sg_publish_data: ShotGrid data dictionary with all the standard publish fields.
+        :param sg_publish_data: Flow Production Tracking data dictionary with all the standard publish fields.
         :param actions: List of action strings which have been defined in the app configuration.
         :param ui_area: String denoting the UI Area (see above).
         :returns List of dictionaries, each with keys name, params, caption and description
@@ -144,7 +144,7 @@ class VredActions(HookBaseClass):
 
         :param name: Action name string representing one of the items returned by generate_actions.
         :param params: Params data, as specified by generate_actions.
-        :param sg_publish_data: ShotGrid data dictionary with all the standard publish fields.
+        :param sg_publish_data: Flow Production Tracking data dictionary with all the standard publish fields.
         :returns: No return value expected.
         """
 
@@ -182,7 +182,7 @@ class VredActions(HookBaseClass):
         Each entry will have the following values:
 
             name: Name of the action to execute
-            sg_publish_data: Publish information coming from ShotGrid
+            sg_publish_data: Publish information coming from Flow Production Tracking
             params: Parameters passed down from the generate_actions hook.
 
         .. note::
