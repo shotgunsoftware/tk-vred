@@ -18,6 +18,7 @@ from . import (
     api_animation,
     api_material,
     api_node,
+    api_reference,
     api_settings,
     api_utils,
 )
@@ -159,6 +160,7 @@ class VREDPy:
             api_animation.VREDPyAnimation(self),
             api_material.VREDPyMaterial(self),
             api_node.VREDPyNode(self),
+            api_reference.VREDPyReference(self),
             api_settings.VREDPySetting(self),
             api_utils.VREDPyUtils(self),
         ]
