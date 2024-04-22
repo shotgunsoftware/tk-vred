@@ -220,7 +220,7 @@ class VredActions(HookBaseClass):
                 params = action["params"]
                 self.execute_action(name, params, sg_publish_data)
 
-        # Execute batch functions now that the data has been gathered
+        # Execute batch functions now that the data has been gatheredt
         for batch_action in batch_actions.values():
             paths = batch_action["paths"]
             if not paths:
@@ -282,7 +282,7 @@ class VredActions(HookBaseClass):
 
     def import_files(self, paths):
         """
-        Import the list of file paths.
+        Import the list of files into VRED.
 
         :param paths: The file paths to import
         :type paths: List[str]
@@ -293,21 +293,30 @@ class VredActions(HookBaseClass):
 
     def import_file(self, path):
         """
+        Import the file into VRED.
+
         :param path: Path of file to import
+        :type path: str
         """
 
         self.import_files([path])
 
     def open_import_batch_dialog(self, paths):
         """
-        :param paths: Paths to the files to display import options for
+        Import the list of file into VRED using the import dialog.
+
+        :param paths: The list of files to import.
+        :type paths: List[str]
         """
 
         self.vredpy.vrGUIService.openImportDialog(paths)
 
     def open_import_dialog(self, path):
         """
-        :param path: Path to the file to display import options for
+        Import the file into VRED using the import dialog.
+
+        :param path: Path to the file to import.
+        :type path: str
         """
 
         self.open_import_batch_dialog([path])
