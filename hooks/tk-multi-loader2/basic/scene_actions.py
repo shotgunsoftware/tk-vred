@@ -196,7 +196,7 @@ class VredActions(HookBaseClass):
 
         :param list actions: Action dictionaries.
         """
-        
+
         batch_actions = {
             "import": {
                 "paths": [],
@@ -220,7 +220,7 @@ class VredActions(HookBaseClass):
                 params = action["params"]
                 self.execute_action(name, params, sg_publish_data)
 
-        # Execute batch functions now that the data has been gathered 
+        # Execute batch functions now that the data has been gathered
         for batch_action in batch_actions.values():
             paths = batch_action["paths"]
             if not paths:
