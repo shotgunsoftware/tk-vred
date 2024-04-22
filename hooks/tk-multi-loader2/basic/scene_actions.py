@@ -196,11 +196,36 @@ class VredActions(HookBaseClass):
 
         :param list actions: Action dictionaries.
         """
-        for single_action in actions:
-            name = single_action["name"]
-            sg_publish_data = single_action["sg_publish_data"]
-            params = single_action["params"]
-            self.execute_action(name, params, sg_publish_data)
+        
+        batch_actions = {
+            "import": {
+                "paths": [],
+                "func": self.import_files,
+            },
+            "import_with_options": {
+                "paths": [],
+                "func": self.open_import_batch_dialog,
+            },
+        }
+
+        for action in actions:
+            name = action["name"]
+            sg_publish_data = action["sg_publish_data"]
+            if name in batch_actions:
+                # This action must be executed in a single batch function
+                path = self.get_publish_path(sg_publish_data)
+                batch_actions[name]["paths"].append(path)
+            else:
+                # This action can be executed in multiple single functions
+                params = action["params"]
+                self.execute_action(name, params, sg_publish_data)
+
+        # Execute batch functions now that the data has been gathered 
+        for batch_action in batch_actions.values():
+            paths = batch_action["paths"]
+            if not paths:
+                continue  # No data, do not execute function
+            batch_action["func"](paths)
 
     def import_sceneplate(self, image_path):
         """
@@ -255,17 +280,34 @@ class VredActions(HookBaseClass):
         ref_node.load()
         ref_node.setName(ref_name)
 
+    def import_files(self, paths):
+        """
+        Import the list of file paths.
+
+        :param paths: The file paths to import
+        :type paths: List[str]
+        """
+
+        parent = self.vredpy.vrScenegraph.getRootNode()
+        self.vredpy.vrFileIOService.importFiles(paths, parent)
+
     def import_file(self, path):
         """
         :param path: Path of file to import
         """
 
-        parent = self.vredpy.vrScenegraph.getRootNode()
-        self.vredpy.vrFileIOService.importFiles([path], parent)
+        self.import_files([path])
+
+    def open_import_batch_dialog(self, paths):
+        """
+        :param paths: Paths to the files to display import options for
+        """
+
+        self.vredpy.vrGUIService.openImportDialog(paths)
 
     def open_import_dialog(self, path):
         """
         :param path: Path to the file to display import options for
         """
 
-        self.vredpy.vrGUIService.openImportDialog([path])
+        self.open_import_batch_dialog([path])
