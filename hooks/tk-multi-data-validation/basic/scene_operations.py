@@ -48,7 +48,7 @@ class VREDSceneOperationsHook(HookBaseClass):
                 (vredpy.vrFileIOService.newScene, reset_callback)
             )
         except AttributeError as e:
-            self.parent.logger.error(
+            self.parent.logger.warning(
                 f"Data Validation failed to register scene event: {e}"
             )
 
@@ -62,7 +62,7 @@ class VREDSceneOperationsHook(HookBaseClass):
                 )
             )
         except AttributeError as e:
-            self.parent.logger.error(
+            self.parent.logger.warning(
                 f"Data Validation failed to register scene event: {e}"
             )
 
@@ -74,7 +74,7 @@ class VREDSceneOperationsHook(HookBaseClass):
                 )
             )
         except AttributeError as e:
-            self.parent.logger.error(
+            self.parent.logger.warning(
                 f"Data Validation failed to register scene event: {e}"
             )
 
@@ -86,7 +86,7 @@ class VREDSceneOperationsHook(HookBaseClass):
                 )
             )
         except AttributeError as e:
-            self.parent.logger.error(
+            self.parent.logger.warning(
                 f"Data Validation failed to register scene event: {e}"
             )
 
@@ -98,7 +98,7 @@ class VREDSceneOperationsHook(HookBaseClass):
                 )
             )
         except AttributeError as e:
-            self.parent.logger.error(
+            self.parent.logger.warning(
                 f"Data Validation failed to register scene event: {e}"
             )
 
@@ -110,7 +110,7 @@ class VREDSceneOperationsHook(HookBaseClass):
                 )
             )
         except AttributeError as e:
-            self.parent.logger.error(
+            self.parent.logger.warning(
                 f"Data Validation failed to register scene event: {e}"
             )
 
