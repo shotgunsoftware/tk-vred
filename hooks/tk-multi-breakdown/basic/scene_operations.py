@@ -105,7 +105,6 @@ class BreakdownSceneOperation(HookClass):
                     [ref_node]
                 )  # noqa
 
-
     def get_reference_by_name(self, ref_name):
         """
         Get a reference node from its name.
