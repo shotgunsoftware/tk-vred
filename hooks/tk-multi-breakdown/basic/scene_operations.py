@@ -86,7 +86,7 @@ class BreakdownSceneOperation(HookClass):
             node_type = item["type"]
             path = item["path"]
 
-            ref_node = get_reference_by_name(node_name)
+            ref_node = self.get_reference_by_name(node_name)
             if not ref_node:
                 self.logger.error(
                     "Couldn't get reference node named {}".format(node_name)
@@ -105,17 +105,16 @@ class BreakdownSceneOperation(HookClass):
                     [ref_node]
                 )  # noqa
 
+    def get_reference_by_name(self, ref_name):
+        """
+        Get a reference node from its name.
 
-def get_reference_by_name(ref_name):
-    """
-    Get a reference node from its name.
+        :param ref_name: Name of the reference we want to get the associated node from
+        :returns: The reference node associated to the reference name
+        """
 
-    :param ref_name: Name of the reference we want to get the associated node from
-    :returns: The reference node associated to the reference name
-    """
-
-    ref_list = self.vredpy.vrReferenceService.getSceneReferences()
-    for r in ref_list:
-        if r.getName() == ref_name:
-            return r
-    return None
+        ref_list = self.vredpy.vrReferenceService.getSceneReferences()
+        for r in ref_list:
+            if r.getName() == ref_name:
+                return r
+        return None
