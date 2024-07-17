@@ -274,7 +274,12 @@ class VREDEngine(sgtk.platform.Engine):
         dock_area = dock_properties.get("pos", QtCore.Qt.RightDockWidgetArea)
         tabbed = dock_properties.get("tabbed", True)
         self.show_dock_widget(
-            panel_id, title, dialog_widget, dock_area=dock_area, tabbed=tabbed, tab_active=panel_active
+            panel_id,
+            title,
+            dialog_widget,
+            dock_area=dock_area,
+            tabbed=tabbed,
+            tab_active=panel_active,
         )
 
         # Return the widget created by the method, _create_dialog_with_widget, since this will
@@ -700,7 +705,9 @@ class VREDEngine(sgtk.platform.Engine):
         # All QMenus will now be a QMenuPatch
         QtGui.QMenu = QMenuPatch
 
-    def show_dock_widget(self, panel_id, title, widget, dock_area=None, tabbed=False, tab_active=False):
+    def show_dock_widget(
+        self, panel_id, title, widget, dock_area=None, tabbed=False, tab_active=False
+    ):
         """
         Create a dock widget managed by the VRED engine, if one has not yet been created. Set the
         widget to show in the dock widget and add it to the VRED dock area.
@@ -767,7 +774,6 @@ class VREDEngine(sgtk.platform.Engine):
         for tabbed_widget in tabbed_widets_in_pos:
             if tabbed_widget != dock_widget:
                 return tabbed_widget
-
 
     #####################################################################################
     # VRED File IO
