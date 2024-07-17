@@ -760,16 +760,14 @@ class VREDEngine(sgtk.platform.Engine):
         :rtype: DockWidget
         """
 
-        tabify_widget = None
         tabbed_widets_in_pos = self._tabbed_dock_widgets.get(dock_area, [])
-        index = len(tabbed_widets_in_pos) - 1
+        if not tabbed_widets_in_pos:
+            return
 
-        while tabify_widget is None and index >= 0:
-            if tabbed_widets_in_pos[index] != dock_widget:
-                tabify_widget = tabbed_widets_in_pos[index]
-            index -= 1
+        for tabbed_widget in tabbed_widets_in_pos:
+            if tabbed_widget != dock_widget:
+                return tabbed_widget
 
-        return tabify_widget
 
     #####################################################################################
     # VRED File IO
