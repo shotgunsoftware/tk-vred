@@ -28,10 +28,12 @@ class VREDEngine(sgtk.platform.Engine):
         self._dock_widgets = {}
         self._tabbed_dock_widgets = {}
         self._vredpy = None
-
         self.__vred_execpath = os.getenv("TK_VRED_EXECPATH", None)
 
+        # Set a flag to indicate that the engine has been initialized
+        self.__initialized = False
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
+        self.__initialized = True
 
     # -------------------------------------------------------------------------------------------------------
     # Properties
@@ -241,6 +243,12 @@ class VREDEngine(sgtk.platform.Engine):
             )
             return None
 
+        # Raise the panel to the front if it is active. The panel should be
+        # active if the user opens the app. Panels will not be active during
+        # initialization, they will be added in the order they are created,
+        # and the first panel app will be active.
+        panel_active = self.__initialized
+
         # Reuse the widget instance, if it already exists. Only reuse the widget
         # instance if it is found in the docked widgets - widgets found by
         # traversing all the application widgets may point to stale widgets and
@@ -266,7 +274,7 @@ class VREDEngine(sgtk.platform.Engine):
         dock_area = dock_properties.get("pos", QtCore.Qt.RightDockWidgetArea)
         tabbed = dock_properties.get("tabbed", True)
         self.show_dock_widget(
-            panel_id, title, dialog_widget, dock_area=dock_area, tabbed=tabbed
+            panel_id, title, dialog_widget, dock_area=dock_area, tabbed=tabbed, tab_active=panel_active
         )
 
         # Return the widget created by the method, _create_dialog_with_widget, since this will
@@ -692,7 +700,7 @@ class VREDEngine(sgtk.platform.Engine):
         # All QMenus will now be a QMenuPatch
         QtGui.QMenu = QMenuPatch
 
-    def show_dock_widget(self, panel_id, title, widget, dock_area=None, tabbed=False):
+    def show_dock_widget(self, panel_id, title, widget, dock_area=None, tabbed=False, tab_active=False):
         """
         Create a dock widget managed by the VRED engine, if one has not yet been created. Set the
         widget to show in the dock widget and add it to the VRED dock area.
@@ -700,6 +708,11 @@ class VREDEngine(sgtk.platform.Engine):
         :param title: The title of the dock widget window.
         :param widget: The QWidget to show in the dock widget.
         :param dock_area: The dock widget area (e.g. QtCore.Qt.RightDockWidgetArea).
+        :param tabbed: True if the dock widget should be tabbed with other dock
+                        widgets.
+        :param tab_active: True if the dock widget should be active (this will
+                            ensure the widget will be shown). Ignored if tabbed
+                            is False.
         """
 
         dock_widget = self._dock_widgets.get(panel_id, None)
@@ -736,6 +749,8 @@ class VREDEngine(sgtk.platform.Engine):
             dock_widget.reinitialize(title, widget, tabify_widget)
 
         dock_widget.show()
+        if tab_active:
+            dock_widget.raise_()
 
     def get_tabify_widget(self, dock_widget, dock_area):
         """
