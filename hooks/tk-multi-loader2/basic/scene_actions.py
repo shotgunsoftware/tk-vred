@@ -10,6 +10,7 @@
 
 import os
 import sgtk
+from sgtk.platform.qt import QtCore, QtGui
 
 
 HookBaseClass = sgtk.get_hook_baseclass()
@@ -275,10 +276,14 @@ class VredActions(HookBaseClass):
         ref_name = os.path.splitext(os.path.basename(path))[0]
 
         # create the smart ref, load it and finally change the node name to reflect the ref path
-        ref_node = self.vredpy.vrReferenceService.createSmart()
-        ref_node.setSmartPath(path)
-        ref_node.load()
-        ref_node.setName(ref_name)
+        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            ref_node = self.vredpy.vrReferenceService.createSmart()
+            ref_node.setSmartPath(path)
+            ref_node.load()
+            ref_node.setName(ref_name)
+        finally:
+            QtGui.QApplication.restoreOverrideCursor()
 
     def import_files(self, paths):
         """
