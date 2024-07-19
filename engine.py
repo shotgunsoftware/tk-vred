@@ -31,7 +31,15 @@ class VREDEngine(sgtk.platform.Engine):
 
         self.__vred_execpath = os.getenv("TK_VRED_EXECPATH", None)
 
-        super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
+
+        kwargs = {"custom_dpi_factor": 2}
+        print(f"""
+
+    VRED DPI: {kwargs["custom_dpi_factor"]}
+
+    """)
+
+        super(VREDEngine, self).__init__(tk, context, engine_instance_name, env, **kwargs)
 
     # -------------------------------------------------------------------------------------------------------
     # Properties
