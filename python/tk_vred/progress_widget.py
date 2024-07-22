@@ -63,8 +63,8 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
         file_text_layout.addStretch()
         file_text_layout.addWidget(self.__file_label)
         file_text_layout.addStretch()
-        file_text_widget = QtGui.QWidget(self)
-        file_text_widget.setLayout(file_text_layout)
+        self.__file_text_widget = QtGui.QWidget(self)
+        self.__file_text_widget.setLayout(file_text_layout)
 
         self.__progress_status_label = QtGui.QLabel(self.__default_status, self)
         text_layout = QtGui.QHBoxLayout()
@@ -105,7 +105,7 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
         layout = QtGui.QVBoxLayout()
         layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
-        layout.addWidget(file_text_widget)
+        layout.addWidget(self.__file_text_widget)
         layout.addWidget(text_layout_widget)
         layout.addWidget(self.__progress_bar)
         layout.addLayout(button_layout)
@@ -128,6 +128,8 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
         # otherwise caller must set up the signals and slots manually.
         if use_default_signals:
             self.__setup_default_signals()
+
+        self.__file_text_widget.setVisible(False)
 
     def __del__(self):
         """Destructor."""
@@ -254,6 +256,9 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
             base_name = os.path.basename(file)
             self.__file_label.setText(base_name)
             self.__file_label.setToolTip(file)
+            self.__file_text_widget.setVisible(True)
+        else:
+            self.__file_text_widget.setVisible(False)
 
         if status:
             self.__progress_status_label.setText(f"{status}...")
