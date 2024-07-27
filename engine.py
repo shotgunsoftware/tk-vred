@@ -15,6 +15,11 @@ import sys
 import sgtk
 from tank_vendor import six
 
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
+
 
 class VREDEngine(sgtk.platform.Engine):
     """A VRED engine for Flow Production Tracking Toolkit."""
@@ -874,7 +879,7 @@ class VREDEngine(sgtk.platform.Engine):
 
         self.vredpy.vrFileIO.save(file_path)
 
-        if not os.path.exists(six.ensure_str(str(file_path))):
+        if not os.path.exists(sgutils.ensure_str(str(file_path))):
             msg = "VRED Failed to save file {}".format(file_path)
             self.logger.error(msg)
             raise Exception(msg)

@@ -9,7 +9,6 @@
 # not expressly granted therein are reserved by Autodesk, Inc.
 
 from sgtk.platform.qt import QtCore, QtGui
-from tank_vendor import six
 
 
 class DockWidget(QtGui.QDockWidget):
@@ -48,7 +47,7 @@ class DockWidget(QtGui.QDockWidget):
 
         if dock_area is None:
             self._dock_area = QtCore.Qt.RightDockWidgetArea
-        elif isinstance(dock_area, six.string_types):
+        elif isinstance(dock_area, str):
             self._dock_area = self.POSITIONS.get(
                 dock_area, QtCore.Qt.RightDockWidgetArea
             )
