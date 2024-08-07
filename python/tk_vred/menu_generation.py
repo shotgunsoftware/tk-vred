@@ -12,7 +12,11 @@ import os
 
 from sgtk.platform.qt import QtCore, QtGui
 from sgtk.util import is_windows, is_linux, is_macos
-from tank_vendor import six
+
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 
 class VREDMenuGenerator(object):
@@ -161,7 +165,7 @@ class VREDMenuGenerator(object):
         """
 
         ctx = self._engine.context
-        ctx_name = six.ensure_str(str(ctx))
+        ctx_name = sgutils.ensure_str(str(ctx))
 
         context_menu = create_qt_menu(ctx_name)
         context_menu.addAction("Jump to Flow Production Tracking", self._jump_to_sg)
