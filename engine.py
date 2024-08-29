@@ -138,10 +138,11 @@ class VREDEngine(sgtk.platform.Engine):
 
         # check for version compatibility
         self.vred_version = os.getenv("TK_VRED_VERSION", None)
+        vred_major_version = self.vred_version[:4]
         self.logger.debug("Running VRED version {}".format(self.vred_version))
         if (
             self._version_check(
-                self.vred_version,
+                vred_major_version,
                 str(self.get_setting("compatibility_dialog_min_version")),
             )
             > 0
@@ -160,7 +161,7 @@ class VREDEngine(sgtk.platform.Engine):
                     "Warning - Flow Production Tracking Toolkit!",
                     msg,
                 )
-        elif self._version_check(self.vred_version, "2021.0") < 0 and self.get_setting(
+        elif self._version_check(vred_major_version, "2021.0") < 0 and self.get_setting(
             "compatibility_dialog_old_version"
         ):
             msg = (
