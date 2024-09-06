@@ -39,7 +39,7 @@ configuration:
         description:    "Specify the minimum Application major version that will prompt a warning if
                         it isn't yet fully supported and tested with Toolkit.  To disable the warning
                         dialog for the version you are testing, it is recommended that you set this
-                        value to the current major version + 1."
+                        value to the latest supported version."
         default_value:  2025
 
     compatibility_dialog_old_version:

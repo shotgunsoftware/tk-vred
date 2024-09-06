@@ -7,6 +7,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk Inc.
 
+from typing import List
 import logging
 import os
 import re
@@ -33,10 +34,12 @@ class VREDEngine(sgtk.platform.Engine):
         self._dock_widgets = {}
         self._tabbed_dock_widgets = {}
         self._vredpy = None
-
         self.__vred_execpath = os.getenv("TK_VRED_EXECPATH", None)
 
+        # Set a flag to indicate that the engine has been initialized
+        self.__initialized = False
         super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
+        self.__initialized = True
 
     # -------------------------------------------------------------------------------------------------------
     # Properties
@@ -140,10 +143,11 @@ class VREDEngine(sgtk.platform.Engine):
 
         # check for version compatibility
         self.vred_version = os.getenv("TK_VRED_VERSION", None)
+        vred_major_version = self.vred_version[:4]
         self.logger.debug("Running VRED version {}".format(self.vred_version))
         if (
             self._version_check(
-                self.vred_version,
+                vred_major_version,
                 str(self.get_setting("compatibility_dialog_min_version")),
             )
             > 0
@@ -162,7 +166,7 @@ class VREDEngine(sgtk.platform.Engine):
                     "Warning - Flow Production Tracking Toolkit!",
                     msg,
                 )
-        elif self._version_check(self.vred_version, "2021.0") < 0 and self.get_setting(
+        elif self._version_check(vred_major_version, "2021.0") < 0 and self.get_setting(
             "compatibility_dialog_old_version"
         ):
             msg = (
@@ -246,6 +250,12 @@ class VREDEngine(sgtk.platform.Engine):
             )
             return None
 
+        # Raise the panel to the front if it is active. The panel should be
+        # active if the user opens the app. Panels will not be active during
+        # initialization, they will be added in the order they are created,
+        # and the first panel app will be active.
+        panel_active = self.__initialized
+
         # Reuse the widget instance, if it already exists. Only reuse the widget
         # instance if it is found in the docked widgets - widgets found by
         # traversing all the application widgets may point to stale widgets and
@@ -271,7 +281,12 @@ class VREDEngine(sgtk.platform.Engine):
         dock_area = dock_properties.get("pos", QtCore.Qt.RightDockWidgetArea)
         tabbed = dock_properties.get("tabbed", True)
         self.show_dock_widget(
-            panel_id, title, dialog_widget, dock_area=dock_area, tabbed=tabbed
+            panel_id,
+            title,
+            dialog_widget,
+            dock_area=dock_area,
+            tabbed=tabbed,
+            tab_active=panel_active,
         )
 
         # Return the widget created by the method, _create_dialog_with_widget, since this will
@@ -697,7 +712,9 @@ class VREDEngine(sgtk.platform.Engine):
         # All QMenus will now be a QMenuPatch
         QtGui.QMenu = QMenuPatch
 
-    def show_dock_widget(self, panel_id, title, widget, dock_area=None, tabbed=False):
+    def show_dock_widget(
+        self, panel_id, title, widget, dock_area=None, tabbed=False, tab_active=False
+    ):
         """
         Create a dock widget managed by the VRED engine, if one has not yet been created. Set the
         widget to show in the dock widget and add it to the VRED dock area.
@@ -705,6 +722,11 @@ class VREDEngine(sgtk.platform.Engine):
         :param title: The title of the dock widget window.
         :param widget: The QWidget to show in the dock widget.
         :param dock_area: The dock widget area (e.g. QtCore.Qt.RightDockWidgetArea).
+        :param tabbed: True if the dock widget should be tabbed with other dock
+                        widgets.
+        :param tab_active: True if the dock widget should be active (this will
+                            ensure the widget will be shown). Ignored if tabbed
+                            is False.
         """
 
         dock_widget = self._dock_widgets.get(panel_id, None)
@@ -741,6 +763,8 @@ class VREDEngine(sgtk.platform.Engine):
             dock_widget.reinitialize(title, widget, tabify_widget)
 
         dock_widget.show()
+        if tab_active:
+            dock_widget.raise_()
 
     def get_tabify_widget(self, dock_widget, dock_area):
         """
@@ -750,16 +774,13 @@ class VREDEngine(sgtk.platform.Engine):
         :rtype: DockWidget
         """
 
-        tabify_widget = None
         tabbed_widets_in_pos = self._tabbed_dock_widgets.get(dock_area, [])
-        index = len(tabbed_widets_in_pos) - 1
+        if not tabbed_widets_in_pos:
+            return
 
-        while tabify_widget is None and index >= 0:
-            if tabbed_widets_in_pos[index] != dock_widget:
-                tabify_widget = tabbed_widets_in_pos[index]
-            index -= 1
-
-        return tabify_widget
+        for tabbed_widget in tabbed_widets_in_pos:
+            if tabbed_widget != dock_widget:
+                return tabbed_widget
 
     #####################################################################################
     # VRED File IO
@@ -886,6 +907,60 @@ class VREDEngine(sgtk.platform.Engine):
 
         if set_render_path:
             self.set_render_path(file_path)
+
+    def import_files(self, paths: List[str]):
+        """
+        Import files from the given paths into the VRED scene.
+
+        :param paths: List of file paths to import.
+        """
+
+        from sgtk.platform.qt import QtGui
+
+        if not paths:
+            return
+
+        # Import .vpb files separate from other files. On importing .vpb files
+        # VRED displays a progress bar, for non .vpbs it will not, so we will
+        # have to show our own in this case.
+        vpb_file_paths = []
+        other_file_paths = []
+        for path in paths:
+            if path.endswith(".vpb"):
+                vpb_file_paths.append(path)
+            else:
+                other_file_paths.append(path)
+
+        root_node = self.vredpy.vrScenegraph.getRootNode()
+
+        # Import .vpb files first. VRED will show a loading bar for these files
+        if vpb_file_paths:
+            self.vredpy.vrFileIOService.importFiles(vpb_file_paths, root_node)
+
+        # Import any non .vpb files, show our custom progress bar for these files
+        if other_file_paths:
+            progress_widget = None
+            if self.has_ui:
+                parent = (
+                    QtGui.QApplication.activeWindow()
+                    or self.__engine._get_dialog_parent()
+                )
+                progress_widget = self._tk_vred.VREDFileIOProgressWidget(
+                    self.vredpy,
+                    len(other_file_paths),
+                    abort_callback=self.vredpy.vrFileIOService.abortImport,
+                    parent=parent,
+                )
+                progress_widget.show()
+
+            # Start the import operation in VRED async
+            import_job_id = self.vredpy.vrFileIOService.importFiles(
+                other_file_paths, root_node
+            )
+
+            # Update the progress widget to track the import job
+            if progress_widget:
+                progress_widget.job_id = import_job_id
 
     def set_render_path(self, file_path=None):
         """

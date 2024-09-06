@@ -10,6 +10,7 @@
 
 import os
 import sgtk
+from sgtk.platform.qt import QtCore, QtGui
 
 
 HookBaseClass = sgtk.get_hook_baseclass()
@@ -239,28 +240,34 @@ class VredActions(HookBaseClass):
             "Import sceneplate for image file '{path}'".format(path=image_path)
         )
 
-        # Get the Sceneplate Root object
-        vredSceneplateRoot = self.vredpy.vrSceneplateService.getRootNode()
+        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            # Get the Sceneplate Root object
+            vredSceneplateRoot = self.vredpy.vrSceneplateService.getRootNode()
 
-        # Extract the filename for the name of the Sceneplate
-        nodeName = os.path.basename(image_path)
+            # Extract the filename for the name of the Sceneplate
+            nodeName = os.path.basename(image_path)
 
-        # Load in the image
-        imageObject = self.vredpy.vrImageService.loadImage(image_path)
+            # Load in the image
+            imageObject = self.vredpy.vrImageService.loadImage(image_path)
 
-        # Create the actual Sceneplate node
-        newSceneplateNode = self.vredpy.vrSceneplateService.createNode(
-            vredSceneplateRoot,
-            self.vredpy.vrSceneplateTypes.NodeType.Frontplate,
-            nodeName,
-        )
-        newSceneplate = self.vredpy.vrdSceneplateNode(newSceneplateNode)
+            # Create the actual Sceneplate node
+            newSceneplateNode = self.vredpy.vrSceneplateService.createNode(
+                vredSceneplateRoot,
+                self.vredpy.vrSceneplateTypes.NodeType.Frontplate,
+                nodeName,
+            )
+            newSceneplate = self.vredpy.vrdSceneplateNode(newSceneplateNode)
 
-        # Set the type to image
-        newSceneplate.setContentType(self.vredpy.vrSceneplateTypes.ContentType.Image)
+            # Set the type to image
+            newSceneplate.setContentType(
+                self.vredpy.vrSceneplateTypes.ContentType.Image
+            )
 
-        # Assign the image to the Sceneplate
-        newSceneplate.setImage(imageObject)
+            # Assign the image to the Sceneplate
+            newSceneplate.setImage(imageObject)
+        finally:
+            QtGui.QApplication.restoreOverrideCursor()
 
     def create_smart_reference(self, path):
         """
@@ -275,10 +282,14 @@ class VredActions(HookBaseClass):
         ref_name = os.path.splitext(os.path.basename(path))[0]
 
         # create the smart ref, load it and finally change the node name to reflect the ref path
-        ref_node = self.vredpy.vrReferenceService.createSmart()
-        ref_node.setSmartPath(path)
-        ref_node.load()
-        ref_node.setName(ref_name)
+        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+        try:
+            ref_node = self.vredpy.vrReferenceService.createSmart()
+            ref_node.setSmartPath(path)
+            ref_node.load()
+            ref_node.setName(ref_name)
+        finally:
+            QtGui.QApplication.restoreOverrideCursor()
 
     def import_files(self, paths):
         """
@@ -288,8 +299,7 @@ class VredActions(HookBaseClass):
         :type paths: List[str]
         """
 
-        parent = self.vredpy.vrScenegraph.getRootNode()
-        self.vredpy.vrFileIOService.importFiles(paths, parent)
+        self.parent.engine.import_files(paths)
 
     def import_file(self, path):
         """
