@@ -360,9 +360,10 @@ class VredActions(HookBaseClass):
             )
             return
         # Set up signal/slot to move the imported environments to the Environments node
-        # after the import is finished
-        self.parent.engine.notifier.file_import_finished.connect(
-            lambda: __on_envs_imported(temp_group_node)
+        # after the import is finished. This signal is disconnected after it is triggered.
+        self.__connect_once(
+            self.parent.engine.notifier.file_import_finished,
+            lambda: __on_envs_imported(temp_group_node),
         )
 
     def import_files(self, paths):
@@ -404,3 +405,20 @@ class VredActions(HookBaseClass):
         """
 
         self.open_import_batch_dialog([path])
+
+    # --------------------------------------------------------------------------
+    # Private methods
+
+    def __connect_once(self, signal, slot):
+        """
+        Connect the signal to the slot, but only trigger once.
+
+        :param signal: The signal to connect.
+        :param slot: The slot to connect.
+        """
+
+        def wrapper(*args, **kwargs):
+            slot(*args, **kwargs)
+            signal.disconnect(wrapper)
+
+        signal.connect(wrapper)
