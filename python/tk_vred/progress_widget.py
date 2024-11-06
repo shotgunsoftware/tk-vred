@@ -93,7 +93,7 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
         self.__close_button.setToolTip(
             "Close the dialog. The operation will continue in the background."
         )
-        self.__close_button.clicked.connect(self.accept)
+        self.__close_button.clicked.connect(self.hide)
 
         button_layout = QtGui.QHBoxLayout()
         button_layout.setContentsMargins(0, 0, 0, 0)
@@ -134,8 +134,7 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
     def __del__(self):
         """Destructor."""
 
-        for signal, slot in self.__signal_slots:
-            signal.disconnect(slot)
+        self.__cleanup()
 
     # --------------------------------------------------------------------------
     # Properties
@@ -183,21 +182,18 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
         """Abort the operation in progress."""
 
         self.__abort_callback(self.job_id)
-        self.job_completed(force=True)
+        self.job_completed(False, force=True)
 
-    def job_completed(self, force: bool = False):
+    def job_completed(self, success: bool, force: bool = False):
         """Called when a file I/O job has completed."""
 
         self.__completed_jobs += 1
         if not force and self.__completed_jobs < self.__total_jobs:
             return
 
-        # If all jobs are complete, destroy the widget.
-        while self.__signal_slots:
-            signal, slot = self.__signal_slots.pop()
-            signal.disconnect(slot)
-        self.accept()
-        self.deleteLater()
+        result = 1 if success else 0
+        self.done(result)
+        self.__cleanup()
 
     def is_job_valid(self, job_id: int):
         """
@@ -210,6 +206,9 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
         :param job_id: The job ID to check.
         :return: True if the job ID is valid, False otherwise.
         """
+
+        if job_id is None or self.job_id is None:
+            return False
 
         if self.job_id == job_id:
             return True
@@ -297,7 +296,7 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
                 self.on_failed(job_id, file, "Job finished with an unknown state.")
                 return
 
-        self.job_completed()
+        self.job_completed(True)
 
     def on_failed(self, job_id: int, file: str = None, description: str = None):
         """
@@ -319,7 +318,7 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
             f"An error occurred while processing {file}.\n\n{description}",
         )
 
-        self.job_completed()
+        self.job_completed(False, force=True)
 
     # --------------------------------------------------------------------------
     # Private methods
@@ -357,3 +356,9 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
             self.vredpy.vrFileIOService.fileLoadingFailed,
             self.on_failed,
         )
+
+    def __cleanup(self):
+        """Clean up the widget."""
+
+        for signal, slot in self.__signal_slots:
+            signal.disconnect(slot)
