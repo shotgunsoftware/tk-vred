@@ -360,5 +360,6 @@ class VREDFileIOProgressWidget(QtGui.QDialog):
     def __cleanup(self):
         """Clean up the widget."""
 
-        for signal, slot in self.__signal_slots:
+        while self.__signal_slots:
+            signal, slot = self.__signal_slots.pop()
             signal.disconnect(slot)
