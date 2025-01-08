@@ -7,7 +7,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Autodesk Inc.
 
-from typing import List
+from typing import List, Optional
 import logging
 import os
 import re
@@ -35,6 +35,7 @@ class VREDEngine(sgtk.platform.Engine):
         self._tabbed_dock_widgets = {}
         self._vredpy = None
         self.__vred_execpath = os.getenv("TK_VRED_EXECPATH", None)
+        self.__notifier = None
 
         # Set a flag to indicate that the engine has been initialized
         self.__initialized = False
@@ -82,6 +83,11 @@ class VREDEngine(sgtk.platform.Engine):
             if self._tk_vred:
                 self._vredpy = self._tk_vred.VREDPy()
         return self._vredpy
+
+    @property
+    def notifier(self):
+        """Get the Qt notifier object for the engine."""
+        return self.__notifier
 
     @property
     def executable_path(self):
@@ -140,6 +146,9 @@ class VREDEngine(sgtk.platform.Engine):
 
         # import python/tk_vred module
         self._tk_vred = self.import_module("tk_vred")
+
+        # Initialize the notifier
+        self.__notifier = self._tk_vred.VREDNotifier()
 
         # check for version compatibility
         self.vred_version = os.getenv("TK_VRED_VERSION", None)
@@ -908,11 +917,14 @@ class VREDEngine(sgtk.platform.Engine):
         if set_render_path:
             self.set_render_path(file_path)
 
-    def import_files(self, paths: List[str]):
+    def import_files(self, paths: List[str], root_node: Optional[object] = None):
         """
         Import files from the given paths into the VRED scene.
 
         :param paths: List of file paths to import.
+        :param root_node: (Optional) the root VRED scenegraph node (vrdNode) to
+            place the nodes created on import. Defaults to the root node of the
+            VRED scenegraph.
         """
 
         from sgtk.platform.qt import QtGui
@@ -920,47 +932,39 @@ class VREDEngine(sgtk.platform.Engine):
         if not paths:
             return
 
-        # Import .vpb files separate from other files. On importing .vpb files
-        # VRED displays a progress bar, for non .vpbs it will not, so we will
-        # have to show our own in this case.
-        vpb_file_paths = []
-        other_file_paths = []
-        for path in paths:
-            if path.endswith(".vpb"):
-                vpb_file_paths.append(path)
-            else:
-                other_file_paths.append(path)
+        # Use the given root node, else default to the scene root node
+        root_node = root_node or self.vredpy.vrScenegraph.getRootNode()
 
-        root_node = self.vredpy.vrScenegraph.getRootNode()
+        # Check if there are non VRED files, if there are, we will need to show
+        # the custom progress widget since VRED only shows a progress widget for
+        # VRED files.
+        show_progress_widget = any(
+            not path.endswith(".vpb") and not path.endswith(".osb") for path in paths
+        )
 
-        # Import .vpb files first. VRED will show a loading bar for these files
-        if vpb_file_paths:
-            self.vredpy.vrFileIOService.importFiles(vpb_file_paths, root_node)
-
-        # Import any non .vpb files, show our custom progress bar for these files
-        if other_file_paths:
-            progress_widget = None
-            if self.has_ui:
-                parent = (
-                    QtGui.QApplication.activeWindow()
-                    or self.__engine._get_dialog_parent()
-                )
-                progress_widget = self._tk_vred.VREDFileIOProgressWidget(
-                    self.vredpy,
-                    len(other_file_paths),
-                    abort_callback=self.vredpy.vrFileIOService.abortImport,
-                    parent=parent,
-                )
+        progress_widget = None
+        if self.has_ui:
+            parent = (
+                QtGui.QApplication.activeWindow() or self.__engine._get_dialog_parent()
+            )
+            progress_widget = self._tk_vred.VREDFileIOProgressWidget(
+                self.vredpy,
+                len(paths),
+                abort_callback=self.vredpy.vrFileIOService.abortImport,
+                parent=parent,
+            )
+            progress_widget.set_connection(
+                progress_widget.finished, self.notifier.file_import_finished
+            )
+            if show_progress_widget:
                 progress_widget.show()
 
-            # Start the import operation in VRED async
-            import_job_id = self.vredpy.vrFileIOService.importFiles(
-                other_file_paths, root_node
-            )
+        # Start the import operation in VRED async
+        import_job_id = self.vredpy.vrFileIOService.importFiles(paths, root_node)
 
-            # Update the progress widget to track the import job
-            if progress_widget:
-                progress_widget.job_id = import_job_id
+        # Update the progress widget to track the import job
+        if progress_widget:
+            progress_widget.job_id = import_job_id
 
     def set_render_path(self, file_path=None):
         """

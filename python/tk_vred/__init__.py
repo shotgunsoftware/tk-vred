@@ -11,4 +11,5 @@
 from .menu_generation import VREDMenuGenerator
 from .dock_widget import DockWidget
 from .vred_py import VREDPy
+from .notifier import VREDNotifier
 from .progress_widget import VREDFileIOProgressWidget

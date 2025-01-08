@@ -105,6 +105,16 @@ class VredActions(HookBaseClass):
                 }
             )
 
+        if "import_as_env" in actions:
+            action_instances.append(
+                {
+                    "name": "import_as_env",
+                    "params": None,
+                    "caption": "Import as Environment",
+                    "description": "This will create an enviornment node and add it to the VRED scenegraph under Environments.",
+                }
+            )
+
         if "import_with_options" in actions:
             if (
                 self.parent.engine._version_check(
@@ -165,6 +175,9 @@ class VredActions(HookBaseClass):
         elif name == "import":
             self.import_file(path)
 
+        elif name == "import_as_env":
+            self.import_as_env([path])
+
         elif name == "import_with_options":
             self.open_import_dialog(path)
 
@@ -202,6 +215,10 @@ class VredActions(HookBaseClass):
             "import": {
                 "paths": [],
                 "func": self.import_files,
+            },
+            "import_as_env": {
+                "paths": [],
+                "func": self.import_envs,
             },
             "import_with_options": {
                 "paths": [],
@@ -291,6 +308,64 @@ class VredActions(HookBaseClass):
         finally:
             QtGui.QApplication.restoreOverrideCursor()
 
+    def import_envs(self, paths):
+        """
+        Import the list of files into VRED as environments.
+
+        :param paths: The file paths to import
+        :type paths: List[str]
+        """
+
+        def __on_envs_imported(env_group_node):
+            """
+            Callback triggered after the environments have been imported.
+
+            Move all nodes in the given group node, to the Environments node in
+            the VRED scenegraph. Delete the temporary group node.
+
+            :param env_group_node: The temporary group node that contains the
+                imported environments.
+            """
+            if not env_group_node:
+                return
+            # Ensure we have a vrdNode object
+            if isinstance(env_group_node, self.vredpy.vrNodePtr.vrNodePtr):
+                env_group_node = self.vredpy.vrNodeService.getNodeFromId(
+                    env_group_node.getID()
+                )
+            env_root_node = self.vredpy.vrNodeService.findNode("Environments")
+            if not env_root_node:
+                self.logger.error("Could not find Environments node in the scenegraph.")
+                return
+            for env_node in env_group_node.children:
+                env_root_node.children.append(env_node)
+            self.vredpy.vrNodeService.removeNodes([env_group_node])
+
+        # Create a temporary group node to place the imported environments. The
+        # environments are imported async, so this is how we can find them after
+        # the import is finished.
+        root_node = self.vredpy.vrScenegraph.getRootNode()
+        unique_name = self.vredpy.vrNodeService.getUniqueName(
+            "FPTR_Imported_Envs", root_node
+        )
+        temp_group_node = self.vredpy.vrScenegraph.createNode(
+            "Group", unique_name, root_node
+        )
+
+        # Import the environments from the files
+        self.parent.engine.import_files(paths, root_node=temp_group_node)
+        if not self.parent.engine.notifier:
+            self.logger.error(
+                "Missing VRED notifier. Environments will not be moved to the Environments node."
+            )
+            return
+        # Set up signal/slot to move the imported environments to the Environments node
+        # after the import is finished. This signal is disconnected after it is triggered.
+        self.__connect_once(
+            self.parent.engine.notifier.file_import_finished,
+            lambda: __on_envs_imported(temp_group_node),
+        )
+
     def import_files(self, paths):
         """
         Import the list of files into VRED.
@@ -330,3 +405,20 @@ class VredActions(HookBaseClass):
         """
 
         self.open_import_batch_dialog([path])
+
+    # --------------------------------------------------------------------------
+    # Private methods
+
+    def __connect_once(self, signal, slot):
+        """
+        Connect the signal to the slot, but only trigger once.
+
+        :param signal: The signal to connect.
+        :param slot: The slot to connect.
+        """
+
+        def wrapper(*args, **kwargs):
+            slot(*args, **kwargs)
+            signal.disconnect(wrapper)
+
+        signal.connect(wrapper)
