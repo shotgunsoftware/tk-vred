@@ -317,13 +317,13 @@ class VREDSessionPublishPlugin(HookBaseClass):
             # only store the session name if we are using the background publish mode
             if bg_processing and "session_path" not in item.parent.properties:
                 item.parent.properties["session_path"] = path
-                item.parent.properties[
-                    "session_name"
-                ] = "VRED Session - {task_name}, {entity_type} {entity_name} - {file_name}".format(
-                    task_name=item.context.task["name"],
-                    entity_type=item.context.entity["type"],
-                    entity_name=item.context.entity["name"],
-                    file_name=os.path.basename(path),
+                item.parent.properties["session_name"] = (
+                    "VRED Session - {task_name}, {entity_type} {entity_name} - {file_name}".format(
+                        task_name=item.context.task["name"],
+                        entity_type=item.context.entity["type"],
+                        entity_name=item.context.entity["name"],
+                        file_name=os.path.basename(path),
+                    )
                 )
 
         # update the item with the saved session path

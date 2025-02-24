@@ -465,7 +465,7 @@ class VREDEngine(sgtk.platform.Engine):
 
         # Build a dictionary mapping app instance names to dictionaries of commands they registered with the engine.
         app_instance_commands = {}
-        for (command_name, value) in self.commands.items():
+        for command_name, value in self.commands.items():
             app_instance = value["properties"].get("app")
             if app_instance:
                 # Add entry 'command name: command function' to the command dictionary of this app instance.
@@ -494,7 +494,7 @@ class VREDEngine(sgtk.platform.Engine):
             else:
                 if not setting_command_name:
                     # Run all commands of the given app instance.
-                    for (command_name, command_function) in command_dict.items():
+                    for command_name, command_function in command_dict.items():
                         self.logger.debug(
                             "{engine_name} startup running app '{app_name}' command '{cmd_name}'.".format(
                                 engine_name=self.name,
