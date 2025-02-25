@@ -17,6 +17,10 @@ Dependencies
 
     * Includes update for the new publish setting option to turn on/off publishing in the background
 
+    * Required to use Background Publishing with tk-vred ``v3.5.0`` or later
+
+    * Configuration must be updated to use Publish2 App ``v2.10.3`` or later
+
 * Configuration: ``tk-config-default v1.7.4`` or ``tk-config-basic v1.7.4``
 
     * Required for the new action 'Import Envrionments' added to Loader2 actions
