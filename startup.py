@@ -346,50 +346,31 @@ def _get_installation_paths_from_windows_registry(logger):
 
 
 def _get_windows_version(full_path, logger):
-    """
-    Use `wmic` to determine the installed version of VRED
-    """
-
-    version = "0.0.0.0"
+    """Use PowerShell command to determine the installed version of VRED."""
 
     # define some startup info to be able to run the command in a silent mode
     startup_info = subprocess.STARTUPINFO()
     startup_info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     startup_info.wShowWindow |= subprocess.SW_HIDE
+    ps_cmd = f"(Get-Item '{full_path}').VersionInfo.ProductVersion"
 
     try:
         version_command = subprocess.check_output(
             [
-                "wmic",
-                "datafile",
-                "where",
-                "name=" + '"' + str(full_path).replace("\\", "\\\\") + '"',
-                "get",
-                "Version",
-                "/value",
+                "powershell",
+                "-Command",
+                ps_cmd,
             ],
             startupinfo=startup_info,
+            text=True,
         )
 
     except subprocess.CalledProcessError:
-        command_string = (
-            "wmic" + " "
-            "datafile" + " "
-            "where" + " "
-            "name=" + '"' + str(full_path).replace("\\", "\\\\") + '"' + " "
-            "get" + " "
-            "Version" + " "
-            "/value"
-        )
-        version_command = subprocess.check_output(
-            command_string, startupinfo=startup_info
-        )
+        version_command = None
 
-    finally:
-        logger.debug("Could not determine version using `wmic`.")
+    if not version_command:
+        logger.debug("Could not determine version using PowerShell command: '{ps_cmd}'")
+        return "0.0.0.0"
 
-    if version_command:
-        version_list = re.findall(r"[\d.]", str(version_command))
-        version = "".join(map(str, version_list))
-
-    return version
+    version_list = re.findall(r"[\d.]", str(version_command))
+    return "".join(map(str, version_list))
