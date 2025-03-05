@@ -61,9 +61,7 @@ class VREDShotgunFields(HookBaseClass):
         :returns: Dictionary
         """
 
-        values = super().get_entity_tabs_definition(
-            entity_type, shotgun_globals
-        )
+        values = super().get_entity_tabs_definition(entity_type, shotgun_globals)
 
         # Custom handling for non-default entity types
         if entity_type == "Playlist":
