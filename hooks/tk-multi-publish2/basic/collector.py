@@ -47,7 +47,7 @@ class VREDSessionCollector(HookBaseClass):
         """
 
         # grab any base class settings
-        collector_settings = super(VREDSessionCollector, self).settings or {}
+        collector_settings = super().settings or {}
 
         # settings specific to this collector
         vred_session_settings = {
@@ -206,14 +206,14 @@ class VREDSessionCollector(HookBaseClass):
             self.logger.info("Processing render sequence path: {}".format(f))
 
             if rd["is_sequence"]:
-                item = super(VREDSessionCollector, self)._collect_file(
+                item = super()._collect_file(
                     parent_item, rd["render_paths"][0], frame_sequence=True
                 )
                 icon_path = rd["render_paths"][0]
                 item.properties["sequence_paths"] = rd["render_paths"]
 
             else:
-                item = super(VREDSessionCollector, self)._collect_file(
+                item = super()._collect_file(
                     parent_item, os.path.join(render_folder, f), frame_sequence=False
                 )
                 icon_path = os.path.join(render_folder, f)

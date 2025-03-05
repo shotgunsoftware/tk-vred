@@ -60,7 +60,7 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
         part of its environment configuration.
         """
         # inherit the settings from the base publish plugin
-        base_settings = super(VREDSessionRenderingPublishPlugin, self).settings or {}
+        base_settings = super().settings or {}
 
         # settings specific to this class
         vred_publish_settings = {
@@ -135,7 +135,7 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
             )
             return False
 
-        return super(VREDSessionRenderingPublishPlugin, self).validate(settings, item)
+        return super().validate(settings, item)
 
     def publish(self, settings, item):
         """
@@ -154,7 +154,7 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
         if not bg_processing or (bg_processing and in_bg_process):
 
             # let the base class register the publish
-            super(VREDSessionRenderingPublishPlugin, self).publish(settings, item)
+            super().publish(settings, item)
 
     def finalize(self, settings, item):
         """
@@ -173,4 +173,4 @@ class VREDSessionRenderingPublishPlugin(HookBaseClass):
 
         if not bg_processing or (bg_processing and in_bg_process):
             # do the base class finalization
-            super(VREDSessionRenderingPublishPlugin, self).finalize(settings, item)
+            super().finalize(settings, item)

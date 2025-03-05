@@ -47,7 +47,7 @@ class VREDShotgunFields(HookBaseClass):
                         """,
             }
 
-        return super(VREDShotgunFields, self).get_main_view_definition(entity_type)
+        return super().get_main_view_definition(entity_type)
 
     def get_entity_tabs_definition(self, entity_type, shotgun_globals):
         """
@@ -61,7 +61,7 @@ class VREDShotgunFields(HookBaseClass):
         :returns: Dictionary
         """
 
-        values = super(VREDShotgunFields, self).get_entity_tabs_definition(
+        values = super().get_entity_tabs_definition(
             entity_type, shotgun_globals
         )
 
@@ -84,4 +84,4 @@ class VREDShotgunFields(HookBaseClass):
         if entity_type == "Playlist":
             return "versions"
 
-        return super(VREDShotgunFields, self).get_entity_default_tab(entity_type)
+        return super().get_entity_default_tab(entity_type)

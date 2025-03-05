@@ -16,7 +16,7 @@ class VREDPyNode(VREDPyBase):
 
     def __init__(self, vred_py):
         """Initialize"""
-        super(VREDPyNode, self).__init__(vred_py)
+        super().__init__(vred_py)
 
     def get_root_node(self, api_version=None):
         """
