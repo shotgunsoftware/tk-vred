@@ -109,7 +109,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         """
 
         # inherit the settings from the base publish plugin
-        base_settings = super(VREDSessionPublishPlugin, self).settings or {}
+        base_settings = super().settings or {}
 
         # settings specific to this class
         vred_publish_settings = {
@@ -289,7 +289,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         dependencies = self.get_publish_dependencies(settings, item)
 
         # run the base class validation
-        return super(VREDSessionPublishPlugin, self).validate(settings, item)
+        return super().validate(settings, item)
 
     def publish(self, settings, item):
         """
@@ -332,7 +332,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         if not bg_processing or (bg_processing and in_bg_process):
 
             # let the base class register the publish
-            super(VREDSessionPublishPlugin, self).publish(settings, item)
+            super().publish(settings, item)
 
     def finalize(self, settings, item):
         """
@@ -351,7 +351,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
 
         if not bg_processing or (bg_processing and in_bg_process):
             # do the base class finalization
-            super(VREDSessionPublishPlugin, self).finalize(settings, item)
+            super().finalize(settings, item)
 
         # bump the session file to the next version
         if not bg_processing or (bg_processing and not in_bg_process):
@@ -372,9 +372,7 @@ class VREDSessionPublishPlugin(HookBaseClass):
         if publish_dependencies:
             return publish_dependencies
 
-        dependencies = super(VREDSessionPublishPlugin, self).get_publish_dependencies(
-            settings, item
-        )
+        dependencies = super().get_publish_dependencies(settings, item)
 
         # Add any referenced wire files the the list of dependencies for this file. If wire
         # files are not Flow Production Tracking managed files, then these will not be included at publish time

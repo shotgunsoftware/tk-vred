@@ -29,7 +29,7 @@ class vrShotgun(vrShotgun_form, vrShotgun_base):
 
     def __init__(self, parent=None):
         """Initialize the plugin."""
-        super(vrShotgun, self).__init__(parent)
+        super().__init__(parent)
         parent.layout().addWidget(self)
         self.setupUi(self)
         QtCore.QTimer.singleShot(0, self.init)

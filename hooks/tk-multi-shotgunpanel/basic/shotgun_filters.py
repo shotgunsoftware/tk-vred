@@ -59,6 +59,6 @@ class VREDShotgunFilters(HookBaseClass):
             return link_filters
 
         # Fallback to base hook implementation
-        return super(VREDShotgunFilters, self).get_link_filters(
+        return super().get_link_filters(
             sg_location, entity_type, context_project, context_user
         )

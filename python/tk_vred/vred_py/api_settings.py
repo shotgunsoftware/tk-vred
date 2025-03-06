@@ -18,7 +18,7 @@ class VREDPySetting(VREDPyBase):
 
     def __init__(self, vred_py):
         """Initialize"""
-        super(VREDPySetting, self).__init__(vred_py)
+        super().__init__(vred_py)
 
     def get_unfold_settings(
         self,

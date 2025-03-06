@@ -16,7 +16,7 @@ class VREDPyReference(VREDPyBase):
 
     def __init__(self, vred_py):
         """Initialize"""
-        super(VREDPyReference, self).__init__(vred_py)
+        super().__init__(vred_py)
 
     def get_reference_by_id(self, reference_id):
         """

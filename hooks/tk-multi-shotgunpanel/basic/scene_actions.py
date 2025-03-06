@@ -9,12 +9,12 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
+import urllib
 
 import sgtk
 from sgtk import util
 from sgtk.platform.qt import QtCore, QtGui
 from tank.util import sgre as re
-from tank_vendor.six.moves import urllib
 
 
 HookBaseClass = sgtk.get_hook_baseclass()
@@ -26,7 +26,7 @@ class VREDActions(HookBaseClass):
     def __init__(self, *args, **kwargs):
         """Initialize the hook."""
 
-        super(VREDActions, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.vredpy = self.parent.engine.vredpy
 

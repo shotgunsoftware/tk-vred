@@ -70,7 +70,7 @@ class VREDUploadVersionPlugin(HookBaseClass):
         if item.properties.get("sequence_paths"):
             return {"accepted": False}
 
-        return super(VREDUploadVersionPlugin, self).accept(settings, item)
+        return super().accept(settings, item)
 
     def publish(self, settings, item):
         """
@@ -97,7 +97,7 @@ class VREDUploadVersionPlugin(HookBaseClass):
             item.properties["publish_name"] = publish_name
 
             # create the Version in Shotgun
-            super(VREDUploadVersionPlugin, self).publish(settings, item)
+            super().publish(settings, item)
 
     def finalize(self, settings, item):
         """
@@ -116,4 +116,4 @@ class VREDUploadVersionPlugin(HookBaseClass):
 
         if not bg_processing or (bg_processing and in_bg_process):
             # do the base class finalization
-            super(VREDUploadVersionPlugin, self).finalize(settings, item)
+            super().finalize(settings, item)

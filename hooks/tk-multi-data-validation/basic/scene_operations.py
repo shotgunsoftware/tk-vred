@@ -18,7 +18,7 @@ class VREDSceneOperationsHook(HookBaseClass):
     """Hook class that sets up VRED events to update the Data Validation App."""
 
     def __init__(self, *args, **kwargs):
-        super(VREDSceneOperationsHook, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__scene_event_callbacks = []
 
     def register_scene_events(self, reset_callback, change_callback):
