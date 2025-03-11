@@ -259,9 +259,7 @@ def _get_installation_paths_from_windows_registry(logger):
     where VRED is installed.
     """
     # Local scope here
-    from tank_vendor.shotgun_api3.lib import six
-
-    winreg = six.moves.winreg
+    import winreg
 
     logger.debug(
         "Querying Windows registry for keys "

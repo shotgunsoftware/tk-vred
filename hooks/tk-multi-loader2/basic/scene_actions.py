@@ -22,7 +22,7 @@ class VredActions(HookBaseClass):
     def __init__(self, *args, **kwargs):
         """Initialize the hook."""
 
-        super(VredActions, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.vredpy = self.parent.engine.vredpy
 

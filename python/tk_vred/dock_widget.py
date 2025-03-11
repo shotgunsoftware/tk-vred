@@ -39,7 +39,7 @@ class DockWidget(QtGui.QDockWidget):
         custom functionality.
         """
 
-        super(DockWidget, self).__init__(title, main_window)
+        super().__init__(title, main_window)
 
         self._widget_id = widget_id
         self._closable = closable
@@ -122,7 +122,7 @@ class DockWidget(QtGui.QDockWidget):
         """
 
         if self.closable:
-            super(DockWidget, self).closeEvent(event)
+            super().closeEvent(event)
 
         else:
             # Ignore the close event to prevent the widget from closing, and set floating to False

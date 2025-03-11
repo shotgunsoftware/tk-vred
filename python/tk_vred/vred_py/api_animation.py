@@ -16,7 +16,7 @@ class VREDPyAnimation(VREDPyBase):
 
     def __init__(self, vred_py):
         """Initialize"""
-        super(VREDPyAnimation, self).__init__(vred_py)
+        super().__init__(vred_py)
 
     def is_animation_clip(self, clip_node):
         """

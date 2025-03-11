@@ -17,7 +17,7 @@ class VREDPyUtils(VREDPyBase):
 
     def __init__(self, vred_py):
         """Initialize"""
-        super(VREDPyUtils, self).__init__(vred_py)
+        super().__init__(vred_py)
 
     # -------------------------------------------------------------------------------------------------------
     # VRED API Versioning

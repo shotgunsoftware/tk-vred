@@ -12,14 +12,7 @@ import logging
 import os
 import re
 import sys
-
 import sgtk
-from tank_vendor import six
-
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
 
 
 class VREDEngine(sgtk.platform.Engine):
@@ -39,7 +32,7 @@ class VREDEngine(sgtk.platform.Engine):
 
         # Set a flag to indicate that the engine has been initialized
         self.__initialized = False
-        super(VREDEngine, self).__init__(tk, context, engine_instance_name, env)
+        super().__init__(tk, context, engine_instance_name, env)
         self.__initialized = True
 
     # -------------------------------------------------------------------------------------------------------
@@ -310,7 +303,7 @@ class VREDEngine(sgtk.platform.Engine):
         """
 
         # Create the dialog as usual.
-        dialog = super(VREDEngine, self)._create_dialog(title, bundle, widget, parent)
+        dialog = super()._create_dialog(title, bundle, widget, parent)
 
         # Based on the current VRED version, determine if any custom styling is needed.
         if self._version_check(self.vred_version, "2024.0.0") >= 0:
@@ -344,12 +337,7 @@ class VREDEngine(sgtk.platform.Engine):
             import vrVredUi
 
         wrap_instance = self.__get_wrap_instance_method()
-        if six.PY2:
-            window = wrap_instance(
-                long(vrVredUi.getMainWindow()), QtGui.QMainWindow  # noqa
-            )
-        else:
-            window = wrap_instance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
+        window = wrap_instance(int(vrVredUi.getMainWindow()), QtGui.QMainWindow)
 
         return window
 
@@ -563,7 +551,7 @@ class VREDEngine(sgtk.platform.Engine):
                 :param menu: A QMenu object to set for this button.
                 """
                 menu.patch_toolbutton = self
-                super(QToolButtonPatch, self).setMenu(menu)
+                super().setMenu(menu)
 
             def addAction(self, action):
                 """
@@ -629,7 +617,7 @@ class VREDEngine(sgtk.platform.Engine):
                     # Move the menu to the correct position before the show event.
                     self.move(initial_pos)
 
-                super(QMenuPatch, self).showEvent(event)
+                super().showEvent(event)
 
                 if fix_menu_pos:
                     # Help correct the size of the menu.
@@ -909,7 +897,7 @@ class VREDEngine(sgtk.platform.Engine):
 
         self.vredpy.vrFileIO.save(file_path)
 
-        if not os.path.exists(sgutils.ensure_str(str(file_path))):
+        if not os.path.exists(str(file_path)):
             msg = "VRED Failed to save file {}".format(file_path)
             self.logger.error(msg)
             raise Exception(msg)

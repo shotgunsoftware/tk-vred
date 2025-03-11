@@ -86,7 +86,7 @@ class VREDDataValidationHook(HookBaseClass):
     def __init__(self, *args, **kwargs):
         """Initialize the hook."""
 
-        super(VREDDataValidationHook, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Get the VRED python api module from the engine. Use this module to access all of the VRED API
         # functions (instead of directly importing here).

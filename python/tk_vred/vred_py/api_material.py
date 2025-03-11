@@ -16,7 +16,7 @@ class VREDPyMaterial(VREDPyBase):
 
     def __init__(self, vred_py):
         """Initialize"""
-        super(VREDPyMaterial, self).__init__(vred_py)
+        super().__init__(vred_py)
 
     def get_materials(self, items):
         """
