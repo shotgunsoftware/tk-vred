@@ -186,7 +186,7 @@ For information regarding support engine versions, please visit this page:
                             version=VERSION_OLDEST_COMPATIBLE,
                         ),
                     )
-                except: # Ignore B110
+                except:  # Ignore B110
                     # It is unlikely that the above message will go through
                     # on old versions of VRED (Python2, Qt4, ...).
                     # But there is nothing more we can do here.
@@ -210,9 +210,7 @@ For information regarding support engine versions, please visit this page:
                 )
             )
 
-            if self.has_ui and self.get_setting(
-                "compatibility_dialog_old_version"
-            ):
+            if self.has_ui and self.get_setting("compatibility_dialog_old_version"):
                 QtGui.QMessageBox.warning(
                     self._get_dialog_parent(),  # parent
                     "Warning - Flow Production Tracking Compatibility!".ljust(
@@ -255,10 +253,12 @@ For information regarding support engine versions, please visit this page:
             )
 
             if (
-                self.has_ui and self._version_check(
+                self.has_ui
+                and self._version_check(
                     vred_major_version,
                     str(self.get_setting("compatibility_dialog_min_version")),
-                ) > 0
+                )
+                > 0
             ):
                 QtGui.QMessageBox.warning(
                     self._get_dialog_parent(),  # parent
