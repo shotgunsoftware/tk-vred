@@ -29,7 +29,7 @@ class VREDLauncher(SoftwareLauncher):
         "VRED Pro": dict(icon="icon_pro_256.png"),
         "VRED Design": dict(icon="icon_design_256.png"),
         "VRED Presenter": dict(icon="icon_presenter_256.png"),
-        "VREDLE": dict(icon="icon_pro_256.png"),
+        "VRED Learning Edition": dict(icon="icon_pro_256.png"),
     }
 
     @property
