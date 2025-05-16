@@ -29,6 +29,7 @@ class VREDLauncher(SoftwareLauncher):
         "VRED Pro": dict(icon="icon_pro_256.png"),
         "VRED Design": dict(icon="icon_design_256.png"),
         "VRED Presenter": dict(icon="icon_presenter_256.png"),
+        "VREDLE": dict(icon="icon_pro_256.png"),
     }
 
     @property
@@ -264,7 +265,7 @@ def _get_installation_paths_from_windows_registry(logger):
     logger.debug(
         "Querying Windows registry for keys "
         "HKEY_LOCAL_MACHINE\\SOFTWARE\\Autodesk\\VRED "
-        "Pro | Design | Presenter"
+        "Pro | Design | Presenter | VREDLE"
     )
 
     install_paths = []
@@ -288,6 +289,12 @@ def _get_installation_paths_from_windows_registry(logger):
             "VREDLocation",
             "\\VREDPresenter.exe",
             "VRED Presenter",
+        ],
+        [
+            "SOFTWARE\\Autodesk\\VREDLE",
+            "VREDLocation",
+            "\\VREDLE.exe",
+            "VRED Learning Edition",
         ],
     ]
     for base_key_name in base_key_names:
