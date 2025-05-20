@@ -1,0 +1,7 @@
+v3.5.2
+=====================
+
+Release highlights
+------------------
+
+* Update minimum supported version to 2026.0
