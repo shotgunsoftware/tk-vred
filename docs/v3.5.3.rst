@@ -1,0 +1,12 @@
+v3.5.3
+=====================
+
+Release highlights
+------------------
+
+* VRED Learning Edition is now supported
+
+New Features
+-----------------
+
+* Flow Production Desktop will now provide the launcher for VRED Learning Edition software, if installed

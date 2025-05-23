@@ -1,0 +1,7 @@
+v3.5.1
+=====================
+
+Release highlights
+------------------
+
+* Removed python 2 code
