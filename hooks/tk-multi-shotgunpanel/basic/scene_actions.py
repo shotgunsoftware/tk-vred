@@ -89,7 +89,7 @@ class VREDActions(HookBaseClass):
                 {
                     "name": "import",
                     "params": None,
-                    "caption": "Import into Scene",
+                    "caption": "Import",
                     "description": "This will import the item into the current universe.",
                 }
             )
