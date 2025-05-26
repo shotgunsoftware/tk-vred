@@ -14,6 +14,13 @@ import re
 import sys
 import sgtk
 
+# VRED versions compatibility constants
+VERSION_OLDEST_COMPATIBLE = "2020"
+VERSION_OLDEST_SUPPORTED = "2023"
+VERSION_NEWEST_SUPPORTED = "2026.99"
+# Caution: make sure compatibility_dialog_min_version default value in info.yml
+# is equal to VERSION_NEWEST_SUPPORTED
+
 
 class VREDEngine(sgtk.platform.Engine):
     """A VRED engine for Flow Production Tracking Toolkit."""
@@ -143,47 +150,152 @@ class VREDEngine(sgtk.platform.Engine):
         # Initialize the notifier
         self.__notifier = self._tk_vred.VREDNotifier()
 
+        url_doc_supported_versions = "https://help.autodesk.com/view/SGDEV/ENU/?guid=SGD_si_integrations_engine_supported_versions_html"
+
         # check for version compatibility
         self.vred_version = os.getenv("TK_VRED_VERSION", None)
         vred_major_version = self.vred_version[:4]
         self.logger.debug("Running VRED version {}".format(self.vred_version))
-        if (
-            self._version_check(
-                vred_major_version,
-                str(self.get_setting("compatibility_dialog_min_version")),
-            )
-            > 0
-        ):
-            msg = (
-                "The Flow Production Tracking Toolkit has not yet been fully tested "
-                "with VRED {version}. You can continue to use the Toolkit but you may "
-                "experience bugs or instability.  Please report any issues you see to {support_url}".format(
-                    version=self.vred_version, support_url=sgtk.support_url
-                )
-            )
-            self.logger.warning(msg)
+
+        if self._version_check(vred_major_version, VERSION_OLDEST_COMPATIBLE) < 0:
+            # Old incompatible version
+            message = """
+Flow Production Tracking is no longer compatible with {product} versions older
+than {version}.
+For information regarding support engine versions, please visit this page:
+{url_doc_supported_versions}
+            """.strip()
+
             if self.has_ui:
-                QtGui.QMessageBox.warning(
-                    self._get_dialog_parent(),
-                    "Warning - Flow Production Tracking Toolkit!",
-                    msg,
-                )
-        elif self._version_check(vred_major_version, "2021.0") < 0 and self.get_setting(
-            "compatibility_dialog_old_version"
-        ):
-            msg = (
-                "The Flow Production Tracking Toolkit is not fully capable with VRED {version}. "
-                "You should consider upgrading to a more recent version of VRED. "
-                "Please report any issues you see to {support_url}".format(
-                    version=self.vred_version, support_url=sgtk.support_url
+                try:
+                    QtGui.QMessageBox.critical(
+                        self._get_dialog_parent(),  # parent
+                        "Error - Flow Production Tracking Compatibility!".ljust(
+                            # Padding to try to prevent the dialog being insanely narrow
+                            70
+                        ),
+                        message.replace(
+                            # Presence of \n breaks the Rich Text Format
+                            "\n",
+                            "<br>",
+                        ).format(
+                            product="VRED",
+                            url_doc_supported_versions='<a style="color: {color}" href="{u}">{u}</a>'.format(
+                                u=url_doc_supported_versions,
+                                color=sgtk.platform.constants.SG_STYLESHEET_CONSTANTS.get(
+                                    "SG_HIGHLIGHT_COLOR",
+                                    "#18A7E3",
+                                ),
+                            ),
+                            version=VERSION_OLDEST_COMPATIBLE,
+                        ),
+                    )
+                except:  # Ignore B110
+                    # It is unlikely that the above message will go through
+                    # on old versions of VRED (Python2, Qt4, ...).
+                    # But there is nothing more we can do here.
+                    pass
+
+            raise sgtk.TankError(
+                message.format(
+                    product="VRED",
+                    url_doc_supported_versions=url_doc_supported_versions,
+                    version=VERSION_OLDEST_COMPATIBLE,
                 )
             )
-            self.logger.warning(msg)
-            if self.has_ui:
+
+        elif self._version_check(vred_major_version, VERSION_OLDEST_SUPPORTED) < 0:
+            # Older than the oldest supported version
+            self.logger.warning(
+                "Flow Production Tracking no longer supports {product} "
+                "versions older than {version}".format(
+                    product="VRED",
+                    version=VERSION_OLDEST_SUPPORTED,
+                )
+            )
+
+            if self.has_ui and self.get_setting("compatibility_dialog_old_version"):
                 QtGui.QMessageBox.warning(
-                    self._get_dialog_parent(),
-                    "Warning - Flow Production Tracking Toolkit!",
-                    msg,
+                    self._get_dialog_parent(),  # parent
+                    "Warning - Flow Production Tracking Compatibility!".ljust(
+                        # Padding to try to prevent the dialog being insanely narrow
+                        70
+                    ),
+                    """
+Flow Production Tracking no longer supports {product} versions older than
+{version}.
+You can continue to use Toolkit but you may experience bugs or instabilities.
+For information regarding support engine versions, please visit this page:
+{url_doc_supported_versions}
+                    """.strip()
+                    .replace(
+                        # Presence of \n breaks the Rich Text Format
+                        "\n",
+                        "<br>",
+                    )
+                    .format(
+                        product="VRED",
+                        url_doc_supported_versions='<a style="color: {color}" href="{u}">{u}</a>'.format(
+                            u=url_doc_supported_versions,
+                            color=sgtk.platform.constants.SG_STYLESHEET_CONSTANTS.get(
+                                "SG_HIGHLIGHT_COLOR",
+                                "#18A7E3",
+                            ),
+                        ),
+                        version=VERSION_OLDEST_SUPPORTED,
+                    ),
+                )
+
+        elif self._version_check(vred_major_version, VERSION_NEWEST_SUPPORTED) <= 0:
+            # Within the range of supported versions
+            pass
+
+        else:  # Newer than the newest supported version (untested)
+            self.logger.warning(
+                "Flow Production Tracking has not yet been fully tested with "
+                "{product} version {version}.".format(
+                    product="VRED",
+                    version=self.vred_version,
+                )
+            )
+
+            if (
+                self.has_ui
+                and self._version_check(
+                    vred_major_version,
+                    str(self.get_setting("compatibility_dialog_min_version")),
+                )
+                > 0
+            ):
+                QtGui.QMessageBox.warning(
+                    self._get_dialog_parent(),  # parent
+                    "Warning - Flow Production Tracking Compatibility!".ljust(
+                        # Padding to try to prevent the dialog being insanely narrow
+                        70
+                    ),
+                    """
+Flow Production Tracking has not yet been fully tested with {product} version
+{version}.
+You can continue to use Toolkit but you may experience bugs or instabilities.
+Please report any issues to:
+{support_url}
+                    """.strip()
+                    .replace(
+                        # Presence of \n breaks the Rich Text Format
+                        "\n",
+                        "<br>",
+                    )
+                    .format(
+                        product="VRED",
+                        support_url='<a style="color: {color}" href="{u}">{u}</a>'.format(
+                            u=sgtk.support_url,
+                            color=sgtk.platform.constants.SG_STYLESHEET_CONSTANTS.get(
+                                "SG_HIGHLIGHT_COLOR",
+                                "#18A7E3",
+                            ),
+                        ),
+                        version=self.vred_version,
+                    ),
                 )
 
     def post_app_init(self):
