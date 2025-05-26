@@ -89,18 +89,30 @@ class VREDActions(HookBaseClass):
                 {
                     "name": "import",
                     "params": None,
-                    "caption": "Import into Scene",
+                    "caption": "Import",
                     "description": "This will import the item into the current universe.",
                 }
             )
 
-        if "import_sceneplate" in actions:
+        # NOTE: keep `import_sceneplate` to keep backward compatibility; it
+        # should have been named `import_front_sceneplate`
+        if "import_sceneplate" in actions or "import_front_sceneplate" in actions:
             action_instances.append(
                 {
-                    "name": "import_sceneplate",
-                    "params": None,
-                    "caption": "Import image(s) into scene as a sceneplate",
-                    "description": "This will import the image(s) into the current VRED Scene.",
+                    "name": "import_front_sceneplate",
+                    "params": {"sceneplate_type": "front"},
+                    "caption": "Create Frontplate",
+                    "description": "Create a frontplate with the chosen image.",
+                }
+            )
+
+        if "import_back_sceneplate" in actions:
+            action_instances.append(
+                {
+                    "name": "import_back_sceneplate",
+                    "params": {"sceneplate_type": "back"},
+                    "caption": "Create Backplate",
+                    "description": "Create a backplate with the chosen image.",
                 }
             )
 
@@ -150,9 +162,9 @@ class VREDActions(HookBaseClass):
             path = self.get_publish_path(sg_data)
             self.vredpy.vrFileIO.loadGeometry(path)
 
-        elif name == "import_sceneplate":
+        elif name in ("import_front_sceneplate", "import_back_sceneplate"):
             image_path = self.get_publish_path(sg_data)
-            self.import_sceneplate(image_path)
+            self.import_sceneplate(image_path, params.get("sceneplate_type"))
 
         elif name == "load_for_review":
             if self._load_for_review(sg_data):
@@ -232,21 +244,25 @@ class VREDActions(HookBaseClass):
         ref_name = os.path.splitext(os.path.basename(path))[0]
 
         # create the smart ref, load it and finally change the node name to reflect the ref path
-        ref_node = self.vred_py.vrReferenceService.createSmart()
+        ref_node = self.vredpy.vrReferenceService.createSmart()
         ref_node.setSmartPath(path)
         ref_node.load()
         ref_node.setName(ref_name)
 
-    def import_sceneplate(self, image_path):
+    def import_sceneplate(self, image_path, sceneplate_type="front"):
         """
         Executes the import of the image(s) and the creation
         of the VRED sceneplate
 
         :param str image_path: Path to image file from the sg_published_data
+        :param str sceneplate_type: Type of sceneplate to create ("front" or "back")
         """
 
+        if not sceneplate_type or sceneplate_type not in ("front", "back"):
+            raise ValueError("Invalid sceneplate type. Must be 'front' or 'back'.")
+
         self.logger.debug(
-            "Import sceneplate for image file '{path}'".format(path=image_path)
+            f"Create {sceneplate_type} sceneplate for image file '{image_path}'"
         )
 
         # Get the Sceneplate Root object
@@ -255,10 +271,16 @@ class VREDActions(HookBaseClass):
         nodeName = os.path.basename(image_path)
         # Load in the image
         imageObject = self.vredpy.vrImageService.loadImage(image_path)  # noqa
+        # Determine the sceneplate type
+        vred_sceneplate_type = (
+            self.vredpy.vrSceneplateTypes.NodeType.Frontplate
+            if sceneplate_type == "front"
+            else self.vredpy.vrSceneplateTypes.NodeType.Backplate
+        )
         # Create the actual Sceneplate node
         newSceneplateNode = self.vredpy.vrSceneplateService.createNode(  # noqa
             vredSceneplateRoot,
-            self.vredpy.vrSceneplateTypes.NodeType.Frontplate,
+            vred_sceneplate_type,
             nodeName,
         )
         newSceneplate = self.vredpy.vrdSceneplateNode(newSceneplateNode)
