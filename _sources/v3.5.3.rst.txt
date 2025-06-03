@@ -1,0 +1,37 @@
+v3.5.3
+=====================
+
+Release highlights
+------------------
+
+* VRED Learning Edition is now supported
+* Update actions in Loader2 and Panel Apps
+
+Dependencies
+---------------
+
+* Configuration: ``tk-config-default v1.7.5`` or ``tk-config-basic v1.7.5``. Required for:
+
+  * Updated VRED actions
+  * New action "Create Backplate" in Loader2 and Panel Apps
+  * Support for Published File Types ``Nx File`` (.prt) in Loader2 and Panel Apps
+
+New Features
+-----------------
+
+* Flow Production Desktop will now provide the launcher for VRED Learning Edition software, if installed
+* Added support for Published File Types ``Nx File`` (.prt) in Loader2 and Panel Apps (Import and Import with Options actions available)
+
+Updates
+-----------------
+
+VRED actions
+^^^^^^^^^^^^^
+
+* Renamed Loader2 and Panel App actions:
+
+  * "Import into Scene" renamed to "Import"
+  * "Open Import Dialog to change options..." renamed to "Import with Options"
+  * "Import image(s) into scene as a sceneplate" renamed to "Create Frontplate"
+
+* Added new action "Create Backplate" to Loader2 and Panel Apps the `Image` and `Rendered Image` publish file types, which will create a backplate in the current scene

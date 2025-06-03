@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>What’s New &mdash; tk-vred v3.5.2 documentation</title>
+  <title>What’s New &mdash; tk-vred v3.5.3 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
@@ -61,10 +61,28 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Toolkit Configuration</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">What’s New</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#v3-5-0">v3.5.0</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#v3-5-3">v3.5.3</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#release-highlights">Release highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#dependencies">Dependencies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#new-features">New Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#updates">Updates</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#vred-actions">VRED actions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#v3-5-2">v3.5.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Release highlights</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#v3-5-1">v3.5.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Release highlights</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#v3-5-0">v3.5.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Release highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">New Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bug-fixes">Bug Fixes</a></li>
 </ul>
 </li>
@@ -91,7 +109,7 @@
                              text-decoration: underline; }
     </style>
 
-    <b>tk-vred</b> v3.5.2.<br>
+    <b>tk-vred</b> v3.5.3.<br>
     
         This documentation is part of the Flow Production Tracking.
     
@@ -135,11 +153,74 @@
              
   <section id="what-s-new">
 <h1>What’s New<a class="headerlink" href="#what-s-new" title="Permalink to this heading"></a></h1>
-<p>The latest version of the VRED Engine is <code class="docutils literal notranslate"><span class="pre">v3.5.0</span></code>.</p>
-<section id="v3-5-0">
-<h2>v3.5.0<a class="headerlink" href="#v3-5-0" title="Permalink to this heading"></a></h2>
+<p>The latest version of the VRED Engine is <code class="docutils literal notranslate"><span class="pre">v3.5.3</span></code>.</p>
+<section id="v3-5-3">
+<h2>v3.5.3<a class="headerlink" href="#v3-5-3" title="Permalink to this heading"></a></h2>
 <section id="release-highlights">
 <h3>Release highlights<a class="headerlink" href="#release-highlights" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p>VRED Learning Edition is now supported</p></li>
+<li><p>Update actions in Loader2 and Panel Apps</p></li>
+</ul>
+</section>
+<section id="dependencies">
+<h3>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p>Configuration: <code class="docutils literal notranslate"><span class="pre">tk-config-default</span> <span class="pre">v1.7.5</span></code> or <code class="docutils literal notranslate"><span class="pre">tk-config-basic</span> <span class="pre">v1.7.5</span></code>. Required for:</p>
+<ul>
+<li><p>Updated VRED actions</p></li>
+<li><p>New action “Create Backplate” in Loader2 and Panel Apps</p></li>
+<li><p>Support for Published File Types <code class="docutils literal notranslate"><span class="pre">Nx</span> <span class="pre">File</span></code> (.prt) in Loader2 and Panel Apps</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="new-features">
+<h3>New Features<a class="headerlink" href="#new-features" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p>Flow Production Desktop will now provide the launcher for VRED Learning Edition software, if installed</p></li>
+<li><p>Added support for Published File Types <code class="docutils literal notranslate"><span class="pre">Nx</span> <span class="pre">File</span></code> (.prt) in Loader2 and Panel Apps (Import and Import with Options actions available)</p></li>
+</ul>
+</section>
+<section id="updates">
+<h3>Updates<a class="headerlink" href="#updates" title="Permalink to this heading"></a></h3>
+<section id="vred-actions">
+<h4>VRED actions<a class="headerlink" href="#vred-actions" title="Permalink to this heading"></a></h4>
+<ul class="simple">
+<li><p>Renamed Loader2 and Panel App actions:</p>
+<ul>
+<li><p>“Import into Scene” renamed to “Import”</p></li>
+<li><p>“Open Import Dialog to change options…” renamed to “Import with Options”</p></li>
+<li><p>“Import image(s) into scene as a sceneplate” renamed to “Create Frontplate”</p></li>
+</ul>
+</li>
+<li><p>Added new action “Create Backplate” to Loader2 and Panel Apps the <cite>Image</cite> and <cite>Rendered Image</cite> publish file types, which will create a backplate in the current scene</p></li>
+</ul>
+</section>
+</section>
+</section>
+<section id="v3-5-2">
+<h2>v3.5.2<a class="headerlink" href="#v3-5-2" title="Permalink to this heading"></a></h2>
+<section id="id1">
+<h3>Release highlights<a class="headerlink" href="#id1" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p>Update minimum supported version to 2026.0</p></li>
+</ul>
+</section>
+</section>
+<section id="v3-5-1">
+<h2>v3.5.1<a class="headerlink" href="#v3-5-1" title="Permalink to this heading"></a></h2>
+<section id="id2">
+<h3>Release highlights<a class="headerlink" href="#id2" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p>Removed python 2 code</p></li>
+</ul>
+</section>
+</section>
+<section id="v3-5-0">
+<h2>v3.5.0<a class="headerlink" href="#v3-5-0" title="Permalink to this heading"></a></h2>
+<section id="id3">
+<h3>Release highlights<a class="headerlink" href="#id3" title="Permalink to this heading"></a></h3>
 <ul class="simple">
 <li><p>New action ‘Import Envrionments’ added to Loader2 actions</p></li>
 <li><p>Publish setting option added to turn on/off publishing in the background</p></li>
@@ -147,8 +228,8 @@
 <li><p>Bug fix ‘Create Smart Reference’ action only available for VRED native files</p></li>
 </ul>
 </section>
-<section id="dependencies">
-<h3>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this heading"></a></h3>
+<section id="id4">
+<h3>Dependencies<a class="headerlink" href="#id4" title="Permalink to this heading"></a></h3>
 <ul>
 <li><p>Publish2 App: <code class="docutils literal notranslate"><span class="pre">tk-multi-publish2</span> <span class="pre">v2.10.3</span></code></p>
 <blockquote>
@@ -169,8 +250,8 @@
 </li>
 </ul>
 </section>
-<section id="new-features">
-<h3>New Features<a class="headerlink" href="#new-features" title="Permalink to this heading"></a></h3>
+<section id="id5">
+<h3>New Features<a class="headerlink" href="#id5" title="Permalink to this heading"></a></h3>
 <p><strong>Import Envrionemnts</strong></p>
 <p>The Loader2 App now includes a new actiono <strong>Import Environments</strong> to import environments from a file. This requires configuration update to <code class="docutils literal notranslate"><span class="pre">v1.7.4</span></code> or later.</p>
 <p>Flow Proudction Tracking file types supported:</p>
