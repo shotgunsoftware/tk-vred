@@ -134,10 +134,6 @@ class VREDEngine(sgtk.platform.Engine):
         # tell QT to interpret C strings as utf-8
         from sgtk.platform.qt import QtCore, QtGui
 
-        utf8 = QtCore.QTextCodec.codecForName("utf-8")
-        QtCore.QTextCodec.setCodecForCStrings(utf8)
-        self.logger.debug("set utf-8 codec for widget text")
-
         # Temporarily monkey patch QToolButton and QMenu to resolve a Qt 5.15.0 bug (seems that it will fixed in 5.15.1)
         # where QToolButton menu will open only on primary screen.
         if self.has_ui and self._version_check(QtCore.__version__, "5.15.1") < 0:
