@@ -11,7 +11,6 @@
 import sgtk
 from tank import TankError
 
-
 HookBaseClass = sgtk.get_hook_baseclass()
 
 

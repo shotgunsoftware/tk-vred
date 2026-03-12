@@ -33,12 +33,10 @@ def check_vred_version_support(func):
             return func(*args, **kwargs)
         except validation_hook_instance.vredpy.VREDPyError as vredpy_error:
             validation_hook_instance.logger.error(vredpy_error)
-            raise VREDDataValidationHook.VREDDataValidationError(
-                """
+            raise VREDDataValidationHook.VREDDataValidationError("""
                 This Validation Rule is not supported by the current running VRED version.
                 Please update to the latest version of VRED to use this functionality.
-            """
-            )
+            """)
 
     return wrapper
 
