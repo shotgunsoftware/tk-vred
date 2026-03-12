@@ -16,7 +16,6 @@ from sgtk import util
 from sgtk.platform.qt import QtCore, QtGui
 from tank.util import sgre as re
 
-
 HookBaseClass = sgtk.get_hook_baseclass()
 
 
