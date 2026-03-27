@@ -377,5 +377,4 @@ def _get_windows_version(full_path, logger):
         logger.debug("Could not determine version using PowerShell command: '{ps_cmd}'")
         return "0.0.0.0"
 
-    version_list = re.findall(r"[\d.]", str(version_command))
-    return "".join(map(str, version_list))
+    return version_command.strip().splitlines()[-1].strip()
