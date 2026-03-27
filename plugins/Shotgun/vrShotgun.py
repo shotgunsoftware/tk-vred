@@ -10,7 +10,6 @@ import sgtk
 import vrFileIO
 import vrScenegraph
 
-
 sgtk.LogManager().initialize_base_file_handler("tk-vred")
 logger = sgtk.LogManager.get_logger(__name__)
 vrShotgun_form, vrShotgun_base = uiTools.loadUiType("vrShotgunGUI.ui")

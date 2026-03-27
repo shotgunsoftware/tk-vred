@@ -12,7 +12,6 @@ import os
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-
 HookBaseClass = sgtk.get_hook_baseclass()
 
 
@@ -100,7 +99,7 @@ class VredActions(HookBaseClass):
                 {
                     "name": "import",
                     "params": None,
-                    "caption": "Import into Scene",
+                    "caption": "Import",
                     "description": "This will import the item into the current VRED Scene.",
                 }
             )
@@ -126,7 +125,7 @@ class VredActions(HookBaseClass):
                     {
                         "name": "import_with_options",
                         "params": None,
-                        "caption": "Open Import Dialog to change options...",
+                        "caption": "Import with Options",
                         "description": "This will open the Import Options Dialog.",
                     }
                 )
@@ -136,13 +135,25 @@ class VredActions(HookBaseClass):
                     "This capability requires VRED 2022.1 or later."
                 )
 
-        if "import_sceneplate" in actions:
+        # NOTE: keep `import_sceneplate` to keep backward compatibility; it
+        # should have been named `import_front_sceneplate`
+        if "import_sceneplate" in actions or "import_front_sceneplate" in actions:
             action_instances.append(
                 {
-                    "name": "import_sceneplate",
-                    "params": None,
-                    "caption": "Import image(s) into scene as a sceneplate",
-                    "description": "This will import the image(s) into the current VRED Scene.",
+                    "name": "import_front_sceneplate",
+                    "params": {"sceneplate_type": "front"},
+                    "caption": "Create Frontplate",
+                    "description": "Create a frontplate with the chosen image.",
+                }
+            )
+
+        if "import_back_sceneplate" in actions:
+            action_instances.append(
+                {
+                    "name": "import_back_sceneplate",
+                    "params": {"sceneplate_type": "back"},
+                    "caption": "Create Backplate",
+                    "description": "Create a backplate with the chosen image.",
                 }
             )
 
@@ -181,9 +192,9 @@ class VredActions(HookBaseClass):
         elif name == "import_with_options":
             self.open_import_dialog(path)
 
-        elif name == "import_sceneplate":
+        elif name in ("import_front_sceneplate", "import_back_sceneplate"):
             image_path = self.get_publish_path(sg_publish_data)
-            self.import_sceneplate(image_path)
+            self.import_sceneplate(image_path, params.get("sceneplate_type"))
 
     def execute_multiple_actions(self, actions):
         """
@@ -245,16 +256,20 @@ class VredActions(HookBaseClass):
                 continue  # No data, do not execute function
             batch_action["func"](paths)
 
-    def import_sceneplate(self, image_path):
+    def import_sceneplate(self, image_path, sceneplate_type="front"):
         """
         Executes the import of the image(s) and the creation
         of the VRED sceneplate
 
         :param str image_path: Path to image file from the sg_published_data
+        :param str sceneplate_type: Type of sceneplate to create ("front" or "back")
         """
 
+        if not sceneplate_type or sceneplate_type not in ("front", "back"):
+            raise ValueError("Invalid sceneplate type. Must be 'front' or 'back'.")
+
         self.logger.debug(
-            "Import sceneplate for image file '{path}'".format(path=image_path)
+            f"Create {sceneplate_type} sceneplate for image file '{image_path}'"
         )
 
         QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
@@ -268,10 +283,17 @@ class VredActions(HookBaseClass):
             # Load in the image
             imageObject = self.vredpy.vrImageService.loadImage(image_path)
 
+            # Determine the sceneplate type
+            vred_sceneplate_type = (
+                self.vredpy.vrSceneplateTypes.NodeType.Frontplate
+                if sceneplate_type == "front"
+                else self.vredpy.vrSceneplateTypes.NodeType.Backplate
+            )
+
             # Create the actual Sceneplate node
             newSceneplateNode = self.vredpy.vrSceneplateService.createNode(
                 vredSceneplateRoot,
-                self.vredpy.vrSceneplateTypes.NodeType.Frontplate,
+                vred_sceneplate_type,
                 nodeName,
             )
             newSceneplate = self.vredpy.vrdSceneplateNode(newSceneplateNode)
