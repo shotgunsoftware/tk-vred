@@ -28,7 +28,7 @@ class VredActions(HookBaseClass):
     ##############################################################################################################
     # public interface - to be overridden by deriving classes
 
-    def generate_actions(self, sg_publish_data, actions, ui_area):
+    def generate_actions(self, sg_publish_data, actions, ui_area, **kwargs):
         """
         Returns a list of action instances for a particular publish.
         This method is called each time a user clicks a publish somewhere in the UI.
@@ -159,7 +159,7 @@ class VredActions(HookBaseClass):
 
         return action_instances
 
-    def execute_action(self, name, params, sg_publish_data):
+    def execute_action(self, name, params, sg_publish_data, **kwargs):
         """
         Execute a given action. The data sent to this be method will
         represent one of the actions enumerated by the generate_actions method.
@@ -196,7 +196,7 @@ class VredActions(HookBaseClass):
             image_path = self.get_publish_path(sg_publish_data)
             self.import_sceneplate(image_path, params.get("sceneplate_type"))
 
-    def execute_multiple_actions(self, actions):
+    def execute_multiple_actions(self, actions, **kwargs):
         """
         Executes the specified action on a list of items.
 
@@ -247,7 +247,7 @@ class VredActions(HookBaseClass):
             else:
                 # This action can be executed in multiple single functions
                 params = action["params"]
-                self.execute_action(name, params, sg_publish_data)
+                self.execute_action(name, params, sg_publish_data, **kwargs)
 
         # Execute batch functions now that the data has been gatheredt
         for batch_action in batch_actions.values():
