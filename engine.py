@@ -16,8 +16,8 @@ import sgtk
 
 # VRED versions compatibility constants
 VERSION_OLDEST_COMPATIBLE = "2020"
-VERSION_OLDEST_SUPPORTED = "2023"
-VERSION_NEWEST_SUPPORTED = "2026.99"
+VERSION_OLDEST_SUPPORTED = "2024"
+VERSION_NEWEST_SUPPORTED = "2027.99"
 # Caution: make sure compatibility_dialog_min_version default value in info.yml
 # is equal to VERSION_NEWEST_SUPPORTED
 
